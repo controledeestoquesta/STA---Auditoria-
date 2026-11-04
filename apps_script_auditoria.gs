@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 22)
+ * Auditoria STA – Santa Therezinha (versão 23)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -65,6 +65,17 @@ const ABAS = {
       'Matricula_Colaborador', 'Matricula_Encarregado', 'ID_Auditoria']
   }
 };
+ABAS.sac = {
+  nome: 'SAC_Ocorrencias', perm: 'aud_sac',
+  colunas: ['Data', 'Carregamento', 'NF', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Vl_Unitario', 'Valor', 'Motivo',
+    'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Status_NC', 'Historico',
+    'Matricula_Registrou', 'Nome_Registrou', 'Origem', 'Links_Fotos', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
+  texto: ['Data', 'DataHora', 'Carregamento', 'NF', 'Codigo_Produto', 'Matricula_Conferente', 'Matricula_Registrou', 'ID_Auditoria']
+};
+const MOTIVOS_SAC = ['Falta', 'Sobra'];
+const STATUS_SAC = ['Aberta', 'Em tratativa', 'Encerrada'];
+const CAMPOS_SAC = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'NF', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Vl_Unitario', 'Valor', 'Motivo',
+  'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Status_NC', 'Historico', 'Matricula_Registrou', 'Nome_Registrou', 'Origem', 'Links_Fotos', 'Recebido_Em'];
 const MOTIVOS_PP = ['Mercadoria avariada', 'Consumo indevido por colaborador'];
 const STATUS_VALE = ['Pendente', 'Emitido', 'Não emitido'];
 const CAMPOS_PP = ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Seguranca', 'Nome_Seguranca', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Valor',
@@ -86,6 +97,14 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (dados.acao === 'sac_listar' || dados.acao === 'sac_status') {
+    if (sessao.permissoes.indexOf('aud_adm') < 0 && sessao.permissoes.indexOf('aud_sac') < 0) return resposta({ ok: false, erro: 'Sem permissão do SAC (aud_sac).' });
+    if (dados.acao === 'sac_listar') return resposta(Object.assign({ ok: true }, lerAba(abrirPlanilha(), ABAS.sac.nome, CAMPOS_SAC)));
+    const lks = LockService.getScriptLock(); lks.waitLock(30000);
+    try { return resposta(statusSac(dados.id, dados.status, dados.nota, sessao)); }
+    catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+    finally { lks.releaseLock(); }
+  }
   if (dados.acao === 'pp_listar' || dados.acao === 'pp_vale') {
     const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
     if (dados.acao === 'pp_listar') {
@@ -160,7 +179,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -175,6 +194,7 @@ function doGet(e) {
         aero: !tem('aud_aer') ? vazio : lerAba(ss, ABAS.aero.nome, ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Operador', 'Operador', 'Código', 'Descrição', 'Rua', 'O.S',
           'Tipo de O.S', 'Quantidade', 'Vl_Ult_Entrada', 'Vlr. Total', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Status_NC', 'Recebido_Em', 'Links_Fotos']),
         pp: !(tem('aud_pp') || tem('aud_vale')) ? vazio : lerAba(ss, ABAS.pp.nome, CAMPOS_PP),
+        sac: !tem('aud_sac') ? vazio : lerAba(ss, ABAS.sac.nome, CAMPOS_SAC),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -185,7 +205,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 22, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 23, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -204,6 +224,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_aer: 'Acesso a aba de auditoria_aero',
   aud_pp: 'Acesso a aba de prevencao de perdas (segurancas)',
   aud_vale: 'Acesso a aba de emissao de vales (prevencao de perdas)',
+  aud_sac: 'Acesso a aba do SAC (ocorrencias de falta e sobra)',
   aud_adm: 'Acesso a tela de administracao'
 };
 
@@ -371,6 +392,7 @@ function gravar(ss, cfg, registros) {
   });
   if (cfg === ABAS.cargas) validarMotivosCarga(sh);
   if (cfg === ABAS.pp) validarListasPP(sh, cab);
+  if (cfg === ABAS.sac) validarListas(sh, cab, [['Motivo', MOTIVOS_SAC], ['Status_NC', STATUS_SAC]]);
   const colId = cab.indexOf('ID_Auditoria');
   const existentes = new Set(sh.getLastRow() > 1
     ? sh.getRange(2, colId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); })
@@ -451,6 +473,38 @@ function validarListasPP(sh, cab) {
       r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(x[1], true).setAllowInvalid(false).build());
     });
   } catch (e) { }
+}
+
+/** Listas suspensas genéricas (coluna, opções). */
+function validarListas(sh, cab, listas) {
+  try {
+    listas.forEach(function (x) {
+      const i = cab.indexOf(x[0]); if (i < 0) return;
+      const r = sh.getRange(2, i + 1, Math.max(sh.getMaxRows() - 1, 1), 1);
+      if (r.getDataValidation()) return;
+      r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(x[1], true).setAllowInvalid(false).build());
+    });
+  } catch (e) { }
+}
+
+/** SAC: muda a situação da ocorrência e acrescenta uma linha no Histórico. */
+function statusSac(id, status, nota, sessao) {
+  if (STATUS_SAC.indexOf(status) < 0) throw new Error('Situação inválida.');
+  const sh = abrirPlanilha().getSheetByName(ABAS.sac.nome);
+  if (!sh || sh.getLastRow() < 2) throw new Error('Aba ' + ABAS.sac.nome + ' sem registros.');
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  ['Status_NC', 'Historico'].forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  const iId = cab.indexOf('ID_Auditoria');
+  const ids = sh.getRange(2, iId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); });
+  const k = ids.indexOf(String(id));
+  if (k < 0) throw new Error('Ocorrência não encontrada: ' + id);
+  const lin = k + 2, quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  const cH = sh.getRange(lin, cab.indexOf('Historico') + 1), ant = String(cH.getValue() || '');
+  const linha = quando + ' – ' + status + ' por ' + (sessao.nome || '') + ' (' + sessao.matricula + ')' + (nota ? ': ' + String(nota).slice(0, 300) : '');
+  const hist = ant ? ant + '\n' + linha : linha;
+  sh.getRange(lin, cab.indexOf('Status_NC') + 1).setValue(status);
+  cH.setValue(hist);
+  return { ok: true, id: String(id), status: status, historico: hist };
 }
 
 /** Confirma (ou não) a emissão do vale de uma ocorrência de Prevenção de Perdas. */

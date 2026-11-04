@@ -116,9 +116,9 @@ let LOGIN=DEMO?{demo:true,perms:["aud_rua","aud_ret","aud_car"]}:store.get("audc
 const VIEW_PERM={ruas:"aud_rua",retorno:"aud_ret",cargas:"aud_car",admin:"aud_adm",fechamento:"aud_adm"};
 const temPerm=p=>!!(LOGIN&&LOGIN.perms&&LOGIN.perms.includes(p));
 const ehAdm=()=>temPerm("aud_adm");
-function podeVer(v){if(ehAdm())return true;switch(v){case "ruas":case "painel":return temPerm("aud_rua");case "retorno":return temPerm("aud_ret");case "cargas":return temPerm("aud_car");case "aero":return temPerm("aud_aer");case "pp":return temPerm("aud_pp");case "vales":return temPerm("aud_vale");case "prev":return temPerm("aud_pp")||temPerm("aud_vale");
-  case "fechamento":return temPerm("aud_rua")||temPerm("aud_ret")||temPerm("aud_car")||temPerm("aud_aer")||temPerm("aud_pp")||temPerm("aud_vale");default:return false;}}
-function primeiraTela(){return ["ruas","retorno","cargas","aero","pp","vales","fechamento"].find(podeVer)||"fechamento";}
+function podeVer(v){if(ehAdm())return true;switch(v){case "ruas":case "painel":return temPerm("aud_rua");case "retorno":return temPerm("aud_ret");case "cargas":return temPerm("aud_car");case "aero":return temPerm("aud_aer");case "pp":return temPerm("aud_pp");case "sac":return temPerm("aud_sac");case "vales":return temPerm("aud_vale");case "prev":return temPerm("aud_pp")||temPerm("aud_vale");
+  case "fechamento":return temPerm("aud_rua")||temPerm("aud_ret")||temPerm("aud_car")||temPerm("aud_aer")||temPerm("aud_pp")||temPerm("aud_vale")||temPerm("aud_sac");default:return false;}}
+function primeiraTela(){return ["ruas","retorno","cargas","aero","pp","sac","vales","fechamento"].find(podeVer)||"fechamento";}
 function aplicarPerms(){try{paintXnc();}catch(e){}let n=0;document.querySelectorAll("nav button[data-v]").forEach(b=>{const ok=podeVer(b.dataset.v);b.hidden=!ok;if(ok)n++;});
   document.querySelector("nav").style.setProperty("--nav-n",n);document.querySelector("nav").dataset.n=n;
   const fa=$("f-aba");if(fa){[...fa.options].forEach(o=>o.hidden=!podeVer(o.value));if(!podeVer(fa.value)){const o=[...fa.options].find(x=>podeVer(x.value));if(o)fa.value=o.value;}}}
@@ -170,8 +170,8 @@ $("sheet").addEventListener("click",e=>{if(e.target.id==="sheet"&&auditor)$("she
 paintWho(); if(DEMO&&!auditor)$("sheet").hidden=false;
 
 // navegação
-const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
-function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","vales","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
+const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],sac:["SAC – Ocorrências","Faltas e sobras de conferência: valor, descrição e matrícula automáticos, termo de NC e histórico."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
+function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="sac")paintSAC();if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","sac","vales","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
   document.querySelectorAll("nav button[data-v]").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("band-t").textContent=BAND[v][0];$("band-p").textContent=BAND[v][1];window.scrollTo(0,0);if(v==="registros")renderRecords();}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.v)));
@@ -331,7 +331,7 @@ function renderRecords(){if(typeof renderSess==="function")try{renderSess();}cat
   $("s-valor").textContent=BRL.format(ab.reduce((s,r)=>s+(+r.Valor_Divergencia||0),0)).replace(",00","");
   const list=filtered(),L=$("list");
   if(!list.length){L.innerHTML='<div class="empty">Nenhum registro com estes filtros.<br>Ajuste o período ou o tipo.</div>';return;}
-  const adm=temPerm("aud_adm");L.innerHTML=list.slice(0,200).map(r=>{let h=r._aba==="retorno"?cardRet(r):r._aba==="cargas"?cardCar(r):r._aba==="aero"?cardAer(r):r._aba==="pp"?cardPP(r):card(r);if(adm)h=h.replace(/<\/details>$/,'<button type="button" class="btn full rdel" data-id="'+esc(r.ID_Auditoria)+'" data-aba="'+esc(r._aba||"ruas")+'" style="margin-top:8px;color:var(--alert);border-color:var(--alert)">Excluir registro</button></details>');return h;}).join("")+(list.length>200?'<p class="note">Mostrando 200 de '+list.length+'. O CSV inclui todos.</p>':"");
+  const adm=temPerm("aud_adm");L.innerHTML=list.slice(0,200).map(r=>{let h=r._aba==="retorno"?cardRet(r):r._aba==="cargas"?cardCar(r):r._aba==="aero"?cardAer(r):r._aba==="pp"?cardPP(r):r._aba==="sac"?cardSAC(r):card(r);if(adm)h=h.replace(/<\/details>$/,'<button type="button" class="btn full rdel" data-id="'+esc(r.ID_Auditoria)+'" data-aba="'+esc(r._aba||"ruas")+'" style="margin-top:8px;color:var(--alert);border-color:var(--alert)">Excluir registro</button></details>');return h;}).join("")+(list.length>200?'<p class="note">Mostrando 200 de '+list.length+'. O CSV inclui todos.</p>':"");
   L.querySelectorAll(".rdel").forEach(b=>b.onclick=()=>excluirRegistro(b.dataset.id,b.dataset.aba));
   L.querySelectorAll(".cgrel").forEach(b=>b.onclick=async()=>{const recs=regBase().filter(x=>x.ID_Sessao===b.dataset.s);if(recs.length){await carregarFotosPlanilha(recs);openCarDoc(recs[0].Sessao||sessaoDe(recs[0],recs),recs);}});
   L.querySelectorAll(".rtrel").forEach(b=>b.onclick=async()=>{const recs=regBase().filter(x=>x.ID_Sessao===b.dataset.s);if(recs.length){await carregarFotosPlanilha(recs);openRetDoc(recs[0].Sessao||sessaoDe(recs[0],recs),recs);}});
@@ -389,7 +389,8 @@ let SHEET_URL=store.get("audcd_sheet_url","");
 if(!SHEET_URL||SHEET_OLD.includes(SHEET_URL)){SHEET_URL=SHEET_DEFAULT;store.set("audcd_sheet_url","");}
 let syncing=false,syncAgain=false,lastSheetErr="",lastSheetOk=store.get("audcd_sheet_ok","");
 const SHEET_COLS=COLS.concat(["ID_Sessao"]);
-function toSheet(r){if(r._aba==="pp"){const x={_aba:"pp"};PP_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
+function toSheet(r){if(r._aba==="sac"){const x={_aba:"sac"};SAC_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
+  if(r._aba==="pp"){const x={_aba:"pp"};PP_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
   if(r._aba==="aero"){const x={_aba:"aero"};AER_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
   if(r._aba==="cargas"){const x={_aba:"cargas"};CAR_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
   if(r._aba==="retorno"){const x={_aba:"retorno"};RET_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.foto_retorno=r.foto_retorno||"";x.foto_etiqueta=r.foto_etiqueta||"";return x;}
@@ -644,9 +645,9 @@ IDB.get("painel_cache").then(c=>{if(c&&c.rows&&!PAINEL_ROWS){PAINEL_ROWS=c.rows;
 setInterval(()=>{if(!$("v-painel").hidden&&navigator.onLine&&!document.hidden)carregarPainel();},120000);
 
 // administração de acessos
-const PERM_NOME={aud_rua:"Ruas",aud_ret:"Retorno",aud_car:"Cargas",aud_aer:"Aéreo",aud_pp:"Prevenção",aud_vale:"Vales",aud_adm:"Administração"};
-const PERM_DESC={aud_rua:"Auditoria de ruas",aud_ret:"Auditoria de retorno",aud_car:"Auditoria de cargas",aud_aer:"Auditoria aéreo",aud_pp:"Prevenção de Perdas (seguranças)",aud_vale:"Emissão de vales",aud_adm:"Esta tela"};
-let ADM={lista:null,perms:["aud_rua","aud_ret","aud_car","aud_aer","aud_pp","aud_vale","aud_adm"],filtro:"",novo:false,msg:"",busy:false};
+const PERM_NOME={aud_rua:"Ruas",aud_ret:"Retorno",aud_car:"Cargas",aud_aer:"Aéreo",aud_pp:"Prevenção",aud_vale:"Vales",aud_sac:"SAC",aud_adm:"Administração"};
+const PERM_DESC={aud_rua:"Auditoria de ruas",aud_ret:"Auditoria de retorno",aud_car:"Auditoria de cargas",aud_aer:"Auditoria aéreo",aud_pp:"Prevenção de Perdas (seguranças)",aud_vale:"Emissão de vales",aud_sac:"SAC – ocorrências de falta e sobra",aud_adm:"Esta tela"};
+let ADM={lista:null,perms:["aud_rua","aud_ret","aud_car","aud_aer","aud_pp","aud_vale","aud_sac","aud_adm"],filtro:"",novo:false,msg:"",busy:false};
 async function admPost(body){const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:LOGIN&&LOGIN.token},body)),redirect:"follow",cache:"no-store"});
   let j=null;try{j=await r.json();}catch(e){throw new Error("O Apps Script não respondeu. Confira se a versão 7 está implantada.");}if(!j.ok)throw new Error(j.erro||"Erro na planilha.");return j;}
 async function carregarAdmin(){const box=$("adm");if(!temPerm("aud_adm")){box.innerHTML='<div class="empty">Sem permissão de administração.</div>';return;}
@@ -887,9 +888,9 @@ function fxRot(){const marg=+FECH.margem||6,tit="Retorno × Rotina (8457) — Qu
 /* ---- tela ---- */
 const FX_TIT={ruas:"Qualidade de Ruas",retorno:"Auditoria de Retorno",rotina:"Retorno x Rotina",cargas:"Auditoria de Cargas"};
 const FX_TAB={ruas:"Ruas",retorno:"Retorno",rotina:"Retorno × Rotina",cargas:"Cargas",aero:"Aéreo",setores:"Setores"};FX_TIT.aero="Auditoria Aereo";FX_TIT.setores="Setores";
-function fxRelatorio(){return FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
-function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||(FECH.tipo==="setores"?!ehAdm():!podeVer(FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev"].find(k=>podeVer(k))||"ruas";
-  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","retorno","cargas","aero","prev","setores"].filter(k=>k==="setores"?ehAdm():podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
+function fxRelatorio(){return FECH.tipo==="sac"?fxSac():FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
+function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||(FECH.tipo==="setores"?!ehAdm():!podeVer(FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev","sac"].find(k=>podeVer(k))||"ruas";
+  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","retorno","cargas","aero","prev","sac","setores"].filter(k=>k==="setores"?ehAdm():podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
     '<label>De <input class="in" type="date" id="fx-de" value="'+FECH.de+'"></label><label>Até <input class="in" type="date" id="fx-ate" value="'+FECH.ate+'"></label>'+
     '<button type="button" class="btn" id="fx-upd">Atualizar</button><button type="button" class="save" id="fx-pr" style="margin:0;min-height:44px;font-size:1.1rem;width:auto;padding:0 18px">Imprimir / PDF</button></div>'+
     '<p class="note" id="fx-info" style="margin:0 0 10px">'+esc(FECH.info||"")+'</p>';
@@ -1911,6 +1912,131 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppVal
  ".vl-it .top{display:flex;justify-content:space-between;font-size:.8rem;color:#64748B}.vl-it .addr{font-weight:700;margin-top:4px}.vl-it .desc{font-size:.9rem;margin:2px 0 6px}.vl-v{font-size:1.25rem;font-weight:800;color:#B45309;margin-top:6px}"+
  ".vl-st{font-weight:800;color:#CA8A04}.vl-it[data-st='Emitido'] .vl-st{color:#16A34A}.vl-it[data-st='Não emitido'] .vl-st{color:#DC2626}.vl-b{display:grid;gap:8px;margin-top:10px}.vl-b .save{margin:0}";document.head.appendChild(s);})();
 
+// ===== SAC: ocorrências de falta e sobra (conferência) =====
+const SAC_COLS=["Data","Carregamento","NF","Codigo_Produto","Descricao","Quantidade","Vl_Unitario","Valor","Motivo","Matricula_Conferente","Conferente","Funcao_Conferente","Observacao","Status_NC","Historico","Matricula_Registrou","Nome_Registrou","Origem","ID_Auditoria","DataHora"];
+const SCX={prod:null,fotos:[],mot:null,modo:"lancar"};
+const ENC_SAC={nome:"LUCAS HENRIQUE NUNES",mat:"10001917"};
+async function addFotoSC(e){const f=e.target.files[0];e.target.value="";if(!f||SCX.fotos.length>=3)return;try{SCX.fotos.push(await compress(f));setErr("s-foto-f","");paintSAC();}catch(x){toast("Não foi possível ler a foto.");}}
+$("s-foto").addEventListener("change",addFotoSC);$("s-foto-g").addEventListener("change",addFotoSC);
+const sProd=picker($("s-prod"),{ph:"Código ou descrição do item",search:searchProd,describe:descProd,onPick:k=>{SCX.prod=k;paintSAC();if(k!=null)setTimeout(()=>$("s-qtd").focus(),50);}});
+const sConf=picker($("s-conf"),{ph:"Matrícula ou nome do conferente",search:q=>searchColab(q).sort((a,b)=>(/CONFER/.test(b.s)?1:0)-(/CONFER/.test(a.s)?1:0)),describe:descColab,novo:true,onPick:()=>paintSAC()});
+document.querySelectorAll("[data-sq]").forEach(b=>b.addEventListener("click",()=>{const i=$("s-qtd");i.value=Math.max(0,(parseInt(i.value,10)||0)+ +b.dataset.sq);paintSAC();}));
+$("s-qtd").addEventListener("input",paintSAC);
+document.querySelectorAll("#s-mot button").forEach(b=>b.addEventListener("click",()=>{SCX.mot=b.dataset.m;setErr("s-mot-f","");paintSAC();}));
+document.querySelectorAll("#s-modo button").forEach(b=>b.addEventListener("click",()=>{SCX.modo=b.dataset.sm;paintSAC();if(SCX.modo==="hist"&&!SH.rows)carregarSac();}));
+const scQ=()=>{const v=String($("s-qtd").value).trim();return v===""?0:Math.max(0,parseInt(v,10)||0);};
+function paintSAC(){if(!$("s-valor"))return;document.querySelectorAll("#s-modo button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.sm===SCX.modo)));
+  $("s-lancar").hidden=SCX.modo!=="lancar";$("s-hist").hidden=SCX.modo!=="hist";if(SCX.modo==="hist"){renderSacHist();return;}
+  const vl=SCX.prod!=null?P.vl[SCX.prod]:0,q=scQ();$("s-valor").textContent=BRL.format(q*vl);$("s-calc").textContent=q+" un × "+BRL.format(vl)+" (Vl. ult. entrada 286)";
+  $("s-data").textContent=fmtDT(new Date()).slice(0,10);$("s-reg").textContent=(nomeAud()||"—")+" · matrícula "+(auditor||"—");
+  document.querySelectorAll("#s-mot button").forEach(b=>b.setAttribute("aria-checked",String(b.dataset.m===SCX.mot)));
+  const fb=$("s-fotos");fb.innerHTML=SCX.fotos.map((s,i)=>'<div class="ph-it"><img src="'+s+'" alt="Foto '+(i+1)+'"><button type="button" data-i="'+i+'" aria-label="Remover foto">×</button></div>').join("");
+  fb.querySelectorAll("button").forEach(b=>b.onclick=()=>{SCX.fotos.splice(+b.dataset.i,1);paintSAC();});$("s-cam").hidden=$("s-gal").hidden=SCX.fotos.length>=3;listaSAC();}
+function sacHoje(){const t0=new Date();t0.setHours(0,0,0,0);return allRecs().filter(r=>r._aba==="sac"&&r.ts>=t0.getTime()&&r.Matricula_Registrou===auditor).sort((a,b)=>b.ts-a.ts);}
+function listaSAC(){const L=sacHoje();
+  $("s-list").innerHTML=L.length?'<div class="block"><h3>Ocorrências de hoje <small>'+L.length+'</small></h3>'+L.map(r=>'<div class="li"><div><div class="d"><b>'+esc(r.Codigo_Produto)+'</b> – '+esc(r.Descricao)+'</div><div class="tags"><span class="tag nc">'+esc(r.Motivo)+'</span><span class="tag">Carreg. '+esc(r.Carregamento)+'</span><span class="tag">'+esc(curto(r.Conferente||""))+'</span></div></div>'+
+    '<div><div class="v">'+esc(r.Quantidade)+' un<br>'+BRL.format(+r.Valor||0)+'</div><div class="act"><button type="button" class="btn sm" data-scr="'+esc(r.ID_Auditoria)+'">Termo NC</button> <button type="button" class="btn sm" data-scx="'+esc(r.ID_Auditoria)+'">Excluir</button></div></div></div>').join("")+'</div>':"";
+  $("s-list").querySelectorAll("[data-scr]").forEach(b=>b.onclick=()=>{const r=L.find(x=>x.ID_Auditoria===b.dataset.scr);if(r)openSacDoc([r]);});
+  $("s-list").querySelectorAll("[data-scx]").forEach(b=>b.onclick=()=>delRec(b.dataset.scx).then(()=>paintSAC()));}
+function resetSAC(){sProd.clear();sConf.clear();SCX.prod=null;SCX.fotos=[];SCX.mot=null;["s-obs"].forEach(i=>$(i).value="");$("s-qtd").value="";document.querySelectorAll("#v-sac .field.bad").forEach(f=>setErr(f.id,""));paintSAC();}
+const histLinha=(st,extra)=>fmtDT(new Date()).slice(0,16)+" – "+st+" por "+(nomeAud()||"")+" ("+(auditor||"")+")"+(extra?": "+extra:"");
+$("s-save").addEventListener("click",async()=>{
+  if(!auditor){toast("Faça login primeiro.");return;}
+  const errs=[],chk=(c,f,m)=>{setErr(f,c?m:"");if(c)errs.push(f);};const q=scQ(),car=$("s-car").value.replace(/\D/g,""),nf=$("s-nf").value.replace(/\D/g,"");
+  chk(!car,"s-car-f","Informe o carregamento.");chk(SCX.prod==null,"s-prod-f","Informe o item.");chk(!(q>0),"s-qtd-f","Informe a quantidade.");
+  chk(!SCX.mot,"s-mot-f","Escolha Falta ou Sobra.");chk(sConf.value==null,"s-conf-f","Informe o conferente.");chk(!SCX.fotos.length,"s-foto-f","Tire ao menos uma foto da ocorrência.");
+  if(errs.length){$(errs[0]).scrollIntoView({block:"center",behavior:"smooth"});toast("Revise os campos marcados.");return;}
+  const now=new Date(),k=SCX.prod,vl=P.vl[k],ci=sConf.value;
+  const rec={_aba:"sac",ID_Auditoria:newId("SAC"),Data:fmtDT(now).slice(0,10),DataHora:fmtDT(now),ts:now.getTime(),Carregamento:car,NF:nf,Codigo_Produto:P.cod[k],Descricao:P.desc[k],Quantidade:q,Vl_Unitario:vl,Valor:Math.round(q*vl*100)/100,
+    Motivo:SCX.mot,Matricula_Conferente:C.mat[ci],Conferente:C.nome[ci],Funcao_Conferente:C.fun[ci]||"",Observacao:$("s-obs").value.trim(),Status_NC:"Aberta",Historico:histLinha("Aberta"),
+    Matricula_Registrou:auditor,Nome_Registrou:nomeAud(),Origem:"App",Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:true,fotos:SCX.fotos.slice()};
+  $("s-save").disabled=true;const ok=await saveRec(rec);$("s-save").disabled=false;const keep=[car,nf];resetSAC();$("s-car").value=keep[0];$("s-nf").value=keep[1];window.scrollTo(0,0);
+  toast((ok||dbState==="off"?"Ocorrência salva":"Salva neste aparelho, envio pendente")+" – "+rec.Motivo+" "+BRL.format(rec.Valor)+".");openSacDoc([rec]);});
+// importação da planilha "Controle de erros de conferência"
+function matchColab(nome){const s=norm(String(nome||"").split("/")[0]).trim();if(!s)return null;const w=s.split(/\s+/).filter(x=>x.length>1);if(!w.length)return null;
+  const L=[];for(let i=0;i<C.n.length;i++){if(w.every(x=>C.n[i].split(/\s+/).some(p=>p===x||p.startsWith(x))))L.push(i);if(L.length>12)break;}
+  if(L.length===1)return L[0];const conf=L.filter(i=>/CONFER/.test(norm(C.fun[i]||"")));return conf.length===1?conf[0]:null;}
+$("s-imp").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const msg=$("s-imp-msg");msg.textContent="Lendo arquivo…";
+  try{const wb=await lerLivro(f);const ws=wb.Sheets[wb.SheetNames[0]];const A=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+    const hi=A.findIndex(r=>r.some(c=>/^carregamento$/i.test(String(c).trim()))&&r.some(c=>/^c[oó]digo$/i.test(String(c).trim())));if(hi<0)throw new Error("Não encontrei o cabeçalho (Data, Carregamento, NF, Código…).");
+    const H=A[hi].map(c=>norm(String(c)).trim()),ix=re=>H.findIndex(h=>re.test(h));
+    const iD=ix(/^data/i),iC=ix(/^carregamento/i),iN=ix(/^nf/i),iDe=ix(/^descri/i),iCo=ix(/^codigo/i),iQ=ix(/^quantidade/i),iCf=ix(/^conferente/i),iE=ix(/^erro|^motivo/i);
+    const existentes=new Set(allRecs().filter(r=>r._aba==="sac").map(r=>r.ID_Auditoria));let novos=0,semMat=0,semVal=0;const recs=[];
+    A.slice(hi+1).forEach(r=>{const cod=String(r[iCo]||"").replace(/\D/g,""),car=String(r[iC]||"").replace(/\D/g,"");if(!cod||!car)return;
+      const mot=/sobra/i.test(r[iE])?"Sobra":/falta/i.test(r[iE])?"Falta":"";if(!mot)return;
+      const q=parseInt(String(r[iQ]).replace(/[^\d]/g,""),10)||0;let dt=r[iD];dt=dt instanceof Date?dt:new Date(pts(String(dt))||Date.now());
+      const id="SAC-IMP-"+car+"-"+cod+"-"+mot[0];if(existentes.has(id))return;existentes.add(id);
+      const pi=pIdx.get(cod),vl=pi!=null?P.vl[pi]:0;if(pi==null)semVal++;const ci=matchColab(r[iCf]);if(ci==null)semMat++;
+      const dts=pad(dt.getDate())+"/"+pad(dt.getMonth()+1)+"/"+dt.getFullYear();
+      recs.push({_aba:"sac",ID_Auditoria:id,Data:dts,DataHora:dts+" 00:00:00",ts:dt.getTime(),Carregamento:car,NF:String(r[iN]||"").replace(/\D/g,""),Codigo_Produto:cod,Descricao:pi!=null?P.desc[pi]:String(r[iDe]||"").trim(),
+        Quantidade:q,Vl_Unitario:vl,Valor:Math.round(q*vl*100)/100,Motivo:mot,Matricula_Conferente:ci!=null?C.mat[ci]:"",Conferente:ci!=null?C.nome[ci]:String(r[iCf]||"").trim(),Funcao_Conferente:ci!=null?(C.fun[ci]||""):"",
+        Observacao:"",Status_NC:"Aberta",Historico:histLinha("Aberta","importado de "+f.name),Matricula_Registrou:auditor,Nome_Registrou:nomeAud(),Origem:"Importado: "+f.name,Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:true,fotos:[]});novos++;});
+    for(const r of recs)await saveRec(r);
+    msg.textContent=novos?novos+" ocorrência(s) importada(s) e enviadas à planilha"+(semMat?" · "+semMat+" sem matrícula encontrada (nome mantido)":"")+(semVal?" · "+semVal+" item(ns) fora da base 286 (valor zero)":"")+".":"Nada novo: as ocorrências deste arquivo já foram importadas.";paintSAC();
+  }catch(x){msg.textContent=x.message||String(x);}});
+// termo de NC
+const SAC_TXT={Falta:["Falta na entrega","O cliente recebeu quantidade menor que a faturada. Gera reclamação no SAC, reentrega ou crédito ao cliente, custo logístico e divergência de estoque."],
+  Sobra:["Sobra na entrega","O cliente recebeu quantidade maior que a faturada. Gera perda de mercadoria, custo de recolha, divergência de estoque e de faturamento."]};
+function sacDocHTML(r){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v===""||v==null?"–":esc(v))+'</td></tr>';const q=pnum(r.Quantidade),v=pnum(r.Valor),vu=pnum(r.Vl_Unitario)||(q?v/q:0);
+  return '<div class="pd"><div class="pd-h"><img src="'+LOGO_BLUE+'" alt="Santa Therezinha"><div class="r"><h1>Não conformidade – SAC ('+esc(r.Motivo||"")+')</h1><p>Carregamento '+esc(r.Carregamento||"")+' · Nº '+esc(r.ID_Auditoria)+'</p></div></div>'+
+   '<h2>Identificação</h2><table>'+row("Data",r.Data||String(r.DataHora||"").slice(0,10))+row("Carregamento",r.Carregamento)+row("NF",r.NF)+row("Conferente responsável",(r.Conferente||"")+(r.Matricula_Conferente?" – matrícula "+r.Matricula_Conferente:"")+(r.Funcao_Conferente?" ("+r.Funcao_Conferente+")":""))+
+   row("Motivo",r.Motivo)+row("Registrado por",(r.Nome_Registrou||"")+(r.Matricula_Registrou?" – matrícula "+r.Matricula_Registrou:""))+row("Situação",r.Status_NC||"Aberta")+'</table>'+
+   '<h2>Mercadoria</h2><table class="lt"><thead><tr><th>Código</th><th>Descrição</th><th>Qtd.</th><th>Vl. un.</th><th>Valor</th></tr></thead><tbody><tr><td>'+esc(r.Codigo_Produto)+'</td><td>'+esc(r.Descricao)+'</td><td class="n">'+q+'</td><td class="n">'+BRL.format(vu)+'</td><td class="n"><b>'+BRL.format(v)+'</b></td></tr></tbody></table>'+
+   '<p class="decl" style="margin-top:4px">Valor = quantidade × Vl. ult. entrada (base 286).</p>'+(r.Observacao?'<h2>Observação</h2><div class="obs">'+esc(r.Observacao)+'</div>':'')+
+   fotosHTML((r.fotos||[]).map(s=>({s,c:r.Codigo_Produto+" · "+r.Motivo})))+termoHTML([SAC_TXT[r.Motivo]||["Ocorrência","Divergência entre o faturado e o entregue ao cliente."]],v)+
+   '<p class="decl">Declaro ciência da não conformidade de conferência registrada acima pelo SAC, referente ao carregamento '+esc(r.Carregamento||"")+'.</p>'+
+   '<div class="sg sg2"><div><b>Conferente responsável</b>'+esc(r.Conferente||"")+(r.Matricula_Conferente?'<small>Matrícula '+esc(r.Matricula_Conferente)+'</small>':'')+'</div><div><b>Gerência</b>&nbsp;</div></div></div>';}
+function openSacDoc(L){if(!L.length)return;const docs=L.map(r=>({html:sacDocHTML(r),multi:false})),f=L[0],tot=L.reduce((a,r)=>a+pnum(r.Valor),0);
+  openDoc({html:docs.map(d=>'<div class="docsep">'+d.html+'</div>').join(""),pdfDocs:docs,multi:true,name:"NC_SAC_"+(f.Carregamento||"")+"_"+todayISO()+".pdf",title:"NC SAC – "+(L.length>1?L.length+" ocorrências":f.Motivo+" · carreg. "+f.Carregamento),
+    short:"NC SAC – "+curto(f.Conferente||"")+" – "+BRL.format(tot),text:["*NÃO CONFORMIDADE – SAC*","Carregamento: "+f.Carregamento+" · NF "+(f.NF||"-"),"Conferente: "+(f.Conferente||"")+(f.Matricula_Conferente?" ("+f.Matricula_Conferente+")":""),f.Motivo+": "+f.Codigo_Produto+" – "+f.Descricao+" · "+f.Quantidade+" un","*Valor: "+BRL.format(tot)+"*"].join("\n")});}
+function cardSAC(r){return '<details class="rec nc"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · SAC</span><span>'+esc(r.Status_NC||"Aberta")+'</span></div><div class="addr">'+esc(curto(r.Conferente||""))+' · Carreg. '+esc(r.Carregamento||"")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao)+'</div>'+
+  '<div class="tags"><span class="tag nc">'+esc(r.Motivo||"")+'</span><span class="tag">NF '+esc(r.NF||"-")+'</span><span class="tag">'+esc(r.Quantidade)+' un</span><span class="tag nc">'+BRL.format(pnum(r.Valor))+'</span></div></summary></details>';}
+// histórico (planilha)
+const SH={rows:null,filtro:"Aberta",q:"",busy:false,msg:""};
+function sacValida(r){return !!String(r.Codigo_Produto||"").trim()&&pnum(r.Quantidade)>0;}
+async function carregarSac(){if(SH.busy)return;if(DEMO||!SHEET_URL){SH.msg="Disponível só com a planilha conectada.";renderSacHist();return;}SH.busy=true;SH.msg="Carregando…";renderSacHist();
+  try{const j=await ppPost({acao:"sac_listar"});SH.rows=fxRows(j).filter(sacValida).map(r=>Object.assign(r,{_aba:"sac",_sheet:1,Status_NC:r.Status_NC||"Aberta"})).sort((a,b)=>b.ts-a.ts);SH.msg="";}catch(e){SH.msg=e.message;}SH.busy=false;renderSacHist();}
+function renderSacHist(){const box=$("s-hist");if(!box||box.hidden)return;const all=SH.rows||[];
+  const L=all.filter(r=>SH.filtro==="Todas"||r.Status_NC===SH.filtro).filter(r=>!SH.q||norm([r.Conferente,r.Matricula_Conferente,r.Carregamento,r.NF,r.Codigo_Produto,r.Descricao].join(" ")).includes(norm(SH.q)));
+  const cnt=s=>all.filter(r=>s==="Todas"||r.Status_NC===s).length;
+  box.innerHTML='<div class="block"><div class="seg" role="group" aria-label="Situação">'+["Aberta","Em tratativa","Encerrada","Todas"].map(s=>'<button type="button" data-hf="'+s+'" aria-pressed="'+(SH.filtro===s)+'">'+s+' ('+cnt(s)+')</button>').join("")+'</div>'+
+    '<input class="in" id="sh-q" type="search" placeholder="Buscar conferente, carregamento, NF ou item" value="'+esc(SH.q)+'" style="margin-top:10px">'+
+    '<button type="button" class="btn full" id="sh-upd" style="margin-top:10px"'+(SH.busy?' disabled':'')+'>'+(SH.busy?"Carregando…":"Atualizar da planilha")+'</button>'+(SH.msg?'<p class="note" style="margin-top:8px">'+esc(SH.msg)+'</p>':'')+'</div>'+
+    '<div class="sh-list">'+(L.length?L.slice(0,150).map(r=>'<div class="block vl-it" data-st="'+esc(r.Status_NC)+'"><div class="top"><span>'+esc(r.Data||r.DataHora)+' · Carreg. '+esc(r.Carregamento)+' · NF '+esc(r.NF||"-")+'</span><span class="vl-st">'+esc(r.Status_NC)+'</span></div>'+
+      '<div class="addr">'+esc(r.Conferente||"")+(r.Matricula_Conferente?' <small>· matrícula '+esc(r.Matricula_Conferente)+'</small>':'')+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao)+' · '+esc(r.Quantidade)+' un</div>'+
+      '<div class="tags"><span class="tag nc">'+esc(r.Motivo)+'</span></div><div class="vl-v">'+BRL.format(pnum(r.Valor))+'</div>'+
+      (r.Historico?'<details class="sh-h"><summary>Histórico</summary><pre>'+esc(r.Historico)+'</pre></details>':'')+
+      '<div class="vl-b">'+(r.Status_NC!=="Em tratativa"?'<button type="button" class="btn" data-hs="Em tratativa" data-id="'+esc(r.ID_Auditoria)+'">Em tratativa</button>':'')+(r.Status_NC!=="Encerrada"?'<button type="button" class="save" data-hs="Encerrada" data-id="'+esc(r.ID_Auditoria)+'">Encerrar</button>':'<button type="button" class="btn" data-hs="Aberta" data-id="'+esc(r.ID_Auditoria)+'">Reabrir</button>')+
+      '<button type="button" class="btn" data-hp="'+esc(r.ID_Auditoria)+'">Termo NC</button></div></div>').join(""):(SH.rows?'<p class="note">Nenhuma ocorrência nesta situação.</p>':''))+'</div>';
+  box.querySelectorAll("[data-hf]").forEach(b=>b.onclick=()=>{SH.filtro=b.dataset.hf;renderSacHist();});
+  const qi=$("sh-q");qi.oninput=()=>{SH.q=qi.value;clearTimeout(qi._t);qi._t=setTimeout(()=>{renderSacHist();const n=$("sh-q");n.focus();n.setSelectionRange(n.value.length,n.value.length);},350);};
+  $("sh-upd").onclick=carregarSac;const acha=id=>all.find(x=>x.ID_Auditoria===id);
+  box.querySelectorAll("[data-hs]").forEach(b=>b.onclick=async()=>{const r=acha(b.dataset.id);if(!r)return;const st=b.dataset.hs;const nota=prompt("Situação: "+st+"\n"+(r.Conferente||"")+" – carreg. "+r.Carregamento+"\n\nObservação para o histórico (opcional):","");if(nota===null)return;
+    try{const j=await ppPost({acao:"sac_status",id:r.ID_Auditoria,status:st,nota});Object.assign(r,{Status_NC:j.status,Historico:j.historico});toast("Situação: "+j.status+".");}catch(e){toast(e.message);}renderSacHist();});
+  box.querySelectorAll("[data-hp]").forEach(b=>b.onclick=async()=>{const r=acha(b.dataset.hp);if(!r)return;await carregarFotosPlanilha([r]);openSacDoc([r]);});}
+// fechamento: SAC
+FX_TAB.sac="SAC";FX_TIT.sac="SAC_Ocorrencias";
+function fxSac(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.sac).filter(sacValida).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor),Status_NC:r.Status_NC||"Aberta"})),tit="SAC — Ocorrências de conferência";
+  const soma=L=>L.reduce((a,r)=>a+r._v,0),fa=rows.filter(r=>r.Motivo==="Falta"),so=rows.filter(r=>r.Motivo==="Sobra"),tot=soma(rows);
+  const confs={};rows.forEach(r=>{const k=r.Matricula_Conferente||r.Conferente;const x=confs[k]=confs[k]||{n:r.Conferente||k,i:0,v:0,f:0,s:0};x.i++;x.v+=r._v;if(r.Motivo==="Falta")x.f++;else x.s++;});
+  const itens={};rows.forEach(r=>{const k=r.Codigo_Produto;const x=itens[k]=itens[k]||{d:r.Descricao,i:0,q:0,v:0};x.i++;x.q+=r._q;x.v+=r._v;});
+  const cars={};rows.forEach(r=>{const k=r.Carregamento||"—";cars[k]=(cars[k]||0)+1;});
+  const porD={};rows.forEach(r=>{const k=fxDiaKey(r.ts);const x=porD[k]=porD[k]||{ts:r.ts,n:0};x.n++;});const linha=Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n)}));
+  const st=s=>rows.filter(r=>r.Status_NC===s).length,nC=Object.keys(confs).length;
+  return fxHead(tit,rows.length)+
+    fxKpis([{t:"Ocorrências",v:rows.length,c:"#0F172A",s:new Set(rows.map(r=>r.Carregamento)).size+" carregamento(s)"},{t:"Valor total",v:BRL0(tot),c:"#B45309",s:rows.length?"média "+BRL0(tot/rows.length):""},
+      {t:"Faltas",v:fa.length,c:"#DC2626",s:BRL0(soma(fa))+" · "+fa.reduce((a,r)=>a+r._q,0)+" un"},{t:"Sobras",v:so.length,c:"#CA8A04",s:BRL0(soma(so))+" · "+so.reduce((a,r)=>a+r._q,0)+" un"},
+      {t:"Conferentes com NC",v:nC,c:"#2563EB",s:nC?(rows.length/nC).toFixed(1).replace(".",",")+" por conferente":""},{t:"Abertas",v:st("Aberta"),c:"#DC2626",s:"em tratativa: "+st("Em tratativa")+" · encerradas: "+st("Encerrada")}],true)+
+    '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+
+      fxCard("Conferentes com mais ocorrências",fxBars(Object.values(confs).sort((a,b)=>b.i-a.i||b.v-a.v).slice(0,8).map(x=>({l:curto(x.n),v:x.i,txt:x.i+" ("+x.f+"F/"+x.s+"S) · "+BRL0(x.v),c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-w"'))+
+      fxCard("Falta × Sobra",fxDonut([{l:"Falta",v:fa.length,c:"#DC2626"},{l:"Sobra",v:so.length,c:"#CA8A04"}]))+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+
+      fxCard("Itens com mais ocorrências",fxTable([{t:"Código"},{t:"Descrição"},{t:"Ocorr.",n:1},{t:"Un",n:1},{t:"Valor",n:1}],Object.entries(itens).sort((a,b)=>b[1].i-a[1].i||b[1].v-a[1].v).slice(0,7).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.i,x.q,BRL0(x.v)])))+
+      fxCard("Situação das ocorrências",fxDonut([{l:"Aberta",v:st("Aberta"),c:"#DC2626"},{l:"Em tratativa",v:st("Em tratativa"),c:"#CA8A04"},{l:"Encerrada",v:st("Encerrada"),c:"#16A34A"}]))+'</div>'+
+    fxFull("Ocorrências por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("SAC — Ocorrências");}
+(function(){const s=document.createElement("style");s.textContent=".sh-h{margin-top:6px}.sh-h summary{cursor:pointer;font-size:.85rem;color:var(--brand);font-weight:600}.sh-h pre{white-space:pre-wrap;font:inherit;font-size:.82rem;color:var(--muted);margin:6px 0 0;background:var(--surface-2);border-radius:8px;padding:8px}"+
+  "html.desk #s-hist .sh-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}html.desk #s-hist .sh-list>.block{margin:0}html.desk #s-hist .seg{display:flex}html.desk #s-hist .seg button{flex:1}";document.head.appendChild(s);})();
+
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){
   const root=document.documentElement;
@@ -1924,12 +2050,12 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppVal
     if(capaz){const b=document.createElement("button");b.type="button";b.className="dk-goto";b.textContent="Versão desktop";b.onclick=()=>setModo("desktop");document.body.appendChild(b);}
     return;}
   const ICO={ruas:'<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/>',retorno:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',cargas:'<rect x="1" y="7" width="14" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',
-    aero:'<path d="M4 20V4"/><path d="M4 6h10v6H4"/><path d="M14 9h6v11"/><path d="M2 20h20"/>',pp:'<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>',vales:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+    aero:'<path d="M4 20V4"/><path d="M4 6h10v6H4"/><path d="M14 9h6v11"/><path d="M2 20h20"/>',pp:'<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>',sac:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="2" y="14" width="5" height="6" rx="1"/><rect x="17" y="14" width="5" height="6" rx="1"/>',vales:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
     fechamento:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',painel:'<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
     registros:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',bases:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
     admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'};
-  const NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",vales:"Emissão de vales",fechamento:"Fechamento",painel:"Painel de ruas",registros:"Registros",bases:"Bases e planilha",admin:"Administração"};
-  const GRUPOS=[["lanc","Lançamentos de auditoria",["ruas","retorno","cargas","aero","pp"],true],["gest","Gestão",["fechamento","painel","registros","vales"]],["sist","Sistema",["bases","admin"]]];
+  const NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",sac:"SAC – Ocorrências",vales:"Emissão de vales",fechamento:"Fechamento",painel:"Painel de ruas",registros:"Registros",bases:"Bases e planilha",admin:"Administração"};
+  const GRUPOS=[["lanc","Lançamentos de auditoria",["ruas","retorno","cargas","aero","pp","sac"],true],["gest","Gestão",["fechamento","painel","registros","vales"]],["sist","Sistema",["bases","admin"]]];
   const nav=document.querySelector("nav");const btn={};nav.querySelectorAll("button[data-v]").forEach(b=>btn[b.dataset.v]=b);
   Object.entries(btn).forEach(([v,b])=>{const tn=[...b.childNodes].find(n=>n.nodeType===3&&n.data.trim());if(tn)tn.data="";const s=document.createElement("span");s.className="dk-t";s.textContent=NOME[v]||v;b.prepend(s);
     if(ICO[v])b.insertAdjacentHTML("afterbegin",'<svg class="dk-i" viewBox="0 0 24 24" aria-hidden="true">'+ICO[v]+'</svg>');b.title=NOME[v]||v;});
@@ -1950,7 +2076,7 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppVal
   const hd=document.querySelector("header");hd.insertAdjacentHTML("afterbegin",'<div class="dk-crumb"><span>Auditoria STA</span><b id="dk-crumb-t"></b></div>');
   const crumb=()=>{const x=$("band-t").textContent;if($("dk-crumb-t").textContent!==x)$("dk-crumb-t").textContent=x;};new MutationObserver(crumb).observe($("band-t"),{childList:true,characterData:true,subtree:true});crumb();
   // lançamentos: formulário em grade + lista lateral
-  [["v-ruas","sess-list"],["v-retorno","t-list"],["v-cargas","g-list"],["v-aero","a-list"],["v-pp","p-list"]].forEach(([vid,lid])=>{const v=$(vid),li=$(lid);if(!v||!li)return;
+  [["v-ruas","sess-list"],["v-retorno","t-list"],["v-cargas","g-list"],["v-aero","a-list"],["v-pp","p-list"],["v-sac","s-list"]].forEach(([vid,lid])=>{const v=$(vid),li=$(lid);if(!v||!li)return;
     const grid=document.createElement("div");grid.className="dk-grid";const form=document.createElement("div");form.className="dk-form";const side=document.createElement("aside");side.className="dk-side";
     side.innerHTML='<div class="dk-side-h">Lançamentos recentes</div>';li.style.marginTop="0";side.appendChild(li);
     [...v.children].forEach(c=>{if(c.classList.contains("sess"))return;form.appendChild(c);});

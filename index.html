@@ -189,6 +189,34 @@
 
   <section class="view" id="v-vales" hidden><div id="vales"></div></section>
 
+  <section class="view" id="v-sac" hidden>
+    <div class="seg" role="group" aria-label="SAC" id="s-modo" style="margin-bottom:12px"><button type="button" data-sm="lancar" aria-pressed="true">Nova ocorrência</button><button type="button" data-sm="hist" aria-pressed="false">Histórico</button></div>
+    <div id="s-lancar">
+    <p class="note" style="margin:0 0 10px">Data automática: <b id="s-data"></b> · Registrado por: <b id="s-reg"></b>. Cada ocorrência gera um termo de não conformidade para o conferente.</p>
+    <div class="block">
+      <div class="row3"><div class="field" id="s-car-f"><label for="s-car">Nº do carregamento</label><input class="in" id="s-car" inputmode="numeric" placeholder="Ex.: 3479175"></div>
+        <div class="field" id="s-nf-f"><label for="s-nf">NF</label><input class="in" id="s-nf" inputmode="numeric" placeholder="Ex.: 1424884"></div></div>
+      <div class="field" id="s-prod-f"><label>Código / descrição do produto</label><div id="s-prod"></div></div>
+      <div class="field" id="s-qtd-f"><label for="s-qtd">Quantidade (unidades)</label><div class="stepper"><button type="button" data-sq="-1" aria-label="Diminuir">−</button><input class="in" id="s-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-sq="1" aria-label="Aumentar">+</button></div></div>
+      <div class="money"><span>Valor da ocorrência<br><small id="s-calc"></small></span><b id="s-valor">R$ 0,00</b></div>
+    </div>
+    <div class="block">
+      <div class="field" id="s-mot-f"><span class="lbl">Motivo</span>
+        <div class="mot" id="s-mot" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Falta">Falta</button><button type="button" role="radio" aria-checked="false" data-m="Sobra">Sobra</button></div></div>
+      <div class="field" id="s-conf-f"><label>Conferente responsável (matrícula ou nome)</label><div id="s-conf"></div></div>
+      <div class="field" id="s-obs-f"><label for="s-obs">Observação / relato do cliente</label><textarea class="in" id="s-obs" placeholder="Opcional"></textarea></div>
+      <div class="field" id="s-foto-f"><span class="lbl">Fotos da ocorrência <small>(obrigatória, até 3)</small></span>
+        <div class="photos" id="s-fotos"></div>
+        <div class="ph-row"><label class="filebtn" id="s-cam">Tirar foto<input type="file" accept="image/*" capture="environment" id="s-foto"></label><label class="filebtn" id="s-gal">Galeria<input type="file" accept="image/*" id="s-foto-g"></label></div></div>
+    </div>
+    <button type="button" class="save" id="s-save">Salvar e gerar termo de NC</button>
+    <div class="block" style="margin-top:12px"><h3 style="margin:0 0 6px">Importar planilha de controle</h3><p class="note" style="margin:0 0 8px">Arquivo no modelo "Controle de erros de conferência" (Data, Carregamento, NF, Descrição, Código, Quantidade, Conferente, Erro). Valor, descrição e matrícula são preenchidos pelas bases; repetidos não entram duas vezes.</p>
+      <label class="filebtn" style="display:block;text-align:center">Escolher arquivo .xlsx<input type="file" id="s-imp" accept=".xlsx,.xls"></label><p class="note" id="s-imp-msg" style="margin:8px 0 0"></p></div>
+    <div id="s-list" style="margin-top:12px"></div>
+    </div>
+    <div id="s-hist" hidden></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -302,6 +330,7 @@
   <button type="button" data-v="cargas" hidden>Cargas</button>
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>
+  <button type="button" data-v="sac" hidden>SAC</button>
   <button type="button" data-v="vales" hidden>Vales</button>
   <button type="button" data-v="registros">Registros<span class="badge" id="nav-pend" hidden></span></button>
   <button type="button" data-v="painel">Painel</button>
