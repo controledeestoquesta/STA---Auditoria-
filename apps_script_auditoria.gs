@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 21)
+ * Auditoria STA – Santa Therezinha (versão 22)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -54,8 +54,23 @@ const ABAS = {
     colunas: ['Data', 'Operador', 'Código', 'Descrição', 'Rua', 'O.S', 'Tipo de O.S', 'Quantidade', 'Vlr. Total',
       'ID_Auditoria', 'DataHora', 'Matricula_Operador', 'Vl_Ult_Entrada', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Status_NC', 'Recebido_Em', 'Links_Fotos'],
     texto: ['Data', 'Código', 'O.S', 'ID_Auditoria', 'DataHora', 'Matricula_Operador', 'Matricula_Auditor']
+  },
+  pp: {
+    nome: 'Prevencao_Perdas', perm: 'aud_pp',
+    colunas: ['Data', 'Matricula_Seguranca', 'Nome_Seguranca', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Valor',
+      'Rua', 'Predio', 'Nivel', 'Apartamento', 'Motivo', 'Matricula_Colaborador', 'Colaborador_Responsavel', 'Funcao_Colaborador',
+      'Matricula_Encarregado', 'Encarregado_Setor', 'Assinatura_Encarregado', 'Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em',
+      'Observacao', 'Vl_Unitario', 'Links_Fotos', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
+    texto: ['Data', 'DataHora', 'Matricula_Seguranca', 'Codigo_Produto', 'Rua', 'Predio', 'Nivel', 'Apartamento',
+      'Matricula_Colaborador', 'Matricula_Encarregado', 'ID_Auditoria']
   }
 };
+const MOTIVOS_PP = ['Mercadoria avariada', 'Consumo indevido por colaborador'];
+const STATUS_VALE = ['Pendente', 'Emitido', 'Não emitido'];
+const CAMPOS_PP = ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Seguranca', 'Nome_Seguranca', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Valor',
+  'Rua', 'Predio', 'Nivel', 'Apartamento', 'Motivo', 'Matricula_Colaborador', 'Colaborador_Responsavel', 'Funcao_Colaborador',
+  'Matricula_Encarregado', 'Encarregado_Setor', 'Assinatura_Encarregado', 'Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em',
+  'Observacao', 'Vl_Unitario', 'Links_Fotos', 'Recebido_Em'];
 const MOTIVOS_CARGA = ['Falta', 'Avaria', 'Abastecimento', 'Sobras', 'Produto trocado'];
 
 /* ===================== Entradas ===================== */
@@ -71,6 +86,18 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (dados.acao === 'pp_listar' || dados.acao === 'pp_vale') {
+    const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
+    if (dados.acao === 'pp_listar') {
+      if (!pode('aud_pp') && !pode('aud_vale')) return resposta({ ok: false, erro: 'Sem permissão de Prevenção de Perdas.' });
+      return resposta(Object.assign({ ok: true }, lerAba(abrirPlanilha(), ABAS.pp.nome, CAMPOS_PP)));
+    }
+    if (!pode('aud_vale')) return resposta({ ok: false, erro: 'Confirmar vale exige a permissão aud_vale.' });
+    const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
+    try { return resposta(confirmarVale(dados.id, dados.status, sessao)); }
+    catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+    finally { lkv.releaseLock(); }
+  }
   if (dados.acao === 'colab_salvar') return resposta(salvarColaboradores(dados.lista, sessao));
   if (dados.acao === 'sobras_salvar') {
     if (sessao.permissoes.indexOf('aud_adm') < 0) return resposta({ ok: false, erro: 'Importar a rotina 8074 é só para ADM.' });
@@ -133,7 +160,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -147,6 +174,7 @@ function doGet(e) {
           'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Motivo', 'Valor_Total', 'Causador', 'Matricula_Causador', 'Nome_Causador', 'ID_Sessao', 'Recebido_Em', 'Links_Fotos']),
         aero: !tem('aud_aer') ? vazio : lerAba(ss, ABAS.aero.nome, ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Operador', 'Operador', 'Código', 'Descrição', 'Rua', 'O.S',
           'Tipo de O.S', 'Quantidade', 'Vl_Ult_Entrada', 'Vlr. Total', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Status_NC', 'Recebido_Em', 'Links_Fotos']),
+        pp: !(tem('aud_pp') || tem('aud_vale')) ? vazio : lerAba(ss, ABAS.pp.nome, CAMPOS_PP),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -157,7 +185,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 21, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 22, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -174,6 +202,8 @@ const PERMISSOES_CONHECIDAS = {
   aud_ret: 'Acesso a aba de auditoria_retorno',
   aud_car: 'Acesso a aba de auditoria_cargas',
   aud_aer: 'Acesso a aba de auditoria_aero',
+  aud_pp: 'Acesso a aba de prevencao de perdas (segurancas)',
+  aud_vale: 'Acesso a aba de emissao de vales (prevencao de perdas)',
   aud_adm: 'Acesso a tela de administracao'
 };
 
@@ -340,6 +370,7 @@ function gravar(ss, cfg, registros) {
     if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); }
   });
   if (cfg === ABAS.cargas) validarMotivosCarga(sh);
+  if (cfg === ABAS.pp) validarListasPP(sh, cab);
   const colId = cab.indexOf('ID_Auditoria');
   const existentes = new Set(sh.getLastRow() > 1
     ? sh.getRange(2, colId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); })
@@ -408,6 +439,39 @@ function validarMotivosCarga(sh) {
     r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(MOTIVOS_CARGA, true).setAllowInvalid(false)
       .setHelpText('Escolha: Falta, Avaria, Abastecimento, Sobras ou Produto trocado').build());
   } catch (e) { }
+}
+
+/** Prevenção de perdas: listas suspensas de Motivo e Status_Vale. */
+function validarListasPP(sh, cab) {
+  try {
+    [['Motivo', MOTIVOS_PP], ['Status_Vale', STATUS_VALE]].forEach(function (x) {
+      const i = cab.indexOf(x[0]); if (i < 0) return;
+      const r = sh.getRange(2, i + 1, Math.max(sh.getMaxRows() - 1, 1), 1);
+      if (r.getDataValidation()) return;
+      r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(x[1], true).setAllowInvalid(false).build());
+    });
+  } catch (e) { }
+}
+
+/** Confirma (ou não) a emissão do vale de uma ocorrência de Prevenção de Perdas. */
+function confirmarVale(id, status, sessao) {
+  if (STATUS_VALE.indexOf(status) < 0) throw new Error('Situação do vale inválida.');
+  const sh = abrirPlanilha().getSheetByName(ABAS.pp.nome);
+  if (!sh || sh.getLastRow() < 2) throw new Error('Aba ' + ABAS.pp.nome + ' sem registros.');
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  ['Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em'].forEach(function (c) {
+    if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); }
+  });
+  const iId = cab.indexOf('ID_Auditoria');
+  const ids = sh.getRange(2, iId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); });
+  const k = ids.indexOf(String(id));
+  if (k < 0) throw new Error('Ocorrência não encontrada na planilha: ' + id);
+  const lin = k + 2, quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  const por = status === 'Pendente' ? '' : (sessao.nome || '') + ' (' + sessao.matricula + ')';
+  sh.getRange(lin, cab.indexOf('Status_Vale') + 1).setValue(status);
+  sh.getRange(lin, cab.indexOf('Vale_Confirmado_Por') + 1).setValue(por);
+  sh.getRange(lin, cab.indexOf('Vale_Confirmado_Em') + 1).setNumberFormat('@').setValue(status === 'Pendente' ? '' : quando);
+  return { ok: true, id: String(id), status: status, por: por, em: status === 'Pendente' ? '' : quando };
 }
 
 function obterPasta() {

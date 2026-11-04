@@ -160,6 +160,34 @@
     <div id="a-list" style="margin-top:12px"></div>
   </section>
 
+  <section class="view" id="v-pp" hidden>
+    <p class="note" style="margin:0 0 10px">Data automática: <b id="p-data"></b> · Segurança: <b id="p-seg"></b>. Cada ocorrência gera um termo para impressão e um vale para conferência.</p>
+    <div class="block">
+      <div class="field" id="p-prod-f"><label>Código / descrição do produto</label><div id="p-prod"></div></div>
+      <div class="field" id="p-qtd-f"><label for="p-qtd">Quantidade</label><div class="stepper"><button type="button" data-pq="-1" aria-label="Diminuir">−</button><input class="in" id="p-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-pq="1" aria-label="Aumentar">+</button></div></div>
+      <div class="money"><span>Valor<br><small id="p-calc"></small></span><b id="p-valor">R$ 0,00</b></div>
+      <div class="field" id="p-end-f" style="margin-top:14px"><span class="lbl">Endereço</span>
+        <div class="row4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px"><input class="in" id="p-rua" inputmode="numeric" placeholder="Rua" aria-label="Rua"><input class="in" id="p-pred" inputmode="numeric" placeholder="Prédio" aria-label="Prédio"><input class="in" id="p-niv" inputmode="numeric" placeholder="Nível" aria-label="Nível"><input class="in" id="p-apto" inputmode="numeric" placeholder="Apto" aria-label="Apartamento"></div></div>
+    </div>
+    <div class="block">
+      <div class="field" id="p-mot-f"><span class="lbl">Motivo</span>
+        <div class="mot" id="p-mot" role="radiogroup" aria-label="Motivo">
+          <button type="button" role="radio" aria-checked="false" data-m="Mercadoria avariada" style="grid-column:1/-1">Mercadoria avariada</button>
+          <button type="button" role="radio" aria-checked="false" data-m="Consumo indevido por colaborador" style="grid-column:1/-1">Consumo indevido por colaborador</button>
+        </div></div>
+      <div class="field" id="p-col-f"><label>Colaborador responsável</label><div id="p-col"></div></div>
+      <div class="field" id="p-enc-f"><label>Encarregado do setor (assinatura)</label><div id="p-enc"></div></div>
+      <div class="field" id="p-obs-f"><label for="p-obs">Observação</label><textarea class="in" id="p-obs" placeholder="Opcional"></textarea></div>
+      <div class="field" id="p-foto-f"><span class="lbl">Fotos da ocorrência <small>(obrigatória, até 3)</small></span>
+        <div class="photos" id="p-fotos"></div>
+        <div class="ph-row"><label class="filebtn" id="p-cam">Tirar foto<input type="file" accept="image/*" capture="environment" id="p-foto"></label><label class="filebtn" id="p-gal">Galeria<input type="file" accept="image/*" id="p-foto-g"></label></div></div>
+    </div>
+    <button type="button" class="save" id="p-save">Salvar e imprimir termo</button>
+    <div id="p-list" style="margin-top:12px"></div>
+  </section>
+
+  <section class="view" id="v-vales" hidden><div id="vales"></div></section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -272,6 +300,8 @@
   <button type="button" data-v="retorno" hidden>Retorno</button>
   <button type="button" data-v="cargas" hidden>Cargas</button>
   <button type="button" data-v="aero" hidden>Aéreo</button>
+  <button type="button" data-v="pp" hidden>Prevenção</button>
+  <button type="button" data-v="vales" hidden>Vales</button>
   <button type="button" data-v="registros">Registros<span class="badge" id="nav-pend" hidden></span></button>
   <button type="button" data-v="painel">Painel</button>
   <button type="button" data-v="bases">Bases</button>
