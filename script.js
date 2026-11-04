@@ -1856,7 +1856,8 @@ function cardPP(r){return '<details class="rec nc"><summary><div class="top"><sp
    '<div class="tags"><span class="tag nc">'+esc(r.Motivo||"")+'</span><span class="tag">'+esc(r.Quantidade)+' un</span><span class="tag nc">'+BRL.format(pnum(r.Valor))+'</span></div></summary></details>';}
 // ---- vales ----
 const VL={rows:null,filtro:"Pendente",q:"",busy:false,msg:""};
-function ppRowsSheet(j){return fxRows(j).map(r=>Object.assign(r,{_aba:"pp",_sheet:1,Status_Vale:r.Status_Vale||"Pendente"})).sort((a,b)=>b.ts-a.ts);}
+function ppValida(r){return !!(String(r.Codigo_Produto||"").trim()||String(r.Colaborador_Responsavel||"").trim()||String(r.Matricula_Colaborador||"").trim())&&pnum(r.Quantidade)>0;}
+function ppRowsSheet(j){return fxRows(j).filter(ppValida).map(r=>Object.assign(r,{_aba:"pp",_sheet:1,Status_Vale:r.Status_Vale||"Pendente"})).sort((a,b)=>b.ts-a.ts);}
 async function ppPost(body){const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:LOGIN&&LOGIN.token},body)),redirect:"follow",cache:"no-store"});
   let j=null;try{j=await r.json();}catch(e){throw new Error("O Apps Script não respondeu. Confira se a versão 22 está implantada.");}if(!j.ok)throw new Error(j.erro||"Erro na planilha.");return j;}
 async function carregarVales(){if(VL.busy)return;if(DEMO||!SHEET_URL){VL.msg="Disponível só com a planilha conectada.";renderVales();return;}VL.busy=true;VL.msg="Carregando…";renderVales();
@@ -1886,7 +1887,7 @@ function renderVales(){const box=$("vales");if(!box)return;const L=(VL.rows||[])
   box.querySelectorAll("[data-vpr]").forEach(b=>b.onclick=async()=>{const r=acha(b.dataset.vpr);if(!r)return;await carregarFotosPlanilha([r]);openPPDoc([r]);});}
 // ---- fechamento: prevenção ----
 FX_TAB.prev="Prevenção";FX_TIT.prev="Prevencao_Perdas";
-function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor),Status_Vale:r.Status_Vale||"Pendente"})),tit="Prevenção de Perdas — Fechamento";
+function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppValida).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor),Status_Vale:r.Status_Vale||"Pendente"})),tit="Prevenção de Perdas — Fechamento";
   const tot=rows.reduce((a,r)=>a+r._v,0),porMot=m=>rows.filter(r=>r.Motivo===m),porSt=s=>rows.filter(r=>r.Status_Vale===s),soma=L=>L.reduce((a,r)=>a+r._v,0);
   const segs={};rows.forEach(r=>{const k=r.Matricula_Seguranca||r.Nome_Seguranca;const x=segs[k]=segs[k]||{n:r.Nome_Seguranca||k,i:0,v:0,dias:new Set()};x.i++;x.v+=r._v;x.dias.add(fxDiaKey(r.ts));});
   const cols={};rows.forEach(r=>{const k=r.Matricula_Colaborador||r.Colaborador_Responsavel;const x=cols[k]=cols[k]||{n:r.Colaborador_Responsavel||k,i:0,v:0};x.i++;x.v+=r._v;});
