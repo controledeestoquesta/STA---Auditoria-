@@ -1058,13 +1058,18 @@ function fxPareto(S){const L=S.slice().sort((a,b)=>b.n-a.n),W=520,H=210,pl=12,pr
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block"><line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'" stroke="#E2E8F0"/>'+
     L.map((s,i)=>{const h=s.n/mx*(H-pt-pb),x=pl+bw*i+bw*.18;return '<rect x="'+x+'" y="'+(H-pb-h)+'" width="'+(bw*.64)+'" height="'+h+'" rx="3" fill="'+s.c+'"/><text x="'+(x+bw*.32)+'" y="'+(H-pb-h-5)+'" font-size="11" font-weight="700" text-anchor="middle" fill="#0F172A">'+s.n+'</text>'+
       '<text x="'+(x+bw*.32)+'" y="'+(H-pb+14)+'" font-size="9.5" text-anchor="middle" fill="#334155">'+esc(s.cur)+'</text>';}).join("")+'</svg>'+
-    '<p class="fx-e" style="margin-top:2px">Não conformidades por setor, do maior para o menor.</p>';}
+    '<p class="fx-e" style="margin-top:2px">Não conformidades por setor, do maior para o menor. Reposição — ruas conta 1 NC por rua por dia; sobras da rotina 8074 não entram nesta contagem.</p>';}
+/** Reposição — ruas: uma NC por rua por dia (várias linhas da mesma rua na mesma data contam 1). */
+function ncRuaDia(rows){const m=new Map();rows.forEach(r=>{const rua=unz(r.Rua)||String(fmtAddr(r.Endereco)).split("-")[0];const k=rua+"|"+fxDiaKey(r.ts);
+  let x=m.get(k);if(!x){x={ts:r.ts,Rua:rua,Valor_Divergencia:0,linhas:0,_p:{}};m.set(k,x);}x.ts=Math.min(x.ts,r.ts);x.linhas++;x.Valor_Divergencia+=pnum(r.Valor_Divergencia);
+  if(r.Nome_Colaborador_NC)x._p[r.Nome_Colaborador_NC]=(x._p[r.Nome_Colaborador_NC]||0)+1;});
+  return [...m.values()].map(x=>Object.assign(x,{Nome_Colaborador_NC:(Object.entries(x._p).sort((a,b)=>b[1]-a[1])[0]||[""])[0]}));}
 function fxSetores(){const tit="Não conformidades por setor — Fechamento";const [de,ate]=fxPeriodo();const len=Math.max(864e5,(isFinite(ate)?ate:Date.now())-de),pde=de-len;
-  const ruasA=fxRows(FECH.dados&&FECH.dados.ruas).filter(r=>pbool(r.Possui_NC)),retA=fxRows(FECH.dados&&FECH.dados.retorno).filter(r=>pbool(r.Possui_NC)),carA=fxRows(FECH.dados&&FECH.dados.cargas),aerA=fxRows(FECH.dados&&FECH.dados.aero),s8=sobrasRows().filter(o=>o.tipo==="Sobra"),sobA=s8;
+  const ruasA=ncRuaDia(fxRows(FECH.dados&&FECH.dados.ruas).filter(r=>pbool(r.Possui_NC))),retA=fxRows(FECH.dados&&FECH.dados.retorno).filter(r=>pbool(r.Possui_NC)),carA=fxRows(FECH.dados&&FECH.dados.cargas),aerA=fxRows(FECH.dados&&FECH.dados.aero),s8=sobrasRows().filter(o=>o.tipo==="Sobra"),sobA=s8;
   const def=[{k:"rep",l:"Reposição — ruas",cur:"Repos. ruas",c:"#16A34A",rows:ruasA,val:r=>pnum(r.Valor_Divergencia),pes:r=>r.Nome_Colaborador_NC},
     {k:"ret",l:"Reposição — retorno",cur:"Repos. retorno",c:"#0E7490",rows:retA,val:r=>Math.abs(pnum(r.Valor_Divergencia)),pes:r=>r.Nome_Colaborador_NC},
     {k:"conf",l:"Cargas — conferência",cur:"Conferência",c:"#0EA5E9",rows:carA.filter(r=>r.Causador!=="Separador"),val:r=>pnum(r.Valor_Total),pes:r=>causadorDe(r).n},
-    {k:"sep",l:"Separação — cargas + sobras 8074",cur:"Separação",c:"#7C3AED",rows:carA.filter(r=>r.Causador==="Separador").concat(sobA),val:r=>r.Codigo_Produto!==undefined?pnum(r.Valor_Total):r.v,pes:r=>r.Codigo_Produto!==undefined?causadorDe(r).n:r.sep},
+    {k:"sep",l:"Separação — cargas",cur:"Separação",c:"#7C3AED",rows:carA.filter(r=>r.Causador==="Separador"),val:r=>pnum(r.Valor_Total),pes:r=>causadorDe(r).n},
     {k:"aer",l:"Aéreo — operador",cur:"Aéreo",c:"#DC2626",rows:aerA,val:r=>pnum(r["Vlr. Total"]),pes:r=>r.Operador}];
   const S=def.map(d=>{const cur=d.rows.filter(r=>r.ts>=de&&r.ts<ate),ant=d.rows.filter(r=>r.ts>=pde&&r.ts<de);const v=cur.reduce((a,r)=>a+d.val(r),0);
     const p={};cur.forEach(r=>{const n=d.pes(r);if(n)p[n]=(p[n]||0)+1;});const topP=Object.entries(p).sort((a,b)=>b[1]-a[1])[0];
@@ -1084,7 +1089,7 @@ function fxSetores(){const tit="Não conformidades por setor — Fechamento";con
       fxCard("Colaboradores com mais NCs",fxBars(Object.values(pessoas).sort((a,b)=>b.i-a.i||b.v-a.v).slice(0,7).map(x=>({l:curto(x.n)+" · "+x.s.cur,v:x.i,txt:String(x.i),c:x.s.c}))))+
       fxCard("Sobras 8074 por separador (contagem)",(function(){const o={};sobPer.forEach(s=>{const k=s.sepM||s.sep||"—";const x=o[k]=o[k]||{n:s.sep||k,i:0,q:0,os:new Set()};x.i++;x.q+=s.q;x.os.add(s.os);});
         const L=Object.values(o).sort((a,b)=>b.i-a.i||b.q-a.q).slice(0,10);
-        return fxBars(L.map(x=>({l:curto(x.n)+" · "+x.os.size+" O.S.",v:x.i,txt:x.i+" sobra"+(x.i===1?"":"s"),c:"#7C3AED"})))+'<p class="fx-e" style="margin-top:6px">Somente quantidade superior, sem duplicatas (mesma O.S. e hora; mesmo item na O.S.). '+sobPer.length+' sobras de '+Object.keys(o).length+' separadores no período.</p>';})())+'</div>'+fxFoot("Setores auditados");}
+        return fxBars(L.map(x=>({l:curto(x.n)+" · "+x.os.size+" O.S.",v:x.i,txt:x.i+" sobra"+(x.i===1?"":"s"),c:"#7C3AED"})))+'<p class="fx-e" style="margin-top:6px">Rotina 8074, à parte das auditorias (não soma na Separação nem no total). Somente quantidade superior, sem duplicatas (mesma O.S. e hora; mesmo item na O.S.). '+sobPer.length+' sobras de '+Object.keys(o).length+' separadores no período.</p>';})())+'</div>'+fxFoot("Setores auditados");}
 
 // auditoria aéreo (operadores de empilhadeira)
 const ENC_AERO={nome:"ANTONIO MAICON TEIXEIRA DE OLIVEIRA",mat:"10002407"};
