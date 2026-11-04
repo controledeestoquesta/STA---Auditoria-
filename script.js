@@ -119,7 +119,7 @@ const ehAdm=()=>temPerm("aud_adm");
 function podeVer(v){if(ehAdm())return true;switch(v){case "ruas":case "painel":return temPerm("aud_rua");case "retorno":return temPerm("aud_ret");case "cargas":return temPerm("aud_car");case "aero":return temPerm("aud_aer");case "pp":return temPerm("aud_pp");case "vales":return temPerm("aud_vale");case "prev":return temPerm("aud_pp")||temPerm("aud_vale");
   case "fechamento":return temPerm("aud_rua")||temPerm("aud_ret")||temPerm("aud_car")||temPerm("aud_aer")||temPerm("aud_pp")||temPerm("aud_vale");default:return false;}}
 function primeiraTela(){return ["ruas","retorno","cargas","aero","pp","vales","fechamento"].find(podeVer)||"fechamento";}
-function aplicarPerms(){try{paintXnc();}catch(e){}let n=0;document.querySelectorAll("nav button").forEach(b=>{const ok=podeVer(b.dataset.v);b.hidden=!ok;if(ok)n++;});
+function aplicarPerms(){try{paintXnc();}catch(e){}let n=0;document.querySelectorAll("nav button[data-v]").forEach(b=>{const ok=podeVer(b.dataset.v);b.hidden=!ok;if(ok)n++;});
   document.querySelector("nav").style.setProperty("--nav-n",n);document.querySelector("nav").dataset.n=n;
   const fa=$("f-aba");if(fa){[...fa.options].forEach(o=>o.hidden=!podeVer(o.value));if(!podeVer(fa.value)){const o=[...fa.options].find(x=>podeVer(x.value));if(o)fa.value=o.value;}}}
 async function sha256(s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}catch(e){return "";}}
@@ -172,7 +172,7 @@ paintWho(); if(DEMO&&!auditor)$("sheet").hidden=false;
 // navegação
 const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
 function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","vales","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
-  document.querySelectorAll("nav button").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+  document.querySelectorAll("nav button[data-v]").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("band-t").textContent=BAND[v][0];$("band-p").textContent=BAND[v][1];window.scrollTo(0,0);if(v==="registros")renderRecords();}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.v)));
 
@@ -1910,6 +1910,149 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppVal
  ".vl-k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.vl-k>div{border:1px solid var(--line,#E2E8F0);border-radius:10px;padding:8px;text-align:center}.vl-k b{display:block;font-size:1.5rem;color:#CA8A04}.vl-k .ok b{color:#16A34A}.vl-k .no b{color:#DC2626}.vl-k span{font-size:.78rem;color:#64748B}"+
  ".vl-it .top{display:flex;justify-content:space-between;font-size:.8rem;color:#64748B}.vl-it .addr{font-weight:700;margin-top:4px}.vl-it .desc{font-size:.9rem;margin:2px 0 6px}.vl-v{font-size:1.25rem;font-weight:800;color:#B45309;margin-top:6px}"+
  ".vl-st{font-weight:800;color:#CA8A04}.vl-it[data-st='Emitido'] .vl-st{color:#16A34A}.vl-it[data-st='Não emitido'] .vl-st{color:#DC2626}.vl-b{display:grid;gap:8px;margin-top:10px}.vl-b .save{margin:0}";document.head.appendChild(s);})();
+
+// ===== Versão desktop: identificação do aparelho e novo layout =====
+(function(){
+  const root=document.documentElement;
+  const UA=navigator.userAgent,touch=/Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle/i.test(UA)||(navigator.maxTouchPoints>1&&/Macintosh/.test(UA));
+  const capaz=!touch&&matchMedia("(pointer:fine)").matches&&screen.width>=1024;
+  const modo=()=>{try{return localStorage.getItem("audcd_modo")||"auto";}catch(e){return "auto";}};
+  const setModo=m=>{try{localStorage.setItem("audcd_modo",m);}catch(e){}location.reload();};
+  if(!root.classList.contains("desk")&&!root.classList.contains("mob")){const m=modo();root.classList.add(m==="desktop"||(m==="auto"&&capaz)?"desk":"mob");}
+  window.DESKTOP=root.classList.contains("desk");
+  if(!window.DESKTOP){
+    if(capaz){const b=document.createElement("button");b.type="button";b.className="dk-goto";b.textContent="Versão desktop";b.onclick=()=>setModo("desktop");document.body.appendChild(b);}
+    return;}
+  const ICO={ruas:'<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/>',retorno:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',cargas:'<rect x="1" y="7" width="14" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/>',
+    aero:'<path d="M4 20V4"/><path d="M4 6h10v6H4"/><path d="M14 9h6v11"/><path d="M2 20h20"/>',pp:'<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>',vales:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+    fechamento:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',painel:'<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+    registros:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',bases:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+    admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'};
+  const NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",vales:"Emissão de vales",fechamento:"Fechamento",painel:"Painel de ruas",registros:"Registros",bases:"Bases e planilha",admin:"Administração"};
+  const GRUPOS=[["lanc","Lançamentos de auditoria",["ruas","retorno","cargas","aero","pp"],true],["gest","Gestão",["fechamento","painel","registros","vales"]],["sist","Sistema",["bases","admin"]]];
+  const nav=document.querySelector("nav");const btn={};nav.querySelectorAll("button[data-v]").forEach(b=>btn[b.dataset.v]=b);
+  Object.entries(btn).forEach(([v,b])=>{const tn=[...b.childNodes].find(n=>n.nodeType===3&&n.data.trim());if(tn)tn.data="";const s=document.createElement("span");s.className="dk-t";s.textContent=NOME[v]||v;b.prepend(s);
+    if(ICO[v])b.insertAdjacentHTML("afterbegin",'<svg class="dk-i" viewBox="0 0 24 24" aria-hidden="true">'+ICO[v]+'</svg>');b.title=NOME[v]||v;});
+  const logo=$("hdr-logo");nav.insertAdjacentHTML("afterbegin",'<div class="dk-brand"><img alt="Santa Therezinha" id="dk-logo"><div><b>Auditoria STA</b><span>Centro de Distribuição</span></div></div>');
+  const syncLogo=()=>{if(logo&&logo.src)$("dk-logo").src=logo.src;};syncLogo();setTimeout(syncLogo,600);
+  let aberto=true;try{aberto=localStorage.getItem("audcd_dk_lanc")==="1";}catch(e){}
+  GRUPOS.forEach(([id,tit,vs,col])=>{const g=document.createElement("div");g.className="dk-g";g.id="dk-g-"+id;
+    g.innerHTML=col?'<button type="button" class="dk-gh dk-col" aria-expanded="'+aberto+'" aria-controls="dk-gb-'+id+'"><span>'+tit+'</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>':'<div class="dk-gh">'+tit+'</div>';
+    const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
+    if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
+  Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha</small></div>');
+  nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
+  const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
+    const cur=nav.querySelector('button[aria-current="page"]');const lb=$("dk-gb-lanc");if(cur&&lb.contains(cur)&&lb.hidden){lb.hidden=false;nav.querySelector(".dk-col").setAttribute("aria-expanded","true");}};
+  new MutationObserver(ms=>{if(ms.some(m=>m.target.matches&&m.target.matches("button[data-v]")))grupos();}).observe(nav,{subtree:true,attributes:true,attributeFilter:["hidden","aria-current"]});grupos();
+  // topo
+  const hd=document.querySelector("header");hd.insertAdjacentHTML("afterbegin",'<div class="dk-crumb"><span>Auditoria STA</span><b id="dk-crumb-t"></b></div>');
+  const crumb=()=>{const x=$("band-t").textContent;if($("dk-crumb-t").textContent!==x)$("dk-crumb-t").textContent=x;};new MutationObserver(crumb).observe($("band-t"),{childList:true,characterData:true,subtree:true});crumb();
+  // lançamentos: formulário em grade + lista lateral
+  [["v-ruas","sess-list"],["v-retorno","t-list"],["v-cargas","g-list"],["v-aero","a-list"],["v-pp","p-list"]].forEach(([vid,lid])=>{const v=$(vid),li=$(lid);if(!v||!li)return;
+    const grid=document.createElement("div");grid.className="dk-grid";const form=document.createElement("div");form.className="dk-form";const side=document.createElement("aside");side.className="dk-side";
+    side.innerHTML='<div class="dk-side-h">Lançamentos recentes</div>';li.style.marginTop="0";side.appendChild(li);
+    [...v.children].forEach(c=>{if(c.classList.contains("sess"))return;form.appendChild(c);});
+    form.querySelectorAll(":scope>div:not(.block)").forEach(d=>{if(d.querySelector(":scope>.block"))d.classList.add("dk-sub");});
+    grid.appendChild(form);grid.appendChild(side);v.appendChild(grid);});
+  // login
+  const lg=$("login");if(lg){const side=document.createElement("div");side.className="lg-side";
+    side.innerHTML='<div><img alt="Santa Therezinha" id="lg-side-logo"><h2>Auditoria STA</h2><p>Centro de Distribuição · Santa Therezinha</p></div>'+
+      '<ul><li>Auditorias de ruas, retorno, cargas e aéreo</li><li>Prevenção de Perdas e emissão de vales</li><li>Fechamentos e indicadores por setor</li></ul><small>© '+new Date().getFullYear()+' Santa Therezinha · uso interno</small>';
+    const main=document.createElement("div");main.className="lg-main";[...lg.children].forEach(c=>main.appendChild(c));lg.appendChild(side);lg.appendChild(main);
+    const box=main.querySelector(".lg-box");if(box){box.querySelector("h1").textContent="Entrar";box.querySelector("p").textContent="Use sua matrícula e senha do Permissionamento.";}
+    const sl=()=>{const s=(logo&&logo.src)||"";if(s)$("lg-side-logo").src=s;};sl();setTimeout(sl,600);}
+})();
+(function(){const s=document.createElement("style");s.textContent=`
+.dk-goto{position:fixed;right:14px;bottom:78px;z-index:8;border:1px solid var(--line);background:var(--surface);color:var(--brand);border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.12);cursor:pointer}
+html.desk{--dk-w:264px;--bg:#F3F5F9;--line:#E2E8F0;--surface-2:#F8FAFC;scroll-padding-top:80px}
+@media (prefers-color-scheme: dark){html.desk:not([data-theme="light"]){--bg:#0B1220;--line:#22314A;--surface-2:#111B2E}}
+html.desk body{padding-left:var(--dk-w);font:15px/1.5 "Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg)}
+html.desk body::before{display:none}
+html.desk h1,html.desk h2,html.desk h3,html.desk .save,html.desk nav button{font-family:"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+html.desk #print,html.desk #fech{font-family:"Barlow","Helvetica Neue",Arial,sans-serif}
+html.desk #print h1,html.desk #print h2,html.desk #print h3,html.desk #fech h1,html.desk #fech h2,html.desk #fech h3{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif}
+/* barra lateral */
+html.desk nav{position:fixed;top:0;bottom:0;left:0;right:auto;width:var(--dk-w);display:flex!important;flex-direction:column;background:#0F1E36;border:0;padding:0 0 12px;overflow-y:auto;z-index:20;grid-template-columns:none!important}
+html.desk .dk-brand{display:flex;align-items:center;gap:12px;padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+html.desk .dk-brand img{height:34px;width:auto}
+html.desk .dk-brand b{display:block;color:#fff;font-size:1rem;line-height:1.1;white-space:nowrap}html.desk .dk-brand span{color:#8DA0BD;font-size:.74rem;white-space:nowrap}
+html.desk .dk-g{padding:6px 0}
+html.desk .dk-gh{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 22px 6px;color:#7D8FAD;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;text-align:left}
+html.desk nav .dk-gh{min-height:0;font-size:.72rem!important;letter-spacing:.08em!important;font-weight:700;color:#7D8FAD;padding:10px 22px 6px}html.desk nav .dk-mob{min-height:0;font-size:.82rem!important;letter-spacing:0!important;font-weight:500;padding:7px 10px}html.desk nav button[data-v]{font-size:.9rem!important;letter-spacing:0!important}html.desk button.dk-gh{cursor:pointer}html.desk button.dk-gh:hover{color:#C9D4E5}
+html.desk .dk-gh svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;transition:transform .15s}
+html.desk .dk-gh[aria-expanded="true"] svg{transform:rotate(90deg)}
+html.desk nav button[data-v]{display:flex;align-items:center;gap:12px;width:calc(100% - 20px);margin:2px 10px;min-height:40px;padding:0 12px;border-radius:8px;color:#C9D4E5;font-size:.9rem;font-weight:500;text-align:left}
+html.desk nav button[data-v]:hover{background:rgba(255,255,255,.06);color:#fff}
+html.desk nav button[data-v][aria-current="page"]{background:#1D4ED8;color:#fff}
+html.desk nav button[data-v][aria-current="page"]::before{display:none}
+html.desk nav .dk-i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+html.desk nav .dk-t{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.desk nav .badge{position:static;margin-left:auto}
+html.desk .dk-foot{margin-top:auto;padding:16px 20px 4px;border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px}
+html.desk .dk-mob{background:none;border:1px solid rgba(255,255,255,.2);color:#C9D4E5;border-radius:8px;padding:7px 10px;font-size:.82rem;cursor:pointer}
+html.desk .dk-mob:hover{background:rgba(255,255,255,.06)}html.desk .dk-foot small{color:#6B7C99;font-size:.72rem}
+/* topo e título */
+html.desk header{position:sticky;top:0;z-index:15;height:60px;padding:0 32px;background:var(--surface);color:var(--ink);border-bottom:1px solid var(--line)}
+html.desk header>img{display:none}
+html.desk .dk-crumb{display:flex;align-items:center;gap:8px;font-size:.88rem;color:var(--muted)}
+html.desk .dk-crumb span::after{content:"/";margin-left:8px;color:var(--line)}html.desk .dk-crumb b{color:var(--ink);font-weight:600}
+html.desk .who{background:var(--surface-2);border:1px solid var(--line);color:var(--ink);max-width:340px;padding:7px 14px;font-size:.85rem}
+html.desk .band{background:transparent;color:var(--ink);padding:26px 32px 4px}
+html.desk .band-in,html.desk body.wide .band-in{max-width:none;margin:0}
+html.desk .band h1{font-size:1.6rem;font-weight:700;letter-spacing:-.01em}
+html.desk .band p{color:var(--muted);opacity:1;font-size:.92rem}
+html.desk main,html.desk body.wide main{max-width:1480px;margin:0;padding:16px 32px 48px}
+/* componentes */
+html.desk .block{border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid var(--line);box-shadow:0 1px 2px rgba(15,23,42,.04)}
+html.desk .block h3{font-size:1rem;font-weight:700}
+html.desk .field>label,html.desk .lbl{font-size:.82rem;font-weight:600;color:var(--muted);letter-spacing:.01em}
+html.desk input.in,html.desk select.in,html.desk textarea.in{border-width:1px;border-radius:8px}
+html.desk .field>.in,html.desk .field>select.in{min-height:42px;font-size:.95rem;background:var(--surface)}
+html.desk .in:focus{border-color:#1D4ED8;box-shadow:0 0 0 3px rgba(29,78,216,.15);outline:none}
+html.desk .save{min-height:46px;border-radius:8px;font-size:1rem;font-weight:600;background:#1D4ED8}
+html.desk .save:hover{background:#1E40AF}
+html.desk .btn{border-radius:8px}
+html.desk .toast{left:calc(50% + var(--dk-w) / 2);transform:translateX(-50%)}
+/* lançamentos: formulário + lista lateral */
+html.desk .dk-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+html.desk .dk-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:20px;align-items:start}
+html.desk .dk-form>*{margin:0!important;min-width:0}
+html.desk .dk-form>*:not(.block),html.desk .dk-form>.dk-sub{grid-column:1/-1}
+html.desk .dk-sub:not([hidden]){display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:20px;align-items:start}
+html.desk .dk-sub>*{margin:0!important;min-width:0}html.desk .dk-sub>*:not(.block){grid-column:1/-1}
+html.desk .dk-form .save{max-width:420px;justify-self:end}
+html.desk .dk-side{position:sticky;top:80px;max-height:calc(100vh - 100px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+html.desk .dk-side-h{font-weight:700;font-size:.95rem;margin-bottom:10px}
+html.desk .dk-side>div:empty::before{content:"Nenhum lançamento por enquanto.";color:var(--muted);font-size:.88rem}
+html.desk .dk-side .block{border:0;padding:0;box-shadow:none;margin:0}
+html.desk .sess{margin-bottom:20px}
+/* outras telas */
+html.desk #vales{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+html.desk #vales>.block{margin:0}html.desk #vales .seg{display:flex;flex-wrap:nowrap}html.desk #vales .seg button{flex:1}html.desk .vl-b{grid-template-columns:1.6fr 1fr 1fr}html.desk .vl-b .save{min-height:42px;font-size:.92rem}html.desk #vales>.block:first-child,html.desk #vales>p{grid-column:1/-1}
+html.desk #v-registros #list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+html.desk #v-registros #list>*{margin:0}
+html.desk #v-bases,html.desk #v-admin{max-width:1100px}
+@media (max-width:1180px){html.desk .dk-grid{grid-template-columns:1fr}html.desk .dk-side{position:static;max-height:none}}
+@media (max-width:860px){html.desk .dk-form,html.desk .dk-sub:not([hidden]),html.desk #vales,html.desk #v-registros #list{grid-template-columns:1fr}}
+/* login desktop */
+.lg-side{display:none}
+html.desk .login:not([hidden]){display:grid;grid-template-columns:minmax(380px,44%) 1fr;padding:0;background:var(--bg);align-items:stretch;justify-content:stretch}
+html.desk .lg-side{display:flex;flex-direction:column;justify-content:space-between;padding:56px;background:linear-gradient(155deg,#0F1E36 0%,#1E3A8A 60%,#1D4ED8 100%);color:#fff}
+html.desk .lg-side img{height:52px;width:auto;margin:0 0 36px}
+html.desk .lg-side h2{margin:0;font-size:2.4rem;font-weight:700;letter-spacing:-.02em}
+html.desk .lg-side p{margin:6px 0 0;color:#BFD0EE;font-size:1rem}
+html.desk .lg-side ul{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+html.desk .lg-side li{padding-left:28px;position:relative;color:#E2E8F5}
+html.desk .lg-side li::before{content:"";position:absolute;left:0;top:.35em;width:14px;height:14px;border-radius:4px;background:#60A5FA}
+html.desk .lg-side small{color:#8DA0BD}
+html.desk .lg-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+html.desk .lg-main>img{display:none}
+html.desk .lg-box{max-width:420px;padding:36px;border-radius:14px;border:1px solid var(--line);box-shadow:0 12px 40px rgba(15,23,42,.08)}
+html.desk .lg-box h1{font-size:1.7rem;color:var(--ink);font-weight:700}
+html.desk .lg-foot{color:var(--muted);max-width:420px}
+`;document.head.appendChild(s);})();
 
 if(S){setMode("end");reset();}renderSess();paintFotos();paintConn();paintPend();aplicarPerms();renderRecords();
 if(!DEMO&&!LOGIN){mostrarLogin();}else{go((location.hash||"").slice(1));setTimeout(revalidar,800);setTimeout(carregarApoio,1500);}
