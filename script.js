@@ -830,7 +830,7 @@ function fxCar(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.cargas).map(r=>Ob
   const porD={};todas.forEach(r=>{const k=fxDiaKey(r.ts);const x=porD[k]=porD[k]||{ts:r.ts,n:0};x.n++;});
   const linha=Object.keys(porD).sort().slice(-30).map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n)}));
   return fxHead(tit,rows.length)+
-    fxKpis([{t:"O.S. auditadas",v:oss.size,s:(oss.size?(rows.length/oss.size).toFixed(1).replace(".",","):"0")+" ocorr. por O.S."},{t:"Ocorrências",v:rows.length,c:"#DC2626",s:rows.reduce((a,r)=>a+r._q,0)+" unidades"},
+    fxKpis([{t:"O.S. auditadas",v:oss.size,s:(oss.size?(rows.length/oss.size).toFixed(1).replace(".",","):"0")+" ocorr. por O.S."},
       {t:"Valor total",v:BRL0(tot),c:"#B45309",s:"média "+BRL0(oss.size?tot/oss.size:0)+" por O.S."},
       {t:"Faltas",v:BRL0(m.Falta.v),c:"#DC2626",s:m.Falta.n+" ocorr. · "+m.Falta.q+" un"+pct(m.Falta.v)},{t:"Avarias",v:BRL0(m.Avaria.v),c:"#EA580C",s:m.Avaria.n+" ocorr. · "+m.Avaria.q+" un"+pct(m.Avaria.v)},
       {t:"Abastecimento",v:BRL0(m.Abastecimento.v),c:"#4F46E5",s:m.Abastecimento.n+" ocorr. · "+m.Abastecimento.q+" un"+pct(m.Abastecimento.v)},{t:"Sobras",v:BRL0(m.Sobras.v),c:"#CA8A04",s:m.Sobras.n+" ocorr. · "+m.Sobras.q+" un"+pct(m.Sobras.v)},{t:"Produto trocado",v:BRL0(m["Produto trocado"].v),c:"#DB2777",s:m["Produto trocado"].n+" ocorr. · "+m["Produto trocado"].q+" un"+pct(m["Produto trocado"].v)}],true)+
