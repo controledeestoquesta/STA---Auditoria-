@@ -1840,18 +1840,13 @@ function ppDocHTML(r){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v==="
    '<p class="decl" style="margin-top:4px">Valor = quantidade × Vl. ult. entrada (base 286).</p>'+
    (r.Observacao?'<h2>Observação</h2><div class="obs">'+esc(r.Observacao)+'</div>':'')+
    fotosHTML((r.fotos||[]).map(s=>({s,c:r.Codigo_Produto+" · "+r.Motivo})))+
-   '<div class="termo clt"><h2>Termo de ciência e autorização de desconto – art. 462, § 1º, da CLT</h2>'+
+   '<div class="termo clt"><h2>Termo de ciência – art. 462, § 1º, da CLT</h2>'+
    '<p>Eu, <b>'+esc(r.Colaborador_Responsavel||"________________")+'</b>, matrícula <b>'+esc(r.Matricula_Colaborador||"______")+'</b>, declaro estar ciente da ocorrência registrada neste documento pelo setor de Prevenção de Perdas – <b>'+esc((r.Motivo||"").toLowerCase())+'</b> –, referente ao item '+esc(r.Codigo_Produto)+' – '+esc(r.Descricao)+', quantidade '+q+', no valor apurado de <b>'+BRL.format(v)+'</b>.</p>'+
    '<p>Conforme o art. 462 da Consolidação das Leis do Trabalho, é vedado ao empregador efetuar descontos nos salários, salvo quando resultarem de adiantamentos, de dispositivos de lei ou de contrato coletivo. O § 1º do mesmo artigo estabelece que, <b>em caso de dano causado pelo empregado, o desconto será lícito desde que esta possibilidade tenha sido acordada ou na ocorrência de dolo do empregado</b>.</p>'+
    (consumo?'<p>Por se tratar de consumo de mercadoria sem autorização, o fato também poderá ser apurado conforme o regulamento interno da empresa.</p>':'')+
-   '<p>Diante do exposto, manifesto-me da seguinte forma:</p>'+
-   '<p class="chk">(&nbsp;&nbsp;&nbsp;) <b>AUTORIZO</b> o desconto do valor acima em minha folha de pagamento, em ____ parcela(s) mensal(is) de R$ ____________.</p>'+
-   '<p class="chk">(&nbsp;&nbsp;&nbsp;) <b>NÃO AUTORIZO</b> o desconto e apresento minhas justificativas: ______________________________________________________________</p>'+
-   '<p>O desconto observará os limites legais, os acordos e convenções coletivas aplicáveis e o regulamento interno, ficando assegurado ao colaborador o direito de apresentar esclarecimentos sobre a ocorrência.</p></div>'+
-   '<div class="sg sg4"><div><b>Colaborador</b>'+esc(r.Colaborador_Responsavel||"")+'<small>Matrícula '+esc(r.Matricula_Colaborador||"")+'</small><small>Data: ___/___/______</small></div>'+
-   '<div><b>Segurança – Prevenção de Perdas</b>'+esc(r.Nome_Seguranca||"")+'<small>Matrícula '+esc(r.Matricula_Seguranca||"")+'</small><small>Data: ___/___/______</small></div>'+
-   '<div><b>Encarregado do setor</b>'+esc(r.Encarregado_Setor||"")+'<small>Matrícula '+esc(r.Matricula_Encarregado||"")+'</small><small>Data: ___/___/______</small></div>'+
-   '<div><b>Testemunha</b>&nbsp;<small>Nome: ______________________</small><small>Data: ___/___/______</small></div></div></div>';}
+   '</div>'+
+   '<div class="sg sg2"><div><b>Colaborador responsável</b>'+esc(r.Colaborador_Responsavel||"")+'<small>Matrícula '+esc(r.Matricula_Colaborador||"")+'</small></div>'+
+   '<div><b>Gerência</b>&nbsp;</div></div></div>';}
 function openPPDoc(L){if(!L.length)return;const docs=L.map(r=>({html:ppDocHTML(r),multi:false})),f=L[0],tot=L.reduce((a,r)=>a+pnum(r.Valor),0);
   openDoc({html:docs.map(d=>'<div class="docsep">'+d.html+'</div>').join(""),pdfDocs:docs,multi:true,name:"Prevencao_"+String(f.Colaborador_Responsavel||"").split(" ")[0]+"_"+todayISO()+".pdf",
     title:"Prevenção de Perdas – "+(L.length>1?L.length+" ocorrências":curto(f.Colaborador_Responsavel)),short:"Prevenção de Perdas – "+curto(f.Colaborador_Responsavel)+" – "+BRL.format(tot),
@@ -1910,7 +1905,7 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).map(r=>Objec
       fxCard("Itens com mais ocorrências",fxTable([{t:"Código"},{t:"Descrição"},{t:"Ocorr.",n:1},{t:"Un",n:1},{t:"Valor",n:1}],Object.entries(itens).sort((a,b)=>b[1].v-a[1].v).slice(0,7).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.i,x.q,BRL0(x.v)])))+
       fxCard("Colaboradores com mais ocorrências",fxBars(Object.values(cols).sort((a,b)=>b.i-a.i||b.v-a.v).slice(0,7).map(x=>({l:curto(x.n),v:x.i,txt:x.i+" · "+BRL0(x.v),c:"#DC2626"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-m"'))+'</div>'+
     fxFull("Ocorrências registradas por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Prevenção de Perdas");}
-(function(){const s=document.createElement("style");s.textContent=".pd .termo.clt{background:#F8FAFC;border-color:#CBD5E1}.pd .termo.clt h2{color:#0F172A}.pd .termo .chk{margin:6px 0}.pd .sg.sg4{grid-template-columns:repeat(4,1fr);column-gap:14px}"+
+(function(){const s=document.createElement("style");s.textContent=".pd .termo.clt{background:#F8FAFC;border-color:#CBD5E1}.pd .termo.clt h2{color:#0F172A}.pd .termo .chk{margin:6px 0}.pd .sg.sg4{grid-template-columns:repeat(4,1fr);column-gap:14px}.pd .sg.sg2{grid-template-columns:repeat(2,1fr);column-gap:60px}"+
  ".vl-k{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.vl-k>div{border:1px solid var(--line,#E2E8F0);border-radius:10px;padding:8px;text-align:center}.vl-k b{display:block;font-size:1.5rem;color:#CA8A04}.vl-k .ok b{color:#16A34A}.vl-k .no b{color:#DC2626}.vl-k span{font-size:.78rem;color:#64748B}"+
  ".vl-it .top{display:flex;justify-content:space-between;font-size:.8rem;color:#64748B}.vl-it .addr{font-weight:700;margin-top:4px}.vl-it .desc{font-size:.9rem;margin:2px 0 6px}.vl-v{font-size:1.25rem;font-weight:800;color:#B45309;margin-top:6px}"+
  ".vl-st{font-weight:800;color:#CA8A04}.vl-it[data-st='Emitido'] .vl-st{color:#16A34A}.vl-it[data-st='Não emitido'] .vl-st{color:#DC2626}.vl-b{display:grid;gap:8px;margin-top:10px}.vl-b .save{margin:0}";document.head.appendChild(s);})();
