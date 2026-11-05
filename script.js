@@ -888,9 +888,9 @@ function fxRot(){const marg=+FECH.margem||6,tit="Retorno × Rotina (8457) — Qu
 /* ---- tela ---- */
 const FX_TIT={ruas:"Qualidade de Ruas",retorno:"Auditoria de Retorno",rotina:"Retorno x Rotina",cargas:"Auditoria de Cargas"};
 const FX_TAB={ruas:"Ruas",retorno:"Retorno",rotina:"Retorno × Rotina",cargas:"Cargas",aero:"Aéreo",setores:"Setores"};FX_TIT.aero="Auditoria Aereo";FX_TIT.setores="Setores";
-function fxRelatorio(){return FECH.tipo==="qual"?fxQual():FECH.tipo==="sac"?fxSac():FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
-function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||((FECH.tipo==="setores"||FECH.tipo==="qual")?!ehAdm():!podeVer(FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev","sac"].find(k=>podeVer(k))||"ruas";
-  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","retorno","cargas","aero","prev","sac","setores","qual"].filter(k=>(k==="setores"||k==="qual")?ehAdm():podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
+function fxRelatorio(){return FECH.tipo==="mapa"?fxMapaRuas():FECH.tipo==="qual"?fxQual():FECH.tipo==="sac"?fxSac():FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
+function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||((FECH.tipo==="setores"||FECH.tipo==="qual")?!ehAdm():!podeVer(FECH.tipo==="mapa"?"ruas":FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev","sac"].find(k=>podeVer(k))||"ruas";
+  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","mapa","retorno","cargas","aero","prev","sac","setores","qual"].filter(k=>(k==="setores"||k==="qual")?ehAdm():k==="mapa"?podeVer("ruas"):podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
     '<label>De <input class="in" type="date" id="fx-de" value="'+FECH.de+'"></label><label>Até <input class="in" type="date" id="fx-ate" value="'+FECH.ate+'"></label>'+
     '<button type="button" class="btn" id="fx-upd">Atualizar</button><button type="button" class="save" id="fx-pr" style="margin:0;min-height:44px;font-size:1.1rem;width:auto;padding:0 18px">Imprimir / PDF</button></div>'+
     '<p class="note" id="fx-info" style="margin:0 0 10px">'+esc(FECH.info||"")+'</p>';
@@ -2342,6 +2342,30 @@ $("cb-xlsx").addEventListener("change",e=>{const f=e.target.files[0];e.target.va
 $("cb-foto").addEventListener("change",e=>{const f=e.target.files[0];e.target.value="";if(f)cestaEnviar(f,"foto");});
 (function(){const s=document.createElement("style");s.textContent=".cb-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.cb-txt{flex:1 1 260px}.cb-txt small{display:block;color:var(--muted);font-size:.8rem}.cb-btn{cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}"+
  "#cb-frame{width:100%;height:calc(100vh - 230px);min-height:640px;border:1px solid var(--line);border-radius:12px;background:#fff;display:block}html.desk #cb-frame{height:calc(100vh - 250px)}";document.head.appendChild(s);})();
+
+// ===== Fechamento: Mapa de ruas (endereços por rua × erros, peso 8) =====
+const RUA_ENDS={"1": 132, "2": 262, "3": 258, "4": 263, "5": 265, "6": 267, "7": 260, "8": 266, "9": 266, "10": 260, "11": 266, "12": 265, "13": 248, "14": 84, "15": 139, "16": 295, "17": 327, "18": 348, "19": 258, "20": 107, "21": 12, "22": 455, "23": 307, "24": 318, "25": 334, "26": 333, "27": 338, "28": 337, "29": 335, "30": 365, "31": 453, "32": 337, "33": 364, "34": 360, "35": 363, "36": 364, "37": 358, "38": 362, "39": 362, "40": 303, "41": 359, "42": 361, "43": 361, "44": 370, "45": 361, "46": 336, "47": 497, "48": 442, "49": 408, "51": 82};
+const PESO_MAPA=8;
+FX_TAB.mapa="Mapa de ruas";FX_TIT.mapa="Mapa_de_Ruas";
+function fxMapaRuas(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.ruas).filter(r=>pbool(r.Possui_NC)),tit="Mapa de ruas — Qualidade por endereços (erros × acertos)";
+  const err={};rows.forEach(r=>{const k=String(unz(r.Rua)||String(fmtAddr(r.Endereco)).split("-")[0]||"").replace(/^0+/,"");if(k)err[k]=(err[k]||0)+1;});
+  const R=Object.keys(RUA_ENDS).map(r=>{const e=RUA_ENDS[r],n=err[r]||0,pts=n*PESO_MAPA,ac=Math.max(0,e-pts);return {r,e,n,pts,ac,q:e?ac/e:null};});
+  const Q={};R.forEach(x=>Q[x.r]=x.q);const totE=R.reduce((s,x)=>s+x.e,0),totN=R.reduce((s,x)=>s+x.n,0),totAc=R.reduce((s,x)=>s+x.ac,0),qg=totE?totAc/totE:null;
+  const crit=R.filter(x=>x.q<.85).sort((a,b)=>a.q-b.q),comErro=R.filter(x=>x.n);
+  const mapa=fxLegenda()+BLOCOS.map(([nm,a,z])=>{const rs=R.filter(x=>+x.r>=a&&+x.r<=z);if(!rs.length)return "";
+      const e=rs.reduce((s,x)=>s+x.e,0),ac=rs.reduce((s,x)=>s+x.ac,0),med=e?ac/e:null,ne=rs.reduce((s,x)=>s+x.n,0);
+      return '<div class="fx-bl" style="color:'+FXC[fxCls(med)]+'">Bloco '+nm+' <span>'+pc1(med)+' · '+ne+' erro'+(ne===1?"":"s")+' · '+e.toLocaleString("pt-BR")+' end.</span></div><div class="fx-sq">'+
+        rs.map(x=>'<div class="s-'+fxCls(x.q)+'" title="Rua '+x.r+': '+x.e+' endereços, '+x.n+' erro(s) × '+PESO_MAPA+' = '+x.pts+' pontos"><span>'+x.r+'</span><small>'+pc0(x.q)+'</small><em>'+(x.n?x.n+" erro"+(x.n>1?"s":""):"")+'</em></div>').join("")+'</div>';}).join("")+
+    '<p class="fx-e" style="margin-top:8px">Qualidade da rua = (endereços − erros × '+PESO_MAPA+') ÷ endereços. Cada endereço com não conformidade na auditoria de ruas conta como 1 erro.</p>';
+  return fxHead(tit,rows.length)+
+    fxKpis([{t:"Endereços",v:totE.toLocaleString("pt-BR"),c:"#0F172A",s:R.length+" ruas"},{t:"Erros encontrados",v:totN,c:"#DC2626",s:"peso "+PESO_MAPA+" = "+(totN*PESO_MAPA)+" pontos"},
+      {t:"Acertos",v:totAc.toLocaleString("pt-BR"),c:"#16A34A",s:"endereços conformes"},{t:"Qualidade geral",v:pc1(qg),c:FXC[fxCls(qg)]},
+      {t:"Ruas com erro",v:comErro.length,c:"#B45309",s:"de "+R.length},{t:"Ruas críticas <85%",v:crit.length,c:"#DC2626",s:crit.length?"requer ação":"",sc:"#DC2626"}])+
+    '<div class="fx-g"><div class="fx-col">'+fxCard("Mapa de ruas por bloco",mapa)+'</div><div class="fx-col">'+
+      fxCard("Ruas críticas (&lt;85%)",fxChips(crit.map(x=>[x.r,x.q,"("+x.n+" erros)"])))+
+      fxCard("Ruas com mais erros",fxTable([{t:"Rua"},{t:"Bloco"},{t:"End.",n:1},{t:"Erros",n:1},{t:"Pontos",n:1},{t:"Acertos",n:1},{t:"Qualidade",n:1}],
+        comErro.sort((a,b)=>a.q-b.q||b.n-a.n).slice(0,12).map(x=>['<b>'+x.r+'</b>',blocoDe(x.r),x.e,'<b style="color:#B91C1C">'+x.n+'</b>',x.pts,x.ac,'<b style="color:'+FXC[fxCls(x.q)]+'">'+pc1(x.q)+'</b>'])))+'</div></div>'+fxFoot("Mapa de ruas");}
+(function(){const s=document.createElement("style");s.textContent=".fx-sq>div em{display:block;font-style:normal;font-size:8.5px;font-weight:700;opacity:.85;min-height:10px}";document.head.appendChild(s);})();
 
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){
