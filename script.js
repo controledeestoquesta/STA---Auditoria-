@@ -821,7 +821,7 @@ function fxRet(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.retorno).filter(r
 /* ---- Cargas ---- */
 function fxCar(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.cargas).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor_Total)})),tit="Auditoria de Cargas — Fechamento";
   const todas=fxRows(FECH.dados&&FECH.dados.cargas);
-  const MOT=[["Falta","#EF4444"],["Avaria","#F97316"],["Abastecimento","#6366F1"],["Sobras","#CA8A04"],["Produto trocado","#DB2777"]];
+  const MOT=[["Falta","#EF4444"],["Avaria","#F97316"],["Abastecimento","#6366F1"],["Sobras","#CA8A04"],["Produto trocado","#DB2777"],["Produto próximo ao vencimento","#0D9488"]];
   const m={};MOT.forEach(([k])=>m[k]={n:0,q:0,v:0});rows.forEach(r=>{const x=m[r.Motivo];if(x){x.n++;x.q+=r._q;x.v+=r._v;}});
   const oss=new Set(rows.map(r=>r.Numero_OS)),tot=rows.reduce((a,r)=>a+r._v,0),pct=v=>tot?" · "+Math.round(v/tot*100)+"% do valor":"";
   const itens={};rows.forEach(r=>{const k=r.Codigo_Produto;const x=itens[k]=itens[k]||{d:r.Descricao_Produto,n:0,q:0,v:0,mot:{}};x.n++;x.q+=r._q;x.v+=r._v;x.mot[r.Motivo]=(x.mot[r.Motivo]||0)+1;});
@@ -835,7 +835,7 @@ function fxCar(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.cargas).map(r=>Ob
     fxKpis([{t:"O.S. auditadas",v:oss.size,s:(oss.size?(rows.length/oss.size).toFixed(1).replace(".",","):"0")+" ocorr. por O.S."},
       {t:"Valor total",v:BRL0(tot),c:"#B45309",s:"média "+BRL0(oss.size?tot/oss.size:0)+" por O.S."},
       {t:"Faltas",v:BRL0(m.Falta.v),c:"#DC2626",s:m.Falta.n+" ocorr. · "+m.Falta.q+" un"+pct(m.Falta.v)},{t:"Avarias",v:BRL0(m.Avaria.v),c:"#EA580C",s:m.Avaria.n+" ocorr. · "+m.Avaria.q+" un"+pct(m.Avaria.v)},
-      {t:"Abastecimento",v:BRL0(m.Abastecimento.v),c:"#4F46E5",s:m.Abastecimento.n+" ocorr. · "+m.Abastecimento.q+" un"+pct(m.Abastecimento.v)},{t:"Sobras",v:BRL0(m.Sobras.v),c:"#CA8A04",s:m.Sobras.n+" ocorr. · "+m.Sobras.q+" un"+pct(m.Sobras.v)},{t:"Produto trocado",v:BRL0(m["Produto trocado"].v),c:"#DB2777",s:m["Produto trocado"].n+" ocorr. · "+m["Produto trocado"].q+" un"+pct(m["Produto trocado"].v)}],true)+
+      {t:"Abastecimento",v:BRL0(m.Abastecimento.v),c:"#4F46E5",s:m.Abastecimento.n+" ocorr. · "+m.Abastecimento.q+" un"+pct(m.Abastecimento.v)},{t:"Sobras",v:BRL0(m.Sobras.v),c:"#CA8A04",s:m.Sobras.n+" ocorr. · "+m.Sobras.q+" un"+pct(m.Sobras.v)},{t:"Produto trocado",v:BRL0(m["Produto trocado"].v),c:"#DB2777",s:m["Produto trocado"].n+" ocorr. · "+m["Produto trocado"].q+" un"+pct(m["Produto trocado"].v)},{t:"Próx. vencimento",v:BRL0(m["Produto próximo ao vencimento"].v),c:"#0D9488",s:m["Produto próximo ao vencimento"].n+" ocorr. · "+m["Produto próximo ao vencimento"].q+" un"+pct(m["Produto próximo ao vencimento"].v)}],true)+
     '<div class="fx-row" style="grid-template-columns:1.55fr 1fr">'+fxCard("Itens que mais dão divergência",fxTable([{t:"#"},{t:"Item"},{t:"Motivos"},{t:"Ocorr.",n:1},{t:"Un",n:1},{t:"Valor",n:1}],
         rankItens.map(([k,x],i)=>[i+1,esc(k+" – "+String(x.d||"").slice(0,26)),esc(Object.entries(x.mot).map(([mm,n])=>mm+(n>1?" ("+n+")":"")).join(", ")),'<b>'+x.n+'</b>',x.q,BRL0(x.v)])))+
       fxCard("Ocorrências por motivo",fxDonut(MOT.map(([k,c])=>({l:k,v:m[k].n,c}))))+'</div>'+
@@ -888,9 +888,9 @@ function fxRot(){const marg=+FECH.margem||6,tit="Retorno × Rotina (8457) — Qu
 /* ---- tela ---- */
 const FX_TIT={ruas:"Qualidade de Ruas",retorno:"Auditoria de Retorno",rotina:"Retorno x Rotina",cargas:"Auditoria de Cargas"};
 const FX_TAB={ruas:"Ruas",retorno:"Retorno",rotina:"Retorno × Rotina",cargas:"Cargas",aero:"Aéreo",setores:"Setores"};FX_TIT.aero="Auditoria Aereo";FX_TIT.setores="Setores";
-function fxRelatorio(){return FECH.tipo==="sac"?fxSac():FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
-function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||(FECH.tipo==="setores"?!ehAdm():!podeVer(FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev","sac"].find(k=>podeVer(k))||"ruas";
-  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","retorno","cargas","aero","prev","sac","setores"].filter(k=>k==="setores"?ehAdm():podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
+function fxRelatorio(){return FECH.tipo==="qual"?fxQual():FECH.tipo==="sac"?fxSac():FECH.tipo==="prev"?fxPrev():FECH.tipo==="setores"?fxSetores():FECH.tipo==="aero"?fxAero():FECH.tipo==="retorno"?fxRet():FECH.tipo==="cargas"?fxCar():FECH.tipo==="rotina"?fxRot():fxRuas();}
+function renderFech(){const box=$("fech");if(!box)return;if(FECH.tipo==="rotina"||((FECH.tipo==="setores"||FECH.tipo==="qual")?!ehAdm():!podeVer(FECH.tipo)))FECH.tipo=["ruas","retorno","cargas","aero","prev","sac"].find(k=>podeVer(k))||"ruas";
+  const bar='<div class="fxbar"><div class="seg fx-tabs" role="group" aria-label="Tipo de auditoria">'+["ruas","retorno","cargas","aero","prev","sac","setores","qual"].filter(k=>(k==="setores"||k==="qual")?ehAdm():podeVer(k)).map(k=>'<button type="button" data-fx="'+k+'" aria-pressed="'+(FECH.tipo===k)+'">'+FX_TAB[k]+'</button>').join("")+'</div>'+
     '<label>De <input class="in" type="date" id="fx-de" value="'+FECH.de+'"></label><label>Até <input class="in" type="date" id="fx-ate" value="'+FECH.ate+'"></label>'+
     '<button type="button" class="btn" id="fx-upd">Atualizar</button><button type="button" class="save" id="fx-pr" style="margin:0;min-height:44px;font-size:1.1rem;width:auto;padding:0 18px">Imprimir / PDF</button></div>'+
     '<p class="note" id="fx-info" style="margin:0 0 10px">'+esc(FECH.info||"")+'</p>';
@@ -1205,7 +1205,7 @@ const TERMO_TXT={
  "car_Avaria":["Avaria na carga","Produto danificado expedido ou identificado na carga. Risco de devolução, prejuízo financeiro e desgaste da imagem da empresa com o cliente."],
  "car_Abastecimento":["Falha de abastecimento","O produto não estava disponível no momento da carga. Atrasa a expedição e pode gerar corte no pedido do cliente."],
  "car_Sobras":["Sobra na carga","O cliente recebe mais do que pediu. Gera perda de estoque, divergência de faturamento e custo para recolher o excedente."],
- "car_Produto trocado":["Produto trocado","O cliente recebe um item diferente do pedido. Gera devolução, reentrega, divergência de estoque nos dois itens e insatisfação do cliente."],
+ "car_Produto próximo ao vencimento":["Produto próximo ao vencimento","Item com validade curta separado para a carga. Risco de recusa e devolução pelo cliente, perda por vencimento e prejuízo à imagem da empresa."],"car_Produto trocado":["Produto trocado","O cliente recebe um item diferente do pedido. Gera devolução, reentrega, divergência de estoque nos dois itens e insatisfação do cliente."],
  aero:["Ocorrência na operação aérea","Abastecimento ou armazenagem incorreta pela empilhadeira afeta a disponibilidade no picking, a acuracidade do estoque e a segurança da operação."]};
 function termoHTML(itens,valor,extra){if(!itens.length)return "";
   return '<div class="termo"><h2>Termo de impacto da não conformidade</h2><p>A auditoria identificou a(s) não conformidade(s) abaixo. Impacto para a operação:</p><ul>'+
@@ -1387,7 +1387,7 @@ document.querySelectorAll(".cau button").forEach(b=>b.addEventListener("click",(
 async function addFotoCG(e){const f=e.target.files[0];e.target.value="";if(!f||CG.fotos.length>=3)return;try{CG.fotos.push(await compress(f));setErr("g-foto-f","");paintCG();}catch(x){toast("Não foi possível ler a foto.");}}
 $("g-foto").addEventListener("change",addFotoCG);$("g-foto-g").addEventListener("change",addFotoCG);
 function carRecs(){return SC?allRecs().filter(r=>r._aba==="cargas"&&r.ID_Sessao===SC.id):[];}
-function porMotivo(recs){const m={Falta:{n:0,q:0,v:0},Avaria:{n:0,q:0,v:0},Abastecimento:{n:0,q:0,v:0},Sobras:{n:0,q:0,v:0},"Produto trocado":{n:0,q:0,v:0}};recs.forEach(r=>{const x=m[r.Motivo];if(x){x.n++;x.q+=+r.Quantidade||0;x.v+=+r.Valor_Total||0;}});return m;}
+function porMotivo(recs){const m={Falta:{n:0,q:0,v:0},Avaria:{n:0,q:0,v:0},Abastecimento:{n:0,q:0,v:0},Sobras:{n:0,q:0,v:0},"Produto trocado":{n:0,q:0,v:0},"Produto próximo ao vencimento":{n:0,q:0,v:0}};recs.forEach(r=>{const x=m[r.Motivo];if(x){x.n++;x.q+=+r.Quantidade||0;x.v+=+r.Valor_Total||0;}});return m;}
 function renderCS(){const box=$("cs-box");if(!box)return;
   if(!SC){$("cg-form").hidden=true;$("g-list").innerHTML="";if(box.dataset.mode==="start")return;box.dataset.mode="start";
     box.innerHTML='<h3>Conferência da carga</h3><p class="note" style="margin-top:0">Informe Box, O.S. e conferente uma vez e lance todos os itens com ocorrência. No fim, finalize para gerar o PDF.</p>'+
@@ -1441,7 +1441,7 @@ $("g-save").addEventListener("click",async()=>{
   chk(!CG.mot,"g-mot-f","Escolha o motivo.");
   chk(!CG.cau,"g-cau-f","Escolha o causador da ocorrência.");
   chk(CG.cau==="Separador"&&gSep.value==null,"g-cau-f","Informe o separador.");
-  chk(CG.mot&&!CG.fotos.length,"g-foto-f","Tire ao menos uma foto da ocorrência.");
+  chk((CG.mot==="Sobras"||CG.mot==="Avaria")&&!CG.fotos.length,"g-foto-f","Em "+(CG.mot||"").toLowerCase()+" a foto é obrigatória.");
   if(errs.length){$(errs[0]).scrollIntoView({block:"center",behavior:"smooth"});toast("Revise os campos marcados.");return;}
   const now=new Date(),k=CG.prod,vl=P.vl[k];
   const rec={_aba:"cargas",ID_Auditoria:newId("CG"),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),
@@ -2060,8 +2060,9 @@ const ceWd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"l
 const ceCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const ceMesNome=m=>{const [y,mo]=m.split("-").map(Number);return new Date(y,mo-1,15).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});};
 const ceRows=j=>(j&&j.registros||[]).map(r=>{const o={};(j.colunas||[]).forEach((c,i)=>o[c]=r[i]==null?"":String(r[i]));return o;});
-const ceCfg0=()=>({v:2,equipe:CE_TEAM_SEED.map(([mat,nome,cargo,subsetor,turno])=>({mat,nome,cargo,subsetor,turno})),
-  atividades:CE_ATR_SEED.map(([nome,valor],i)=>({id:ceUid(),nome,valor,desc:"",ativo:true,ordem:i})),valores:{conf_carga:0,sac_falta:0,sac_sobra:0,rep_rua:0,rep_ret:0,oper_aero:0}});
+const CE_REP0={oper:["10002564"],conf:["10002517","10003033"],rep:["10003725"]};
+const ceCfg0=()=>({v:3,repasses:JSON.parse(JSON.stringify(CE_REP0)),equipe:CE_TEAM_SEED.map(([mat,nome,cargo,subsetor,turno])=>({mat,nome,cargo,subsetor,turno})),
+  atividades:CE_ATR_SEED.map(([nome,valor],i)=>({id:ceUid(),nome,valor,desc:"",ativo:true,ordem:i})),valores:{conf_carga:5,sac_falta:5,sac_sobra:5,rep_rua:5,rep_ret:5,oper_aero:8}});
 const ceCom=()=>ehAdm()||temPerm("aud_com");
 const ceEq=()=>(CE.cfg&&CE.cfg.equipe)||[];
 const ceFunc=m=>ceEq().find(f=>f.mat===m);
@@ -2071,7 +2072,7 @@ async function ceCarregar(forcar){if(CE.busy)return;if(DEMO||!SHEET_URL){CE.msg=
   CE.busy=true;CE.msg="Carregando da planilha…";ceRender();
   try{const j=await ppPost({acao:"cha_ler"});CE.cha=ceRows(j);let cfg=j.config;
     if(!cfg||!cfg.equipe||!cfg.equipe.length||(cfg.v||0)<2){cfg=Object.assign(ceCfg0(),cfg&&cfg.valores?{valores:Object.assign(ceCfg0().valores,cfg.valores)}:{});if(ceCom())await ppPost({acao:"com_salvar",chave:"config",valor:cfg}).catch(()=>{});}
-    cfg.valores=Object.assign(ceCfg0().valores,cfg.valores||{});CE.cfg=cfg;
+    cfg.valores=Object.assign(ceCfg0().valores,cfg.valores||{});if((cfg.v||0)<3){cfg.valores=ceCfg0().valores;cfg.repasses=JSON.parse(JSON.stringify(CE_REP0));cfg.v=3;if(ceCom())ppPost({acao:"com_salvar",chave:"config",valor:cfg}).catch(()=>{});}cfg.repasses=cfg.repasses||JSON.parse(JSON.stringify(CE_REP0));CE.cfg=cfg;
     if(ceCom()){const l=await ppPost({acao:"cl_ler"});CE.lanc=ceRows(l).filter(x=>x.ID).map(x=>Object.assign(x,{_d:ceIso(x.Data),_q:ceParse(x.Quantidade),_v:ceParse(x.Valor_Unitario),_t:ceParse(x.Total)}));
       if(forcar||!FECH.dados)await carregarFech(false);}
     CE.msg="";}catch(e){CE.msg=e.message;}CE.busy=false;ceRender();}
@@ -2094,11 +2095,20 @@ function ceErros(de,ate){const a=new Date(de+"T00:00:00").getTime(),b=new Date(a
   noP(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(r=>add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_ret",pnum(r.Valor_Divergencia)));
   noP(D.aero).forEach(r=>add(r.Matricula_Operador,r.Operador,"oper_aero",pnum(r["Vlr. Total"])));
   const V=CE.cfg.valores;Object.values(E).forEach(x=>x.desc=COM_ERROS.reduce((s,[t])=>s+(x.n[t]||0)*(+V[t]||0),0));return E;}
+const CE_GRP={conf:["conf_carga","sac_falta","sac_sobra"],rep:["rep_rua","rep_ret"],oper:["oper_aero"]};
+function ceBonus(de,ate){const a=new Date(de+"T00:00:00").getTime(),b=new Date(ate+"T23:59:59").getTime(),noP=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<=b),D=FECH.dados||{},V=CE.cfg.valores,P=CE.cfg.repasses||CE_REP0,B={};
+  const dar=(mats,v,tipo)=>{if(!mats||!mats.length||!v)return;const p=v/mats.length;mats.forEach(m=>{const x=B[m]=B[m]||{v:0,conf:0,rep:0,oper:0};x.v+=p;x[tipo]+=p;});};
+  noP(D.cargas).filter(r=>r.Causador!=="Separador").forEach(r=>{const au=String(r.Matricula_Auditor||"").trim();dar(P.conf.includes(au)?[au]:P.conf,+V.conf_carga||0,"conf");});
+  noP(D.sac).filter(sacValida).forEach(r=>dar(P.conf,+(r.Motivo==="Sobra"?V.sac_sobra:V.sac_falta)||0,"conf"));
+  const vis=new Set();noP(D.ruas).filter(r=>pbool(r.Possui_NC)).forEach(r=>{const k=(r.Matricula_Colaborador_NC||r.Nome_Colaborador_NC)+"|"+(unz(r.Rua)||"")+"|"+fxDiaKey(r.ts);if(vis.has(k))return;vis.add(k);dar(P.rep,+V.rep_rua||0,"rep");});
+  noP(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(()=>dar(P.rep,+V.rep_ret||0,"rep"));
+  noP(D.aero).forEach(()=>dar(P.oper,+V.oper_aero||0,"oper"));return B;}
+const ceNomeMat=m=>{const f=ceFunc(m);if(f)return f.nome;const i=cIdx.has(m)?cIdx.get(m):null;return i!=null?C.nome[i]:m;};
 function ceResumo(){const ls=ceLancs(),por={};ls.forEach(l=>{const o=por[l.Matricula]=por[l.Matricula]||{mat:l.Matricula,n:0,total:0};o.n++;o.total+=l._t;});
-  const E=ceErros(CE.cDe,CE.cAte),pc=cePeriodo(CE.cDe,CE.cAte);ceEq().forEach(f=>{if(!por[f.mat]&&((E[f.mat]&&E[f.mat].desc)||0))por[f.mat]={mat:f.mat,n:0,total:0};});
-  const rows=Object.values(por).map(o=>{const f=ceFunc(o.mat),e=E[o.mat]||{desc:0,tot:0};return Object.assign(o,{f,nome:f?f.nome:(ls.find(l=>l.Matricula===o.mat)||{}).Nome||o.mat,pc:pc[o.mat]||{presente:0,falta:0},err:e.tot,desc:e.desc,liq:Math.max(0,o.total-e.desc)});}).sort((a,b)=>b.total-a.total);
+  const E=ceErros(CE.cDe,CE.cAte),Bn=ceBonus(CE.cDe,CE.cAte),pc=cePeriodo(CE.cDe,CE.cAte);ceEq().forEach(f=>{if(!por[f.mat]&&((E[f.mat]&&E[f.mat].desc)||0))por[f.mat]={mat:f.mat,n:0,total:0};});Object.keys(Bn).forEach(m=>{if(!por[m])por[m]={mat:m,n:0,total:0};});
+  const rows=Object.values(por).map(o=>{const f=ceFunc(o.mat),e=E[o.mat]||{desc:0,tot:0};const bn=Bn[o.mat]||{v:0};return Object.assign(o,{f,nome:f?f.nome:((ls.find(l=>l.Matricula===o.mat)||{}).Nome||ceNomeMat(o.mat)),pc:pc[o.mat]||{presente:0,falta:0},err:e.tot,desc:e.desc,bonus:bn.v,bdet:bn,liq:Math.max(0,o.total+bn.v-e.desc)});}).sort((a,b)=>(b.total+b.bonus)-(a.total+a.bonus));
   const atr={};ls.forEach(l=>{const o=atr[l.Atividade]=atr[l.Atividade]||{nome:l.Atividade,qtd:0,total:0,n:0};o.qtd+=l._q;o.total+=l._t;o.n++;});
-  return {ls,rows,E,atr:Object.values(atr).sort((a,b)=>b.total-a.total),total:ls.reduce((s,l)=>s+l._t,0),desc:rows.reduce((s,o)=>s+o.desc,0),liq:rows.reduce((s,o)=>s+o.liq,0)};}
+  return {ls,rows,E,atr:Object.values(atr).sort((a,b)=>b.total-a.total),total:ls.reduce((s,l)=>s+l._t,0),bonus:rows.reduce((s,o)=>s+o.bonus,0),desc:rows.reduce((s,o)=>s+o.desc,0),liq:rows.reduce((s,o)=>s+o.liq,0)};}
 // ---- componentes ----
 const ceKpi=(l,v,s,c,hero)=>'<div class="ce-kpi k-'+c+(hero?" hero":"")+'"><span>'+l+'</span><strong>'+v+'</strong>'+(s?'<small>'+s+'</small>':'')+'</div>';
 const ceBadge=s=>s&&CE_ST[s]?'<span class="ce-b b-'+CE_ST[s][1]+'">'+CE_ST[s][0]+'</span>':'<span class="ce-b b-none">Sem registro</span>';
@@ -2159,10 +2169,10 @@ function ceComHTML(){if(!ceCom())return "";if(!CE.cfg)return ceTopo()+(CE.busy?"
   const per='<div class="ce-filters"><label class="ce-fld"><span>De</span><input type="date" id="ce-cde" value="'+CE.cDe+'"></label><label class="ce-fld"><span>Até</span><input type="date" id="ce-cate" value="'+CE.cAte+'"></label>'+(CE.cTab==="lancar"?'<label class="ce-fld grow"><span>Buscar lançamento</span><input type="search" id="ce-lq" value="'+esc(CE.lq)+'" placeholder="Nome, matrícula ou atividade"></label>':'')+'</div>';
   const atrs=CE.cfg.atividades.filter(a=>a.ativo!==false).sort((a,b)=>(a.ordem==null?999:a.ordem)-(b.ordem==null?999:b.ordem));
   if(CE.cTab==="painel"){const R=ceResumo(),top=R.rows[0];
-    h+=per+'<div class="ce-kpis">'+ceKpi("Total de comissões",ceBRL(R.total),"no período","brand",1)+ceKpi("Lançamentos",R.ls.length,"","brand")+ceKpi("Comissionados",R.rows.filter(o=>o.total).length,"funcionários","ok")+ceKpi("Média por funcionário",ceBRL(R.rows.length?R.total/R.rows.length:0),"","vac")+ceKpi("Maior comissão",top?ceBRL(top.total):"—",top?esc(ceCurto(top.nome)):"","off")+ceKpi("Descontos (auditorias)",ceBRL(R.desc),"","bad")+ceKpi("Total líquido",ceBRL(R.liq),"","ok")+'</div>'+
-      '<div class="block"><div class="ce-th"><h3>Comissão por funcionário</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Funcionário</th><th>Subsetor</th><th class="num">Presenças</th><th class="num">Faltas</th><th class="num">Lançamentos</th><th class="num">Comissão</th><th class="num">Erros</th><th class="num">Descontos</th><th class="num">Líquido</th></tr></thead><tbody>'+
-      (R.rows.map(o=>'<tr><td><span class="nm">'+esc(o.nome)+'</span><span class="sub">'+esc(o.mat)+'</span></td><td>'+esc(o.f&&o.f.subsetor||"—")+'</td><td class="num">'+o.pc.presente+'</td><td class="num">'+(o.pc.falta?'<span class="ce-b b-bad">'+o.pc.falta+'</span>':"0")+'</td><td class="num">'+o.n+'</td><td class="num"><b>'+ceBRL(o.total)+'</b></td><td class="num">'+(o.err||"–")+'</td><td class="num">'+(o.desc?'<span style="color:#B3261E">'+ceBRL(o.desc)+'</span>':"–")+'</td><td class="num"><b style="color:#17733F">'+ceBRL(o.liq)+'</b></td></tr>').join("")||'<tr><td colspan="9">'+ceVazio("Nenhum lançamento no período.","Use “Lançar quantidades”.")+'</td></tr>')+
-      '</tbody>'+(R.rows.length?'<tfoot><tr><td colspan="5">Total geral</td><td class="num">'+ceBRL(R.total)+'</td><td></td><td class="num">'+ceBRL(R.desc)+'</td><td class="num">'+ceBRL(R.liq)+'</td></tr></tfoot>':'')+'</table></div></div>'+
+    h+=per+'<div class="ce-kpis">'+ceKpi("Total de comissões",ceBRL(R.total),"no período","brand",1)+ceKpi("Lançamentos",R.ls.length,"","brand")+ceKpi("Comissionados",R.rows.filter(o=>o.total).length,"funcionários","ok")+ceKpi("Média por funcionário",ceBRL(R.rows.filter(o=>o.total).length?R.total/R.rows.filter(o=>o.total).length:0),"","vac")+ceKpi("Maior comissão",top?ceBRL(top.total):"—",top?esc(ceCurto(top.nome)):"","off")+ceKpi("Bônus de auditoria",ceBRL(R.bonus),"repasse dos descontos","vac")+ceKpi("Descontos (auditorias)",ceBRL(R.desc),"","bad")+ceKpi("Total líquido",ceBRL(R.liq),"","ok")+'</div>'+
+      '<div class="block"><div class="ce-th"><h3>Comissão por funcionário</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Funcionário</th><th>Subsetor</th><th class="num">Presenças</th><th class="num">Faltas</th><th class="num">Lançamentos</th><th class="num">Comissão</th><th class="num">Bônus auditoria</th><th class="num">Erros</th><th class="num">Descontos</th><th class="num">Líquido</th></tr></thead><tbody>'+
+      (R.rows.map(o=>'<tr><td><span class="nm">'+esc(o.nome)+'</span><span class="sub">'+esc(o.mat)+'</span></td><td>'+esc(o.f&&o.f.subsetor||"—")+'</td><td class="num">'+o.pc.presente+'</td><td class="num">'+(o.pc.falta?'<span class="ce-b b-bad">'+o.pc.falta+'</span>':"0")+'</td><td class="num">'+o.n+'</td><td class="num"><b>'+ceBRL(o.total)+'</b></td><td class="num">'+(o.bonus?'<span style="color:#1F5DB8" title="'+ceBDet(o.bdet)+'">'+ceBRL(o.bonus)+'</span>':"–")+'</td><td class="num">'+(o.err||"–")+'</td><td class="num">'+(o.desc?'<span style="color:#B3261E">'+ceBRL(o.desc)+'</span>':"–")+'</td><td class="num"><b style="color:#17733F">'+ceBRL(o.liq)+'</b></td></tr>').join("")||'<tr><td colspan="10">'+ceVazio("Nenhum lançamento no período.","Use “Lançar quantidades”.")+'</td></tr>')+
+      '</tbody>'+(R.rows.length?'<tfoot><tr><td colspan="5">Total geral</td><td class="num">'+ceBRL(R.total)+'</td><td class="num">'+ceBRL(R.bonus)+'</td><td></td><td class="num">'+ceBRL(R.desc)+'</td><td class="num">'+ceBRL(R.liq)+'</td></tr></tfoot>':'')+'</table></div></div>'+
       '<div class="block"><div class="ce-th"><h3>Por atividade</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Atividade</th><th class="num">Lançamentos</th><th class="num">Quantidade</th><th class="num">Total</th></tr></thead><tbody>'+(R.atr.map(a=>'<tr><td class="nm">'+esc(a.nome)+'</td><td class="num">'+a.n+'</td><td class="num">'+ceNum(a.qtd)+'</td><td class="num"><b>'+ceBRL(a.total)+'</b></td></tr>').join("")||'<tr><td colspan="4">'+ceVazio("Sem dados no período.")+'</td></tr>')+'</tbody></table></div></div>';}
   if(CE.cTab==="lancar"){const qd=CE.qd,tot=atrs.reduce((t,a)=>t+ceMul(ceParse(qd.q[a.id]),a.valor),0),q=norm(CE.lq);
     const ls=ceLancs().filter(l=>!q||norm(l.Matricula+" "+l.Nome+" "+l.Atividade).includes(q)).sort((a,b)=>b._d.localeCompare(a._d)||String(b.Registrado_Em).localeCompare(String(a.Registrado_Em)));
@@ -2178,26 +2188,30 @@ function ceComHTML(){if(!ceCom())return "";if(!CE.cfg)return ceTopo()+(CE.busy?"
     h+='<div class="block"><div class="ce-th"><h3>Nova atividade</h3></div><div class="ce-fgrid"><label class="ce-fld span2"><span>Nome da atividade</span><input id="ce-anome" placeholder="Ex.: Conferência de carga"></label><label class="ce-fld"><span>Valor por unidade (R$)</span><input id="ce-avalor" inputmode="decimal" placeholder="0,00"></label><label class="ce-fld span2"><span>Descrição</span><input id="ce-adesc" placeholder="Opcional"></label></div><button type="button" class="btn" data-ce="addAtr" style="margin-top:12px">Adicionar atividade</button></div>'+
       '<div class="block"><div class="ce-th"><h3>Atividades cadastradas</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Atividade</th><th class="num">Valor</th><th class="num">Lançamentos</th><th>Situação</th><th></th></tr></thead><tbody>'+
       list.map(a=>{const n=(CE.lanc||[]).filter(l=>l.Atividade_Id===a.id).length;return '<tr><td><span class="nm">'+esc(a.nome)+'</span>'+(a.desc?'<span class="sub">'+esc(a.desc)+'</span>':'')+'</td><td class="num">'+ceBRL(a.valor)+'</td><td class="num">'+n+'</td><td>'+(a.ativo===false?'<span class="ce-b b-none">Inativa</span>':'<span class="ce-b b-ok">Ativa</span>')+'</td><td class="num"><button type="button" class="btn sm" data-aed="'+a.id+'">Editar valor</button> <button type="button" class="btn sm" data-atog="'+a.id+'">'+(a.ativo===false?"Ativar":"Inativar")+'</button>'+(n?'':' <button type="button" class="btn sm" data-adel="'+a.id+'">Excluir</button>')+'</td></tr>';}).join("")+'</tbody></table></div></div>'+
-      '<div class="block"><div class="ce-th"><h3>Desconto por erro (auditorias)</h3><span class="muted">Valor descontado da comissão a cada ocorrência no período.</span></div><div class="ce-fgrid">'+COM_ERROS.map(([t,n,p])=>'<label class="ce-fld"><span>'+esc(n)+' ('+p+')</span><input data-vv="'+t+'" inputmode="decimal" value="'+(V[t]?String(V[t]).replace(".",","):"")+'" placeholder="R$ 0,00"></label>').join("")+'</div><button type="button" class="btn" data-ce="vvSave" style="margin-top:12px">Salvar valores de desconto</button></div>';}
+      '<div class="block"><div class="ce-th"><h3>Desconto por erro (auditorias)</h3><span class="muted">Valor descontado da comissão a cada ocorrência no período.</span></div><div class="ce-fgrid">'+COM_ERROS.map(([t,n,p])=>'<label class="ce-fld"><span>'+esc(n)+' ('+p+')</span><input data-vv="'+t+'" inputmode="decimal" value="'+(V[t]?String(V[t]).replace(".",","):"")+'" placeholder="R$ 0,00"></label>').join("")+'</div><button type="button" class="btn" data-ce="vvSave" style="margin-top:12px">Salvar valores de desconto</button></div>'+
+      '<div class="block"><div class="ce-th"><h3>Repasse dos descontos (bônus dos auditores)</h3><span class="muted">O valor descontado entra na comissão destas matrículas. Separe várias por vírgula.</span></div><div class="ce-fgrid">'+
+      [["oper","Erros de operador (aéreo)"],["conf","Erros de conferentes (cargas e SAC)"],["rep","Erros de ruas e retorno"]].map(([k,l])=>'<label class="ce-fld"><span>'+l+'</span><input data-rp="'+k+'" value="'+esc((CE.cfg.repasses[k]||[]).join(", "))+'"><small style="font-weight:400">'+esc((CE.cfg.repasses[k]||[]).map(ceNomeMat).map(ceCurto).join(", "))+'</small></label>').join("")+
+      '</div><p class="note" style="margin:6px 0 0">Conferentes: o erro de cargas vai para o auditor que lançou a auditoria (se estiver na lista); SAC e demais são divididos igualmente.</p><button type="button" class="btn" data-ce="rpSave" style="margin-top:12px">Salvar repasses</button></div>';}
   if(CE.cTab==="desc")h+=per+'<div class="block"><div class="com-rel"><div class="pd fx">'+ceRelDesc()+'</div></div></div>';
   return h;}
 // ---- relatórios ----
+const ceBDet=d=>d?[d.oper?"operador "+ceBRL(d.oper):"",d.conf?"conferentes "+ceBRL(d.conf):"",d.rep?"ruas/retorno "+ceBRL(d.rep):""].filter(Boolean).join(" · "):"";
 function ceHead(tit,sub){return '<div class="fx-h"><div><h1>'+esc(tit)+'</h1><p>'+sub+'</p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>'+CE_SETOR+'</div></div>';}
 function ceFoot(t){return '<div class="fx-f"><span>'+esc(t)+' · '+ceBr(CE.cDe)+' a '+ceBr(CE.cAte)+'</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div>';}
-function ceRelDesc(){const E=ceErros(CE.cDe,CE.cAte),V=CE.cfg.valores,L=Object.values(E);
-  const grupo=(tit,tipos)=>{const G=L.filter(x=>tipos.some(t=>x.n[t])).map(x=>({x,n:tipos.reduce((s,t)=>s+(x.n[t]||0),0),d:tipos.reduce((s,t)=>s+(x.n[t]||0)*(+V[t]||0),0)})).sort((a,b)=>b.d-a.d||b.n-a.n);
-    return fxCard(tit+' <small style="font-weight:400">('+G.length+')</small>',fxTable([{t:"Colaborador"},{t:"Matrícula"},{t:"Na equipe"}].concat(tipos.map(t=>({t:COM_ERROS.find(z=>z[0]===t)[1].replace(/ \(.*\)/,""),n:1}))).concat([{t:"Total",n:1},{t:"Valor mercadoria",n:1},{t:"Desconto",n:1}]),
-      G.map(g=>[esc(g.x.nome||"—"),esc(g.x.mat||"—"),ceFunc(g.x.mat)?"Sim":"–"].concat(tipos.map(t=>g.x.n[t]||"")).concat(['<b>'+g.n+'</b>',ceBRL(g.x.v),'<b style="color:#B91C1C">'+ceBRL(g.d)+'</b>']))));};
+function ceRelDesc(){const E=ceErros(CE.cDe,CE.cAte),V=CE.cfg.valores,L=Object.values(E),NOME={conf_carga:"Cargas",sac_falta:"SAC falta",sac_sobra:"SAC sobra",rep_rua:"Ruas",rep_ret:"Retorno",oper_aero:"Aéreo"};
+  const grupo=(tit,tipos)=>{const G=L.filter(x=>tipos.some(t=>x.n[t])).map(x=>({x,d:tipos.reduce((s,t)=>s+(x.n[t]||0)*(+V[t]||0),0)})).sort((a,b)=>b.d-a.d);
+    return fxCard(tit+' <small style="font-weight:400">('+G.length+' · '+ceBRL(G.reduce((s,g)=>s+g.d,0))+')</small>',fxTable([{t:"Matrícula"},{t:"Colaborador"},{t:"Auditoria"},{t:"Desconto",n:1}],
+      G.map(g=>[esc(g.x.mat||"—"),esc(g.x.nome||"—"),tipos.filter(t=>g.x.n[t]).map(t=>NOME[t]+" ("+g.x.n[t]+")").join(" · "),'<b style="color:#B91C1C">'+ceBRL(g.d)+'</b>'])));};
   const tot=L.reduce((s,x)=>s+x.desc,0),nOc=L.reduce((s,x)=>s+x.tot,0);
   return ceHead("Descontos por erros de auditoria","Período: <b>"+ceBr(CE.cDe)+" a "+ceBr(CE.cAte)+"</b>")+
-    fxKpis([{t:"Colaboradores com erro",v:L.length,c:"#0F172A"},{t:"Ocorrências",v:nOc,c:"#DC2626"},{t:"Total de descontos",v:ceBRL(tot),c:"#B91C1C"},{t:"Da equipe",v:L.filter(x=>ceFunc(x.mat)).length,c:"#2563EB",s:"colaboradores do controle de estoque"}],true)+
-    grupo("Conferentes",["conf_carga","sac_falta","sac_sobra"])+'<div style="height:10px"></div>'+grupo("Repositores",["rep_rua","rep_ret"])+'<div style="height:10px"></div>'+grupo("Operadores",["oper_aero"])+
-    '<p class="fx-e" style="margin-top:8px">Desconto por erro: '+COM_ERROS.map(([t,n])=>esc(n)+" "+ceBRL(V[t])).join(" · ")+'.</p>'+ceFoot("Descontos do controle de estoque");}
+    fxKpis([{t:"Colaboradores com erro",v:L.length,c:"#0F172A"},{t:"Ocorrências",v:nOc,c:"#DC2626"},{t:"Total de descontos",v:ceBRL(tot),c:"#B91C1C"}],true)+
+    grupo("Conferentes",CE_GRP.conf)+'<div style="height:10px"></div>'+grupo("Repositores",CE_GRP.rep)+'<div style="height:10px"></div>'+grupo("Operadores",CE_GRP.oper)+
+    '<p class="fx-e" style="margin-top:8px">Desconto por erro: operador '+ceBRL(V.oper_aero)+' · ruas '+ceBRL(V.rep_rua)+' · retorno '+ceBRL(V.rep_ret)+' · conferente (cargas e SAC) '+ceBRL(V.conf_carga)+'. O total descontado é repassado como bônus aos auditores responsáveis.</p>'+ceFoot("Descontos do controle de estoque");}
 function ceRelCom(){const R=ceResumo();
   return ceHead("Relatório de comissão","Período de <b>"+ceBr(CE.cDe)+" a "+ceBr(CE.cAte)+"</b>")+
-    fxKpis([{t:"Total de comissões",v:ceBRL(R.total),c:"#0A3D91"},{t:"Lançamentos",v:R.ls.length,c:"#1D5FD1"},{t:"Comissionados",v:R.rows.filter(o=>o.total).length,c:"#17733F"},{t:"Descontos (auditorias)",v:ceBRL(R.desc),c:"#B91C1C"},{t:"Total líquido",v:ceBRL(R.liq),c:"#15803D"}],true)+
-    fxCard("Resumo por funcionário",fxTable([{t:"Matrícula"},{t:"Nome"},{t:"Subsetor"},{t:"Presenças",n:1},{t:"Faltas",n:1},{t:"Lançamentos",n:1},{t:"Comissão",n:1},{t:"Descontos",n:1},{t:"Líquido",n:1}],
-      R.rows.map(o=>[esc(o.mat),esc(o.nome),esc(o.f&&o.f.subsetor||"—"),o.pc.presente,o.pc.falta,o.n,'<b>'+ceBRL(o.total)+'</b>',o.desc?'<span style="color:#B91C1C">'+ceBRL(o.desc)+'</span>':"–",'<b style="color:#15803D">'+ceBRL(o.liq)+'</b>']).concat(R.rows.length?[['<b>Total geral</b>',"","","","","",'<b>'+ceBRL(R.total)+'</b>','<b>'+ceBRL(R.desc)+'</b>','<b>'+ceBRL(R.liq)+'</b>']]:[])))+
+    fxKpis([{t:"Total de comissões",v:ceBRL(R.total),c:"#0A3D91"},{t:"Lançamentos",v:R.ls.length,c:"#1D5FD1"},{t:"Comissionados",v:R.rows.filter(o=>o.total).length,c:"#17733F"},{t:"Bônus de auditoria",v:ceBRL(R.bonus),c:"#1F5DB8"},{t:"Descontos (auditorias)",v:ceBRL(R.desc),c:"#B91C1C"},{t:"Total líquido",v:ceBRL(R.liq),c:"#15803D"}],true)+
+    fxCard("Resumo por funcionário",fxTable([{t:"Matrícula"},{t:"Nome"},{t:"Subsetor"},{t:"Presenças",n:1},{t:"Faltas",n:1},{t:"Lançamentos",n:1},{t:"Comissão",n:1},{t:"Bônus auditoria",n:1},{t:"Descontos",n:1},{t:"Líquido",n:1}],
+      R.rows.map(o=>[esc(o.mat),esc(o.nome),esc(o.f&&o.f.subsetor||"—"),o.pc.presente,o.pc.falta,o.n,'<b>'+ceBRL(o.total)+'</b>',o.bonus?'<span title="'+ceBDet(o.bdet)+'">'+ceBRL(o.bonus)+'</span>':"–",o.desc?'<span style="color:#B91C1C">'+ceBRL(o.desc)+'</span>':"–",'<b style="color:#15803D">'+ceBRL(o.liq)+'</b>']).concat(R.rows.length?[['<b>Total geral</b>',"","","","","",'<b>'+ceBRL(R.total)+'</b>','<b>'+ceBRL(R.bonus)+'</b>','<b>'+ceBRL(R.desc)+'</b>','<b>'+ceBRL(R.liq)+'</b>']]:[])))+
     '<div style="height:10px"></div>'+fxCard("Por atividade",fxTable([{t:"Atividade"},{t:"Lançamentos",n:1},{t:"Quantidade",n:1},{t:"Total",n:1}],R.atr.map(a=>[esc(a.nome),a.n,ceNum(a.qtd),'<b>'+ceBRL(a.total)+'</b>'])))+
     '<div class="sg sg2" style="margin-top:26px"><div><b>Controle de Estoque</b>&nbsp;</div><div><b>Gerência</b>&nbsp;</div></div>'+ceFoot("Comissão do controle de estoque");}
 function cePrint(html,nome,tit){openDoc({html:'<div class="pd fx">'+html+'</div>',multi:false,land:true,name:nome+".pdf",title:tit,short:tit,text:"*"+tit.toUpperCase()+"*"});}
@@ -2248,6 +2262,7 @@ function ceBind(){const on=(sel,ev,fn)=>document.querySelectorAll(sel).forEach(e
   on("[data-aed]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.aed);const nv=prompt("Valor por unidade de “"+a.nome+"” (R$):",String(a.valor).replace(".",","));if(nv==null)return;const v=ceParse(nv);if(!(v>0)){toast("Valor inválido.");return;}a.valor=v;if(await ceSalvarCfg("Valor atualizado. Vale para os próximos lançamentos."))ceRender();});
   on("[data-atog]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.atog);a.ativo=a.ativo===false;if(await ceSalvarCfg(a.ativo?"Atividade ativada.":"Atividade inativada."))ceRender();});
   on("[data-adel]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.adel);if(!a||!confirm("Excluir a atividade “"+a.nome+"”?"))return;CE.cfg.atividades=CE.cfg.atividades.filter(x=>x!==a);if(await ceSalvarCfg("Atividade excluída."))ceRender();});
+  on('[data-ce="rpSave"]',"onclick",async()=>{document.querySelectorAll("[data-rp]").forEach(i=>CE.cfg.repasses[i.dataset.rp]=i.value.split(/[,;\s]+/).map(x=>x.replace(/\D/g,"")).filter(Boolean));if(await ceSalvarCfg("Repasses salvos."))ceRender();});
   on('[data-ce="vvSave"]',"onclick",async()=>{document.querySelectorAll("[data-vv]").forEach(i=>CE.cfg.valores[i.dataset.vv]=ceParse(i.value));if(await ceSalvarCfg("Valores de desconto salvos."))ceRender();});}
 (function(){const s=document.createElement("style");s.textContent=`
 .ce-subnav{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2,#EEF2F8);padding:4px;border-radius:10px;margin-bottom:14px}.ce-subnav button{flex:1 1 auto;border:0;background:none;padding:9px 14px;border-radius:8px;font-weight:700;color:var(--muted);cursor:pointer}
@@ -2281,6 +2296,43 @@ function ceBind(){const on=(sel,ev,fn)=>document.querySelectorAll(sel).forEach(e
 #print .ce-db{min-width:0;width:100%}#print .pd.fx .ce-db{margin:-16px -20px}
 @media (min-width:760px){.ce-crow{grid-template-columns:minmax(220px,1.2fr) auto minmax(180px,1fr);align-items:center}}
 `;document.head.appendChild(s);})();
+
+// ===== Fechamento: Qualidade – conformidades x não conformidades por setor (com comparativo de datas) =====
+FX_TAB.qual="Qualidade";FX_TIT.qual="Qualidade_Setores";
+document.addEventListener("change",e=>{if(e.target&&(e.target.id==="fxq-de"||e.target.id==="fxq-ate")){FECH.cmpDe=$("fxq-de").value;FECH.cmpAte=$("fxq-ate").value;renderFech();}});
+document.addEventListener("click",e=>{if(e.target&&e.target.id==="fxq-prev"){FECH.cmpDe=FECH.cmpAte="";renderFech();}});
+function qPer(a,b){const D=FECH.dados||{},noP=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<=b);
+  const ruas=noP(D.ruas),ret=noP(D.retorno),car=noP(D.cargas),aer=noP(D.aero),sac=noP(D.sac).filter(sacValida),pp=noP(D.pp).filter(typeof ppValida==="function"?ppValida:()=>true);
+  const os=new Set(car.map(r=>r.Numero_OS||r.ID_Sessao||r.ID_Auditoria)),osC=new Set(car.filter(r=>r.Causador!=="Separador").map(r=>r.Numero_OS||r.ID_Sessao||r.ID_Auditoria)),osS=new Set(car.filter(r=>r.Causador==="Separador").map(r=>r.Numero_OS||r.ID_Sessao||r.ID_Auditoria));
+  const m=(tot,nc)=>({tot,nc,conf:tot==null?null:Math.max(0,tot-nc),pct:tot?(tot-nc)/tot*100:null});
+  return [["Reposição — ruas","endereços auditados",m(ruas.length,ruas.filter(r=>pbool(r.Possui_NC)).length),"#16A34A"],["Reposição — retorno","itens auditados",m(ret.length,ret.filter(r=>pbool(r.Possui_NC)).length),"#0E7490"],
+    ["Cargas — conferência","O.S. auditadas",m(os.size,osC.size),"#0EA5E9"],["Cargas — separação","O.S. auditadas",m(os.size,osS.size),"#7C3AED"],
+    ["Aéreo — operador","só ocorrências",m(null,aer.length),"#DC2626"],["SAC — falta e sobra","só ocorrências",m(null,sac.length),"#CA8A04"],["Prevenção de Perdas","só ocorrências",m(null,pp.length),"#B45309"]];}
+function fxQual(){const a=new Date(FECH.de+"T00:00:00").getTime(),b=new Date(FECH.ate+"T23:59:59").getTime(),len=b-a+1;
+  let ca,cb;if(FECH.cmpDe&&FECH.cmpAte){ca=new Date(FECH.cmpDe+"T00:00:00").getTime();cb=new Date(FECH.cmpAte+"T23:59:59").getTime();}else{cb=a-1;ca=a-len;}
+  const iso=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+  const A=qPer(a,b),B=qPer(ca,cb),pf=v=>v==null?"—":v.toFixed(1).replace(".",",")+"%",nA=A.reduce((s,x)=>s+x[2].nc,0),nB=B.reduce((s,x)=>s+x[2].nc,0);
+  const med=L=>{const t=L.filter(x=>x[2].tot).reduce((s,x)=>s+x[2].tot,0),c=L.filter(x=>x[2].tot).reduce((s,x)=>s+x[2].conf,0);return t?c/t*100:null;},gA=med(A),gB=med(B);
+  const dv=(x,y)=>x==null||y==null?"—":((x-y)>=0?"+":"")+(x-y).toFixed(1).replace(".",",")+" p.p.",dn=(x,y)=>y?((x-y)>=0?"+":"")+Math.round((x-y)/y*100)+"%":(x?"novo":"—");
+  const cor=(x,y,inv)=>x==null||y==null||x===y?"#64748B":((x>y)!==!!inv?"#15803D":"#B91C1C");
+  const rotA=fdISO(FECH.de)+" a "+fdISO(FECH.ate),rotB=fdISO(iso(ca))+" a "+fdISO(iso(cb));
+  const porD={};Object.entries(FECH.dados||{}).forEach(([k,L])=>{if(!["ruas","retorno","cargas","aero","sac","pp"].includes(k))return;fxRows(L).filter(r=>r.ts>=a&&r.ts<=b).forEach(r=>{const nc=k==="ruas"||k==="retorno"?pbool(r.Possui_NC):k==="sac"?sacValida(r):k==="pp"?(typeof ppValida!=="function"||ppValida(r)):true;if(!nc)return;const dk=fxDiaKey(r.ts);(porD[dk]=porD[dk]||{ts:r.ts,n:0}).n++;});});
+  const linha=Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n)}));
+  const barras='<div class="q-bars">'+A.map((x,i)=>{const y=B[i];if(x[2].tot==null&&y[2].tot==null){const mx=Math.max(1,x[2].nc,y[2].nc);return '<div class="q-row"><span class="q-l">'+x[0]+'<small>NCs</small></span><div class="q-b"><i style="width:'+(x[2].nc/mx*100)+'%;background:'+x[3]+'"></i><b>'+x[2].nc+'</b></div><div class="q-b q-old"><i style="width:'+(y[2].nc/mx*100)+'%"></i><b>'+y[2].nc+'</b></div></div>';}
+    return '<div class="q-row"><span class="q-l">'+x[0]+'<small>% conforme</small></span><div class="q-b"><i style="width:'+(x[2].pct||0)+'%;background:'+x[3]+'"></i><b>'+pf(x[2].pct)+'</b></div><div class="q-b q-old"><i style="width:'+(y[2].pct||0)+'%"></i><b>'+pf(y[2].pct)+'</b></div></div>';}).join("")+
+    '<div class="q-leg"><span><i class="a"></i>Período: '+rotA+'</span><span><i class="b"></i>Comparação: '+rotB+'</span></div></div>';
+  return '<div class="fxq-cmp no-print"><b>Comparar com:</b> <label>De <input type="date" id="fxq-de" value="'+iso(ca)+'"></label> <label>Até <input type="date" id="fxq-ate" value="'+iso(cb)+'"></label> <button type="button" id="fxq-prev">Período anterior</button></div>'+
+    '<div class="fx-h"><div><h1>Qualidade — Conformidades × Não conformidades por setor</h1><p>Período: <b>'+rotA+'</b> · comparado com <b>'+rotB+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b></div></div>'+
+    fxKpis([{t:"Conformidade geral",v:pf(gA),c:"#15803D",s:"antes "+pf(gB)+" · "+dv(gA,gB),sc:cor(gA,gB)},{t:"Não conformidades",v:nA,c:"#DC2626",s:"antes "+nB+" · "+dn(nA,nB),sc:cor(nA,nB,true)},
+      {t:"Ruas — conformes",v:A[0][2].conf,c:"#16A34A",s:"de "+A[0][2].tot+" endereços · "+pf(A[0][2].pct)},{t:"Retorno — conformes",v:A[1][2].conf,c:"#0E7490",s:"de "+A[1][2].tot+" itens · "+pf(A[1][2].pct)},
+      {t:"Cargas — O.S. sem erro do conferente",v:A[2][2].conf,c:"#0EA5E9",s:"de "+A[2][2].tot+" O.S. · "+pf(A[2][2].pct)}],true)+
+    fxCard("Comparativo por setor",fxTable([{t:"Setor"},{t:"Base"},{t:"Auditados",n:1},{t:"Conformes",n:1},{t:"NCs",n:1},{t:"% conforme",n:1},{t:"NCs antes",n:1},{t:"% antes",n:1},{t:"Variação %",n:1},{t:"Variação NCs",n:1}],
+      A.map((x,i)=>{const y=B[i];return ['<b>'+x[0]+'</b>',x[1],x[2].tot==null?"—":x[2].tot,x[2].conf==null?"—":x[2].conf,'<b style="color:#B91C1C">'+x[2].nc+'</b>','<b>'+pf(x[2].pct)+'</b>',y[2].nc,pf(y[2].pct),'<span style="color:'+cor(x[2].pct,y[2].pct)+'">'+dv(x[2].pct,y[2].pct)+'</span>','<span style="color:'+cor(x[2].nc,y[2].nc,true)+'">'+dn(x[2].nc,y[2].nc)+'</span>'];})))+
+    '<div class="fx-row" style="grid-template-columns:1fr">'+fxCard("Período atual × comparação",barras)+'</div>'+
+    fxFull("Não conformidades por dia (todos os setores)",fxLine(linha,"#DC2626",null,130))+fxFoot("Qualidade por setor");}
+(function(){const s=document.createElement("style");s.textContent=".fxq-cmp{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px;font-size:13px}.fxq-cmp input{border:1px solid #CBD5E1;border-radius:6px;padding:4px 6px;font:inherit}.fxq-cmp button{border:1px solid #1D4ED8;background:#fff;color:#1D4ED8;border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:600}#print .no-print{display:none!important}"+
+ ".q-bars{display:grid;gap:8px}.q-row{display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;align-items:center}.q-l{font-weight:700;font-size:12px}.q-l small{display:block;font-weight:400;color:#64748B;font-size:10.5px}.q-b{position:relative;height:20px;background:#EEF2F7;border-radius:5px;overflow:hidden}.q-b i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.q-old i{background:#94A3B8}.q-b b{position:relative;font-size:11px;padding-left:6px;line-height:20px;color:#0F172A}"+
+ ".q-leg{display:flex;gap:18px;font-size:11px;color:#475569;margin-top:4px}.q-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}.q-leg .a{background:#16A34A}.q-leg .b{background:#94A3B8}";document.head.appendChild(s);})();
 
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){

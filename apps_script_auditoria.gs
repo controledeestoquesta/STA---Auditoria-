@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 25)
+ * Auditoria STA – Santa Therezinha (versão 26)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -82,7 +82,7 @@ const CAMPOS_PP = ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Seguranca', 'N
   'Rua', 'Predio', 'Nivel', 'Apartamento', 'Motivo', 'Matricula_Colaborador', 'Colaborador_Responsavel', 'Funcao_Colaborador',
   'Matricula_Encarregado', 'Encarregado_Setor', 'Assinatura_Encarregado', 'Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em',
   'Observacao', 'Vl_Unitario', 'Links_Fotos', 'Recebido_Em'];
-const MOTIVOS_CARGA = ['Falta', 'Avaria', 'Abastecimento', 'Sobras', 'Produto trocado'];
+const MOTIVOS_CARGA = ['Falta', 'Avaria', 'Abastecimento', 'Sobras', 'Produto trocado', 'Produto próximo ao vencimento'];
 
 /* ===================== Entradas ===================== */
 
@@ -221,7 +221,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 25, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 26, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -475,9 +475,9 @@ function validarMotivosCarga(sh) {
     if (iMot < 0) return;
     const r = sh.getRange(2, iMot + 1, sh.getMaxRows() - 1, 1), atual = r.getDataValidation();
     const lista = atual && atual.getCriteriaValues && atual.getCriteriaValues()[0];
-    if (lista && Array.isArray(lista) && lista.indexOf('Produto trocado') >= 0) return;
+    if (lista && Array.isArray(lista) && lista.indexOf('Produto próximo ao vencimento') >= 0) return;
     r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(MOTIVOS_CARGA, true).setAllowInvalid(false)
-      .setHelpText('Escolha: Falta, Avaria, Abastecimento, Sobras ou Produto trocado').build());
+      .setHelpText('Escolha: Falta, Avaria, Abastecimento, Sobras, Produto trocado ou Produto próximo ao vencimento').build());
   } catch (e) { }
 }
 
@@ -872,7 +872,7 @@ function prepararAbaCargas() {
   const iMot = cab.indexOf('Motivo');
   if (iMot >= 0) {
     const regra = SpreadsheetApp.newDataValidation().requireValueInList(MOTIVOS_CARGA, true).setAllowInvalid(false)
-      .setHelpText('Escolha: Falta, Avaria, Abastecimento, Sobras ou Produto trocado').build();
+      .setHelpText('Escolha: Falta, Avaria, Abastecimento, Sobras, Produto trocado ou Produto próximo ao vencimento').build();
     sh.getRange(2, iMot + 1, sh.getMaxRows() - 1, 1).setDataValidation(regra);
   }
   sh.autoResizeColumns(1, cab.length);
