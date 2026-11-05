@@ -315,7 +315,7 @@ function parseWorkbook(wb){
       const find = f => h.findIndex(f);
       const iP=find(x=>x.includes('palete')), iM=find(x=>x.startsWith('multiplo')),
             iQ=find(x=>x==='quantidade'), iD=find(x=>x.includes('data')),
-            iV=find(x=>x.includes('valor')||x.includes('custo')||x.startsWith('coluna'));
+            iV=find(x=>x.includes('vlr')||x.includes('produzido')||x.includes('valor')||x.startsWith('coluna'));
       rows.slice(hi+1).forEach(r=>{
         if(!r) return;
         const p=num(r[iP]), mu=num(r[iM]); let q=iQ>=0?num(r[iQ]):null;
