@@ -218,6 +218,16 @@
   <section class="view" id="v-com" hidden><div id="com"></div></section>
   <section class="view" id="v-cha" hidden><div id="cha"></div></section>
 
+  <section class="view" id="v-cesta" hidden>
+    <div class="block cb-bar">
+      <div class="cb-txt"><b>Importar arquivos do painel</b><small>Planilha XLSX (estoque, vendas e itens) ou foto da tabela de itens. Os dados ficam salvos neste aparelho.</small></div>
+      <label class="btn cb-btn">Importar XLSX<input type="file" id="cb-xlsx" accept=".xlsx,.xls" hidden></label>
+      <label class="btn cb-btn">Importar foto<input type="file" id="cb-foto" accept="image/*" hidden></label>
+      <a class="btn cb-btn" href="cesta.html" target="_blank" rel="noopener">Abrir em tela cheia</a>
+    </div>
+    <iframe id="cb-frame" title="Painel de cesta básica" loading="lazy"></iframe>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -335,6 +345,7 @@
   <button type="button" data-v="sac" hidden>SAC</button>
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
+  <button type="button" data-v="cesta" hidden>Cesta básica</button>
   <button type="button" data-v="vales" hidden>Vales</button>
   <button type="button" data-v="registros">Registros<span class="badge" id="nav-pend" hidden></span></button>
   <button type="button" data-v="painel">Painel</button>

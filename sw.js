@@ -1,7 +1,7 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v49';
+const VERSION = 'sta-v50';
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png',
-  './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js'];
+  './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './cesta.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
