@@ -205,13 +205,11 @@
         <div class="mot" id="s-mot" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Falta">Falta</button><button type="button" role="radio" aria-checked="false" data-m="Sobra">Sobra</button></div></div>
       <div class="field" id="s-conf-f"><label>Conferente responsável (matrícula ou nome)</label><div id="s-conf"></div></div>
       <div class="field" id="s-obs-f"><label for="s-obs">Observação / relato do cliente</label><textarea class="in" id="s-obs" placeholder="Opcional"></textarea></div>
-      <div class="field" id="s-foto-f"><span class="lbl">Fotos da ocorrência <small>(obrigatória, até 3)</small></span>
+      <div class="field" id="s-foto-f"><span class="lbl">Fotos da ocorrência <small>(opcional, até 3)</small></span>
         <div class="photos" id="s-fotos"></div>
         <div class="ph-row"><label class="filebtn" id="s-cam">Tirar foto<input type="file" accept="image/*" capture="environment" id="s-foto"></label><label class="filebtn" id="s-gal">Galeria<input type="file" accept="image/*" id="s-foto-g"></label></div></div>
     </div>
     <button type="button" class="save" id="s-save">Salvar e gerar termo de NC</button>
-    <div class="block" style="margin-top:12px"><h3 style="margin:0 0 6px">Importar planilha de controle</h3><p class="note" style="margin:0 0 8px">Arquivo no modelo "Controle de erros de conferência" (Data, Carregamento, NF, Descrição, Código, Quantidade, Conferente, Erro). Valor, descrição e matrícula são preenchidos pelas bases; repetidos não entram duas vezes.</p>
-      <label class="filebtn" style="display:block;text-align:center">Escolher arquivo .xlsx<input type="file" id="s-imp" accept=".xlsx,.xls"></label><p class="note" id="s-imp-msg" style="margin:8px 0 0"></p></div>
     <div id="s-list" style="margin-top:12px"></div>
     </div>
     <div id="s-hist" hidden></div>

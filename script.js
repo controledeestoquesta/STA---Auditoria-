@@ -1944,7 +1944,7 @@ $("s-save").addEventListener("click",async()=>{
   if(!auditor){toast("Faça login primeiro.");return;}
   const errs=[],chk=(c,f,m)=>{setErr(f,c?m:"");if(c)errs.push(f);};const q=scQ(),car=$("s-car").value.replace(/\D/g,""),nf=$("s-nf").value.replace(/\D/g,"");
   chk(!car,"s-car-f","Informe o carregamento.");chk(SCX.prod==null,"s-prod-f","Informe o item.");chk(!(q>0),"s-qtd-f","Informe a quantidade.");
-  chk(!SCX.mot,"s-mot-f","Escolha Falta ou Sobra.");chk(sConf.value==null,"s-conf-f","Informe o conferente.");chk(!SCX.fotos.length,"s-foto-f","Tire ao menos uma foto da ocorrência.");
+  chk(!SCX.mot,"s-mot-f","Escolha Falta ou Sobra.");chk(sConf.value==null,"s-conf-f","Informe o conferente.");
   if(errs.length){$(errs[0]).scrollIntoView({block:"center",behavior:"smooth"});toast("Revise os campos marcados.");return;}
   const now=new Date(),k=SCX.prod,vl=P.vl[k],ci=sConf.value;
   const rec={_aba:"sac",ID_Auditoria:newId("SAC"),Data:fmtDT(now).slice(0,10),DataHora:fmtDT(now),ts:now.getTime(),Carregamento:car,NF:nf,Codigo_Produto:P.cod[k],Descricao:P.desc[k],Quantidade:q,Vl_Unitario:vl,Valor:Math.round(q*vl*100)/100,
@@ -1956,7 +1956,7 @@ $("s-save").addEventListener("click",async()=>{
 function matchColab(nome){const s=norm(String(nome||"").split("/")[0]).trim();if(!s)return null;const w=s.split(/\s+/).filter(x=>x.length>1);if(!w.length)return null;
   const L=[];for(let i=0;i<C.n.length;i++){if(w.every(x=>C.n[i].split(/\s+/).some(p=>p===x||p.startsWith(x))))L.push(i);if(L.length>12)break;}
   if(L.length===1)return L[0];const conf=L.filter(i=>/CONFER/.test(norm(C.fun[i]||"")));return conf.length===1?conf[0]:null;}
-$("s-imp").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const msg=$("s-imp-msg");msg.textContent="Lendo arquivo…";
+if($("s-imp"))$("s-imp").addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const msg=$("s-imp-msg");msg.textContent="Lendo arquivo…";
   try{const wb=await lerLivro(f);const ws=wb.Sheets[wb.SheetNames[0]];const A=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
     const hi=A.findIndex(r=>r.some(c=>/^carregamento$/i.test(String(c).trim()))&&r.some(c=>/^c[oó]digo$/i.test(String(c).trim())));if(hi<0)throw new Error("Não encontrei o cabeçalho (Data, Carregamento, NF, Código…).");
     const H=A[hi].map(c=>norm(String(c)).trim()),ix=re=>H.findIndex(h=>re.test(h));
@@ -1983,7 +1983,7 @@ function sacDocHTML(r){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v===
    row("Motivo",r.Motivo)+row("Registrado por",(r.Nome_Registrou||"")+(r.Matricula_Registrou?" – matrícula "+r.Matricula_Registrou:""))+row("Situação",r.Status_NC||"Aberta")+'</table>'+
    '<h2>Mercadoria</h2><table class="lt"><thead><tr><th>Código</th><th>Descrição</th><th>Qtd.</th><th>Vl. un.</th><th>Valor</th></tr></thead><tbody><tr><td>'+esc(r.Codigo_Produto)+'</td><td>'+esc(r.Descricao)+'</td><td class="n">'+q+'</td><td class="n">'+BRL.format(vu)+'</td><td class="n"><b>'+BRL.format(v)+'</b></td></tr></tbody></table>'+
    '<p class="decl" style="margin-top:4px">Valor = quantidade × Vl. ult. entrada (base 286).</p>'+(r.Observacao?'<h2>Observação</h2><div class="obs">'+esc(r.Observacao)+'</div>':'')+
-   fotosHTML((r.fotos||[]).map(s=>({s,c:r.Codigo_Produto+" · "+r.Motivo})))+termoHTML([SAC_TXT[r.Motivo]||["Ocorrência","Divergência entre o faturado e o entregue ao cliente."]],v)+
+   ((r.fotos||[]).length?fotosHTML(r.fotos.map(s=>({s,c:r.Codigo_Produto+" · "+r.Motivo}))):"")+termoHTML([SAC_TXT[r.Motivo]||["Ocorrência","Divergência entre o faturado e o entregue ao cliente."]],v)+
    '<p class="decl">Declaro ciência da não conformidade de conferência registrada acima pelo SAC, referente ao carregamento '+esc(r.Carregamento||"")+'.</p>'+
    '<div class="sg sg2"><div><b>Conferente responsável</b>'+esc(r.Conferente||"")+(r.Matricula_Conferente?'<small>Matrícula '+esc(r.Matricula_Conferente)+'</small>':'')+'</div><div><b>Gerência</b>&nbsp;</div></div></div>';}
 function openSacDoc(L){if(!L.length)return;const docs=L.map(r=>({html:sacDocHTML(r),multi:false})),f=L[0],tot=L.reduce((a,r)=>a+pnum(r.Valor),0);
