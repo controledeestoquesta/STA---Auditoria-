@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 23)
+ * Auditoria STA – Santa Therezinha (versão 24)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -97,6 +97,19 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (['com_ler', 'com_salvar', 'cha_ler', 'cha_salvar'].indexOf(dados.acao) >= 0) {
+    const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
+    const ehCom = dados.acao.indexOf('com_') === 0;
+    if (ehCom ? !pode('aud_com') : !(pode('aud_cha') || pode('aud_com'))) return resposta({ ok: false, erro: ehCom ? 'Sem permissão de comissão (aud_com).' : 'Sem permissão de chamada (aud_cha).' });
+    const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
+    try {
+      if (dados.acao === 'com_ler') return resposta(comLer(dados.chaves || []));
+      if (dados.acao === 'com_salvar') return resposta(comSalvar(dados.chave, dados.valor, sessao));
+      if (dados.acao === 'cha_ler') return resposta(Object.assign({ ok: true, config: comLer(['config']).valores.config || null }, lerAba(abrirPlanilha(), ABA_CHAMADA, CAMPOS_CHAMADA)));
+      return resposta(chaSalvar(dados.data, dados.registros || [], sessao));
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+    finally { lkc.releaseLock(); }
+  }
   if (dados.acao === 'sac_listar' || dados.acao === 'sac_status') {
     if (sessao.permissoes.indexOf('aud_adm') < 0 && sessao.permissoes.indexOf('aud_sac') < 0) return resposta({ ok: false, erro: 'Sem permissão do SAC (aud_sac).' });
     if (dados.acao === 'sac_listar') return resposta(Object.assign({ ok: true }, lerAba(abrirPlanilha(), ABAS.sac.nome, CAMPOS_SAC)));
@@ -178,7 +191,7 @@ function doGet(e) {
     if (p.acao === 'fechamento') {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
-      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf(x) >= 0; };
+      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
       if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
@@ -205,7 +218,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 23, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 24, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -225,6 +238,8 @@ const PERMISSOES_CONHECIDAS = {
   aud_pp: 'Acesso a aba de prevencao de perdas (segurancas)',
   aud_vale: 'Acesso a aba de emissao de vales (prevencao de perdas)',
   aud_sac: 'Acesso a aba do SAC (ocorrencias de falta e sobra)',
+  aud_com: 'Acesso a comissao do controle de estoque (equipes, metas, valores)',
+  aud_cha: 'Acesso a chamada (presenca) do controle de estoque',
   aud_adm: 'Acesso a tela de administracao'
 };
 
@@ -473,6 +488,63 @@ function validarListasPP(sh, cab) {
       r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(x[1], true).setAllowInvalid(false).build());
     });
   } catch (e) { }
+}
+
+/* ===================== Comissão e chamada ===================== */
+const ABA_COMISSAO = 'Comissao_Config';
+const ABA_CHAMADA = 'Chamada';
+const CAMPOS_CHAMADA = ['Chave', 'Data', 'Matricula', 'Nome', 'Equipe', 'Status', 'Observacao', 'Registrado_Por', 'Registrado_Em'];
+const STATUS_CHAMADA = ['Presente', 'Falta', 'Falta justificada', 'Atestado', 'Folga', 'Férias', 'Atraso'];
+
+function abaComissao() {
+  const ss = abrirPlanilha();
+  let sh = ss.getSheetByName(ABA_COMISSAO);
+  if (!sh) { sh = ss.insertSheet(ABA_COMISSAO); sh.appendRow(['Chave', 'Valor', 'Atualizado_Em', 'Atualizado_Por']); sh.setFrozenRows(1); }
+  return sh;
+}
+/** Lê chaves da configuração (JSON). Sem chaves: devolve todas. */
+function comLer(chaves) {
+  const sh = abaComissao(), out = {};
+  if (sh.getLastRow() >= 2) sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues().forEach(function (l) {
+    const k = String(l[0]); if (!k || (chaves.length && chaves.indexOf(k) < 0)) return;
+    try { out[k] = JSON.parse(String(l[1] || 'null')); } catch (e) { out[k] = null; }
+  });
+  return { ok: true, valores: out };
+}
+function comSalvar(chave, valor, sessao) {
+  if (!chave || !/^[\w\-]{1,60}$/.test(String(chave))) throw new Error('Chave inválida.');
+  const sh = abaComissao(), json = JSON.stringify(valor == null ? null : valor);
+  if (json.length > 45000) throw new Error('Configuração grande demais para uma célula.');
+  const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
+  const n = sh.getLastRow(), ks = n >= 2 ? sh.getRange(2, 1, n - 1, 1).getValues().map(function (l) { return String(l[0]); }) : [];
+  const i = ks.indexOf(String(chave));
+  const linha = [[String(chave), json, quando, por]];
+  if (i >= 0) sh.getRange(i + 2, 1, 1, 4).setValues(linha); else sh.getRange(n + 1, 1, 1, 4).setValues(linha);
+  return { ok: true, chave: chave, em: quando };
+}
+/** Grava a chamada de um dia (uma linha por colaborador; regrava se já existir). */
+function chaSalvar(data, registros, sessao) {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(String(data))) throw new Error('Data inválida.');
+  const ss = abrirPlanilha();
+  let sh = ss.getSheetByName(ABA_CHAMADA);
+  if (!sh) { sh = ss.insertSheet(ABA_CHAMADA); sh.appendRow(CAMPOS_CHAMADA); sh.setFrozenRows(1); sh.getRange('A:C').setNumberFormat('@');
+    try { sh.getRange(2, CAMPOS_CHAMADA.indexOf('Status') + 1, sh.getMaxRows() - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUS_CHAMADA, true).setAllowInvalid(false).build()); } catch (e) { } }
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  CAMPOS_CHAMADA.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  const n = sh.getLastRow(), iK = cab.indexOf('Chave');
+  const ks = n >= 2 ? sh.getRange(2, iK + 1, n - 1, 1).getValues().map(function (l) { return String(l[0]); }) : [];
+  const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
+  let novos = 0, atual = 0, prox = n + 1;
+  registros.forEach(function (r) {
+    if (STATUS_CHAMADA.indexOf(r.Status) < 0 || !r.Matricula) return;
+    const k = data + '|' + r.Matricula;
+    const obj = { Chave: k, Data: data, Matricula: String(r.Matricula), Nome: r.Nome || '', Equipe: r.Equipe || '', Status: r.Status, Observacao: r.Observacao || '', Registrado_Por: por, Registrado_Em: quando };
+    const linha = [cab.map(function (c) { return obj[c] == null ? '' : obj[c]; })];
+    const i = ks.indexOf(k);
+    if (i >= 0) { sh.getRange(i + 2, 1, 1, cab.length).setValues(linha); atual++; }
+    else { sh.getRange(prox, 1, 1, cab.length).setValues(linha); ks.push(k); prox++; novos++; }
+  });
+  return { ok: true, novos: novos, atualizados: atual };
 }
 
 /** Listas suspensas genéricas (coluna, opções). */

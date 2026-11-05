@@ -116,9 +116,9 @@ let LOGIN=DEMO?{demo:true,perms:["aud_rua","aud_ret","aud_car"]}:store.get("audc
 const VIEW_PERM={ruas:"aud_rua",retorno:"aud_ret",cargas:"aud_car",admin:"aud_adm",fechamento:"aud_adm"};
 const temPerm=p=>!!(LOGIN&&LOGIN.perms&&LOGIN.perms.includes(p));
 const ehAdm=()=>temPerm("aud_adm");
-function podeVer(v){if(ehAdm())return true;switch(v){case "ruas":case "painel":return temPerm("aud_rua");case "retorno":return temPerm("aud_ret");case "cargas":return temPerm("aud_car");case "aero":return temPerm("aud_aer");case "pp":return temPerm("aud_pp");case "sac":return temPerm("aud_sac");case "vales":return temPerm("aud_vale");case "prev":return temPerm("aud_pp")||temPerm("aud_vale");
+function podeVer(v){if(ehAdm())return true;switch(v){case "ruas":case "painel":return temPerm("aud_rua");case "retorno":return temPerm("aud_ret");case "cargas":return temPerm("aud_car");case "aero":return temPerm("aud_aer");case "pp":return temPerm("aud_pp");case "sac":return temPerm("aud_sac");case "com":return temPerm("aud_com");case "cha":return temPerm("aud_cha")||temPerm("aud_com");case "vales":return temPerm("aud_vale");case "prev":return temPerm("aud_pp")||temPerm("aud_vale");
   case "fechamento":return temPerm("aud_rua")||temPerm("aud_ret")||temPerm("aud_car")||temPerm("aud_aer")||temPerm("aud_pp")||temPerm("aud_vale")||temPerm("aud_sac");default:return false;}}
-function primeiraTela(){return ["ruas","retorno","cargas","aero","pp","sac","vales","fechamento"].find(podeVer)||"fechamento";}
+function primeiraTela(){return ["ruas","retorno","cargas","aero","pp","sac","vales","cha","com","fechamento"].find(podeVer)||"fechamento";}
 function aplicarPerms(){try{paintXnc();}catch(e){}let n=0;document.querySelectorAll("nav button[data-v]").forEach(b=>{const ok=podeVer(b.dataset.v);b.hidden=!ok;if(ok)n++;});
   document.querySelector("nav").style.setProperty("--nav-n",n);document.querySelector("nav").dataset.n=n;
   const fa=$("f-aba");if(fa){[...fa.options].forEach(o=>o.hidden=!podeVer(o.value));if(!podeVer(fa.value)){const o=[...fa.options].find(x=>podeVer(x.value));if(o)fa.value=o.value;}}}
@@ -170,8 +170,8 @@ $("sheet").addEventListener("click",e=>{if(e.target.id==="sheet"&&auditor)$("she
 paintWho(); if(DEMO&&!auditor)$("sheet").hidden=false;
 
 // navegação
-const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],sac:["SAC – Ocorrências","Faltas e sobras de conferência: valor, descrição e matrícula automáticos, termo de NC e histórico."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
-function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="sac")paintSAC();if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","sac","vales","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
+const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],com:["Comissão – Controle de Estoque","Descontos por erros das auditorias, equipes, metas, atividades e comissão do mês."],cha:["Chamada – Controle de Estoque","Presença diária das equipes; faltas e atrasos entram no cálculo da comissão."],sac:["SAC – Ocorrências","Faltas e sobras de conferência: valor, descrição e matrícula automáticos, termo de NC e histórico."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
+function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="sac")paintSAC();if(v==="com"){renderCom();if(!COM.cfg)comCarregar(false);}if(v==="cha"){renderCha();if(!CH.cfg)chaCarregar();}if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","sac","vales","com","cha","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
   document.querySelectorAll("nav button[data-v]").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("band-t").textContent=BAND[v][0];$("band-p").textContent=BAND[v][1];window.scrollTo(0,0);if(v==="registros")renderRecords();}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.v)));
@@ -645,9 +645,9 @@ IDB.get("painel_cache").then(c=>{if(c&&c.rows&&!PAINEL_ROWS){PAINEL_ROWS=c.rows;
 setInterval(()=>{if(!$("v-painel").hidden&&navigator.onLine&&!document.hidden)carregarPainel();},120000);
 
 // administração de acessos
-const PERM_NOME={aud_rua:"Ruas",aud_ret:"Retorno",aud_car:"Cargas",aud_aer:"Aéreo",aud_pp:"Prevenção",aud_vale:"Vales",aud_sac:"SAC",aud_adm:"Administração"};
-const PERM_DESC={aud_rua:"Auditoria de ruas",aud_ret:"Auditoria de retorno",aud_car:"Auditoria de cargas",aud_aer:"Auditoria aéreo",aud_pp:"Prevenção de Perdas (seguranças)",aud_vale:"Emissão de vales",aud_sac:"SAC – ocorrências de falta e sobra",aud_adm:"Esta tela"};
-let ADM={lista:null,perms:["aud_rua","aud_ret","aud_car","aud_aer","aud_pp","aud_vale","aud_sac","aud_adm"],filtro:"",novo:false,msg:"",busy:false};
+const PERM_NOME={aud_rua:"Ruas",aud_ret:"Retorno",aud_car:"Cargas",aud_aer:"Aéreo",aud_pp:"Prevenção",aud_vale:"Vales",aud_sac:"SAC",aud_com:"Comissão",aud_cha:"Chamada",aud_adm:"Administração"};
+const PERM_DESC={aud_rua:"Auditoria de ruas",aud_ret:"Auditoria de retorno",aud_car:"Auditoria de cargas",aud_aer:"Auditoria aéreo",aud_pp:"Prevenção de Perdas (seguranças)",aud_vale:"Emissão de vales",aud_sac:"SAC – ocorrências de falta e sobra",aud_com:"Comissão do controle de estoque",aud_cha:"Chamada (presença)",aud_adm:"Esta tela"};
+let ADM={lista:null,perms:["aud_rua","aud_ret","aud_car","aud_aer","aud_pp","aud_vale","aud_sac","aud_com","aud_cha","aud_adm"],filtro:"",novo:false,msg:"",busy:false};
 async function admPost(body){const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:LOGIN&&LOGIN.token},body)),redirect:"follow",cache:"no-store"});
   let j=null;try{j=await r.json();}catch(e){throw new Error("O Apps Script não respondeu. Confira se a versão 7 está implantada.");}if(!j.ok)throw new Error(j.erro||"Erro na planilha.");return j;}
 async function carregarAdmin(){const box=$("adm");if(!temPerm("aud_adm")){box.innerHTML='<div class="empty">Sem permissão de administração.</div>';return;}
@@ -2037,6 +2037,167 @@ function fxSac(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.sac).filter(sacVa
 (function(){const s=document.createElement("style");s.textContent=".sh-h{margin-top:6px}.sh-h summary{cursor:pointer;font-size:.85rem;color:var(--brand);font-weight:600}.sh-h pre{white-space:pre-wrap;font:inherit;font-size:.82rem;color:var(--muted);margin:6px 0 0;background:var(--surface-2);border-radius:8px;padding:8px}"+
   "html.desk #s-hist .sh-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}html.desk #s-hist .sh-list>.block{margin:0}html.desk #s-hist .seg{display:flex}html.desk #s-hist .seg button{flex:1}";document.head.appendChild(s);})();
 
+// ===== Comissão do controle de estoque + chamada =====
+const COM_ERROS=[["conf_carga","Conferência (auditoria de cargas)","Conferente"],["sac_falta","SAC – falta","Conferente"],["sac_sobra","SAC – sobra","Conferente"],["rep_rua","Auditoria de rua (1 por rua/dia)","Repositor"],["rep_ret","Auditoria de retorno","Repositor"],["oper_aero","Auditoria aéreo","Operador"]];
+const COM_PAPEIS=["Conferente","Repositor","Operador","Outro"];
+const CHA_ST=["Presente","Falta","Falta justificada","Atestado","Folga","Férias","Atraso"];
+const COM={cfg:null,lanc:null,mes:new Date().toISOString().slice(0,7),aba:"painel",busy:false,msg:"",edit:null,cha:null};
+const comCfg0=()=>({valores:{conf_carga:0,sac_falta:0,sac_sobra:0,rep_rua:0,rep_ret:0,oper_aero:0,falta:0,atraso:0},atividades:[],equipes:[]});
+const uid=()=>Math.random().toString(36).slice(2,8);
+const tabRows=j=>(j&&j.registros||[]).map(r=>{const o={};(j.colunas||[]).forEach((c,i)=>o[c]=r[i]==null?"":String(r[i]));return o;});
+const comPost=b=>ppPost(b);
+const mesRange=m=>{const [y,mm]=m.split("-").map(Number);return [new Date(y,mm-1,1).getTime(),new Date(y,mm,1).getTime()];};
+const mesNome=m=>{const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});};
+const num=v=>{const n=parseFloat(String(v==null?"":v).replace(/\./g,"").replace(",","."));return isFinite(n)?n:0;};
+const numIn=v=>String(v==null?"":v).includes(",")?num(v):(parseFloat(v)||0);
+async function comCarregar(forcar){if(COM.busy)return;if(DEMO||!SHEET_URL){COM.msg="A comissão usa a planilha: faça login com internet.";renderCom();return;}
+  COM.busy=true;COM.msg="Carregando configuração e auditorias…";renderCom();
+  try{const j=await comPost({acao:"com_ler",chaves:["config","lanc_"+COM.mes]});COM.cfg=Object.assign(comCfg0(),j.valores.config||{});COM.cfg.valores=Object.assign(comCfg0().valores,COM.cfg.valores||{});
+    COM.lanc=j.valores["lanc_"+COM.mes]||{ativ:{},ajustes:{}};
+    const c=await comPost({acao:"cha_ler"});COM.cha=tabRows(c);
+    if(forcar||!FECH.dados)await carregarFech(false);COM.msg=FECH.dados?"":"Não consegui ler as auditorias ("+(FECH.info||"sem resposta")+").";}catch(e){COM.msg=e.message;}
+  COM.busy=false;renderCom();}
+async function comSalvar(chave,valor,ok){try{await comPost({acao:"com_salvar",chave,valor});toast(ok||"Salvo na planilha.");return true;}catch(e){toast(e.message);return false;}}
+// ---- cálculo ----
+function comErros(){const [a,b]=mesRange(COM.mes),noMes=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<b);const D=FECH.dados||{};const E={};
+  const add=(mat,nome,tipo,v)=>{mat=String(mat||"").trim();const k=mat||("nome:"+nome);if(!mat&&!nome)return;const x=E[k]=E[k]||{mat,nome:nome||"",n:{},v:0,tot:0};if(!x.nome&&nome)x.nome=nome;x.n[tipo]=(x.n[tipo]||0)+1;x.v+=v;x.tot++;};
+  noMes(D.cargas).filter(r=>r.Causador!=="Separador").forEach(r=>{const p=causadorDe(r);add(p.m,p.n,"conf_carga",pnum(r.Valor_Total));});
+  noMes(D.sac).filter(sacValida).forEach(r=>add(r.Matricula_Conferente,r.Conferente,r.Motivo==="Sobra"?"sac_sobra":"sac_falta",pnum(r.Valor)));
+  const vis=new Set();noMes(D.ruas).filter(r=>pbool(r.Possui_NC)).forEach(r=>{const k=(r.Matricula_Colaborador_NC||r.Nome_Colaborador_NC)+"|"+(unz(r.Rua)||"")+"|"+fxDiaKey(r.ts);if(vis.has(k)){const x=E[String(r.Matricula_Colaborador_NC||"").trim()||("nome:"+r.Nome_Colaborador_NC)];if(x)x.v+=pnum(r.Valor_Divergencia);return;}vis.add(k);add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_rua",pnum(r.Valor_Divergencia));});
+  noMes(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(r=>add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_ret",pnum(r.Valor_Divergencia)));
+  noMes(D.aero).forEach(r=>add(r.Matricula_Operador,r.Operador,"oper_aero",pnum(r["Vlr. Total"])));
+  const V=COM.cfg.valores;Object.values(E).forEach(x=>{x.desc=COM_ERROS.reduce((s,[t])=>s+(x.n[t]||0)*(+V[t]||0),0);});return E;}
+function comPresenca(){const [a,b]=mesRange(COM.mes),P={};(COM.cha||[]).filter(r=>{const d=pts(r.Data);return d>=a&&d<b;}).forEach(r=>{const x=P[r.Matricula]=P[r.Matricula]||{};x[r.Status]=(x[r.Status]||0)+1;});return P;}
+function comCalc(){const E=comErros(),P=comPresenca(),V=COM.cfg.valores,A=COM.cfg.atividades,L=COM.lanc||{ativ:{},ajustes:{}};
+  const eq=COM.cfg.equipes.map(e=>{const mem=e.membros.map(m=>{const er=E[m.mat]||{n:{},v:0,tot:0,desc:0};const pr=P[m.mat]||{};const at=L.ativ&&L.ativ[m.mat]||{};
+      const ativV=A.reduce((s,a)=>s+(+at[a.id]||0)*(+a.valor||0),0),ativQ=A.reduce((s,a)=>s+(+at[a.id]||0),0),aj=L.ajustes&&L.ajustes[m.mat]||{valor:0,motivo:""};
+      const faltas=pr["Falta"]||0,atrasos=pr["Atraso"]||0;return {m,er,pr,ativV,ativQ,aj,faltas,atrasos,descF:faltas*(+V.falta||0)+atrasos*(+V.atraso||0)};});
+    const errEq=mem.reduce((s,x)=>s+x.er.tot,0),ativEq=mem.reduce((s,x)=>s+x.ativQ,0);
+    const fator=(+e.metaErros>0&&errEq>+e.metaErros)?Math.max(0,1-(+e.redutor||0)/100):1,bateuAtiv=+e.metaAtiv>0&&ativEq>=+e.metaAtiv;
+    mem.forEach(x=>{x.base=(+e.base||0)*fator;x.bonus=bateuAtiv?(+e.bonus||0):0;x.perde=+e.maxFaltas>0&&x.faltas>+e.maxFaltas;
+      x.bruto=x.base+x.bonus+x.ativV+(+x.aj.valor||0);x.desc=x.er.desc+x.descF;x.liq=x.perde?0:Math.max(0,x.bruto-x.desc);});
+    return {e,mem,errEq,ativEq,fator,bateuAtiv,metaErrOk:!(+e.metaErros>0&&errEq>+e.metaErros)};});
+  return {E,eq};}
+// ---- relatórios (tela e impressão) ----
+const comHead=(tit,n)=>'<div class="fx-h"><div><h1>'+esc(tit)+'</h1><p>Mês de referência: <b>'+esc(mesNome(COM.mes))+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>Registros: <b>'+n+'</b></div></div>';
+const comFoot=t=>'<div class="fx-f"><span>'+esc(t)+' · '+esc(mesNome(COM.mes))+'</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div>';
+const R$=v=>BRL.format(+v||0);
+function equipeDe(mat){const e=COM.cfg.equipes.find(e=>e.membros.some(m=>m.mat===mat));return e?e.nome:"";}
+function relDescontos(){const E=comErros(),V=COM.cfg.valores,L=Object.values(E);
+  const grupo=(tit,tipos,cor)=>{const G=L.filter(x=>tipos.some(t=>x.n[t])).map(x=>({x,n:tipos.reduce((s,t)=>s+(x.n[t]||0),0),d:tipos.reduce((s,t)=>s+(x.n[t]||0)*(+V[t]||0),0)})).sort((a,b)=>b.d-a.d||b.n-a.n);
+    return fxCard(tit+' <small style="font-weight:400">('+G.length+')</small>',fxTable([{t:"Colaborador"},{t:"Matrícula"},{t:"Equipe"}].concat(tipos.map(t=>({t:COM_ERROS.find(z=>z[0]===t)[1].replace(/ \(.*\)/,""),n:1}))).concat([{t:"Total",n:1},{t:"Desconto",n:1}]),
+      G.map(g=>[esc(g.x.nome||"—"),esc(g.x.mat||"—"),esc(equipeDe(g.x.mat)||"—")].concat(tipos.map(t=>g.x.n[t]||"")).concat(['<b>'+g.n+'</b>','<b style="color:#B91C1C">'+R$(g.d)+'</b>']))));};
+  const tot=L.reduce((s,x)=>s+x.desc,0),nOc=L.reduce((s,x)=>s+x.tot,0);
+  return comHead("Controle de Estoque — Descontos por erros",nOc)+
+    fxKpis([{t:"Colaboradores com erro",v:L.length,c:"#0F172A"},{t:"Ocorrências",v:nOc,c:"#DC2626"},{t:"Total de descontos",v:R$(tot),c:"#B91C1C"},
+      {t:"Valores por erro",v:COM_ERROS.filter(([t])=>+V[t]).length+"/"+COM_ERROS.length,c:"#2563EB",s:"tipos com valor definido"}],true)+
+    grupo("Conferentes",["conf_carga","sac_falta","sac_sobra"])+'<div style="height:10px"></div>'+grupo("Repositores",["rep_rua","rep_ret"])+'<div style="height:10px"></div>'+grupo("Operadores",["oper_aero"])+
+    '<p class="fx-e" style="margin-top:8px">Valores por erro: '+COM_ERROS.map(([t,n])=>esc(n)+" "+R$(V[t])).join(" · ")+'.</p>'+comFoot("Descontos do controle de estoque");}
+function relComissao(){const {eq}=comCalc(),all=eq.flatMap(q=>q.mem),tot=all.reduce((s,x)=>s+x.liq,0),desc=all.reduce((s,x)=>s+x.desc,0);
+  return comHead("Controle de Estoque — Comissão",all.length)+
+    fxKpis([{t:"Equipes",v:eq.length,c:"#0F172A",s:eq.filter(q=>q.metaErrOk).length+" dentro da meta de erros"},{t:"Colaboradores",v:all.length,c:"#2563EB"},{t:"Comissão bruta",v:R$(all.reduce((s,x)=>s+x.bruto,0)),c:"#16A34A"},
+      {t:"Descontos",v:R$(desc),c:"#B91C1C"},{t:"Comissão líquida",v:R$(tot),c:"#15803D",s:all.filter(x=>x.perde).length?all.filter(x=>x.perde).length+" sem comissão por faltas":""}],true)+
+    eq.map(q=>fxCard(esc(q.e.nome)+' <small style="font-weight:400">· líder: '+esc(q.e.liderNome||"—")+' · erros da equipe: '+q.errEq+(+q.e.metaErros?" / meta "+q.e.metaErros:"")+(q.fator<1?' · <b style="color:#B91C1C">base reduzida '+Math.round((1-q.fator)*100)+'%</b>':'')+(+q.e.metaAtiv?' · atividades: '+q.ativEq+' / meta '+q.e.metaAtiv+(q.bateuAtiv?' ✔':''):'')+'</small>',
+      fxTable([{t:"Colaborador"},{t:"Função"},{t:"Base",n:1},{t:"Bônus",n:1},{t:"Atividades",n:1},{t:"Ajuste",n:1},{t:"Erros",n:1},{t:"Desc. erros",n:1},{t:"Faltas/atrasos",n:1},{t:"Desc. presença",n:1},{t:"Líquido",n:1}],
+        q.mem.map(x=>[esc(x.m.nome)+'<br><small>'+esc(x.m.mat)+'</small>',esc(x.m.papel||""),R$(x.base),R$(x.bonus),R$(x.ativV),(+x.aj.valor?R$(x.aj.valor):"–"),x.er.tot||"–",x.er.desc?'<span style="color:#B91C1C">'+R$(x.er.desc)+'</span>':"–",
+          (x.faltas||x.atrasos)?x.faltas+" / "+x.atrasos:"–",x.descF?'<span style="color:#B91C1C">'+R$(x.descF)+'</span>':"–",x.perde?'<b style="color:#B91C1C">R$ 0,00</b><br><small>excedeu faltas</small>':'<b style="color:#15803D">'+R$(x.liq)+'</b>']))+
+      '<p class="fx-e" style="text-align:right;margin-top:4px">Total da equipe: <b>'+R$(q.mem.reduce((s,x)=>s+x.liq,0))+'</b></p>')).join('<div style="height:10px"></div>')+
+    (eq.length?"":'<p class="fx-e">Nenhuma equipe cadastrada. Monte as equipes na aba Equipes.</p>')+
+    '<div class="sg sg2" style="margin-top:26px"><div><b>Controle de Estoque</b>&nbsp;</div><div><b>Gerência</b>&nbsp;</div></div>'+comFoot("Comissão do controle de estoque");}
+function comImprimir(tipo){const html=tipo==="desc"?relDescontos():relComissao(),tit=tipo==="desc"?"Descontos":"Comissao";
+  openDoc({html:'<div class="pd fx">'+html+'</div>',multi:false,land:true,name:"Controle_Estoque_"+tit+"_"+COM.mes+".pdf",title:"Controle de Estoque – "+(tipo==="desc"?"Descontos":"Comissão"),short:"Controle de Estoque – "+(tipo==="desc"?"Descontos":"Comissão")+" – "+mesNome(COM.mes),text:"*CONTROLE DE ESTOQUE – "+(tipo==="desc"?"DESCONTOS":"COMISSÃO")+"*\n"+mesNome(COM.mes)});}
+// ---- tela ----
+function renderCom(){const box=$("com");if(!box)return;const abas=[["painel","Comissão"],["desc","Descontos"],["lanc","Atividades do mês"],["equipes","Equipes"],["metas","Metas e valores"]];
+  let h='<div class="block"><div class="com-top"><div class="seg" role="tablist">'+abas.map(([k,t])=>'<button type="button" data-ca="'+k+'" aria-pressed="'+(COM.aba===k)+'">'+t+'</button>').join("")+'</div>'+
+    '<label class="com-mes">Mês <input class="in" type="month" id="com-mes" value="'+COM.mes+'"></label><button type="button" class="btn" id="com-upd"'+(COM.busy?" disabled":"")+'>'+(COM.busy?"Carregando…":"Atualizar")+'</button></div>'+(COM.msg?'<p class="note" style="margin:8px 0 0">'+esc(COM.msg)+'</p>':'')+'</div>';
+  if(!COM.cfg){box.innerHTML=h;bindCom();return;}
+  if(COM.aba==="painel"||COM.aba==="desc")h+='<div class="block"><div class="com-pr"><button type="button" class="save" id="com-pr">Imprimir / PDF – '+(COM.aba==="desc"?"Descontos":"Comissão")+'</button></div><div class="com-rel"><div class="pd fx">'+(COM.aba==="desc"?relDescontos():relComissao())+'</div></div></div>';
+  if(COM.aba==="equipes")h+=htmlEquipes();if(COM.aba==="metas")h+=htmlMetas();if(COM.aba==="lanc")h+=htmlLanc();
+  box.innerHTML=h;bindCom();}
+function htmlEquipes(){const E=COM.cfg.equipes,ed=COM.edit;
+  return '<div class="block"><div class="com-row"><h3 style="margin:0">Equipes do controle de estoque</h3><button type="button" class="save sm" id="eq-nova">＋ Nova equipe</button></div>'+
+    (E.length?E.map(e=>'<div class="com-eq"><div class="com-row"><div><b>'+esc(e.nome)+'</b><br><small>Líder: '+esc(e.liderNome||"—")+' · '+e.membros.length+' membro(s) · base '+R$(e.base)+'</small></div><div><button type="button" class="btn sm" data-eqe="'+e.id+'">Editar</button> <button type="button" class="btn sm" data-eqx="'+e.id+'">Excluir</button></div></div>'+
+      '<div class="tags">'+e.membros.map(m=>'<span class="tag">'+esc(curto(m.nome))+' · '+esc(m.papel||"")+'</span>').join("")+'</div></div>').join(""):'<p class="note">Nenhuma equipe. Clique em “Nova equipe”.</p>')+'</div>'+
+    (ed?'<div class="block" id="eq-form"><h3 style="margin:0 0 10px">'+(ed.novo?"Nova equipe":"Editar equipe")+'</h3>'+
+      '<div class="com-grid"><div class="field"><label>Nome da equipe</label><input class="in" id="eq-nome" value="'+esc(ed.nome)+'"></div><div class="field"><label>Líder</label><div id="eq-lider"></div></div></div>'+
+      '<div class="com-grid4"><div class="field"><label>Comissão base por membro (R$)</label><input class="in" id="eq-base" inputmode="decimal" value="'+(ed.base||"")+'"></div><div class="field"><label>Meta: máximo de erros da equipe no mês</label><input class="in" id="eq-merr" inputmode="numeric" value="'+(ed.metaErros||"")+'"></div>'+
+      '<div class="field"><label>Redução da base se passar (%)</label><input class="in" id="eq-red" inputmode="numeric" value="'+(ed.redutor==null?50:ed.redutor)+'"></div><div class="field"><label>Máximo de faltas (acima: sem comissão)</label><input class="in" id="eq-mf" inputmode="numeric" value="'+(ed.maxFaltas||"")+'"></div>'+
+      '<div class="field"><label>Meta de atividades da equipe (qtd.)</label><input class="in" id="eq-mat" inputmode="numeric" value="'+(ed.metaAtiv||"")+'"></div><div class="field"><label>Bônus por membro se bater a meta (R$)</label><input class="in" id="eq-bon" inputmode="decimal" value="'+(ed.bonus||"")+'"></div></div>'+
+      '<div class="field"><label>Membros</label><div class="com-add"><div id="eq-pk"></div><select class="in" id="eq-papel">'+COM_PAPEIS.map(p=>'<option>'+p+'</option>').join("")+'</select></div>'+
+      '<div id="eq-mem">'+ed.membros.map((m,i)=>'<div class="li"><div><b>'+esc(m.nome)+'</b> <small>· '+esc(m.mat)+' · '+esc(m.funcao||"")+'</small></div><div><select class="in sm" data-mp="'+i+'">'+COM_PAPEIS.map(p=>'<option'+(p===m.papel?" selected":"")+'>'+p+'</option>').join("")+'</select> <button type="button" class="btn sm" data-mx="'+i+'">Remover</button></div></div>').join("")+'</div></div>'+
+      '<div class="com-row" style="margin-top:12px"><button type="button" class="btn" id="eq-canc">Cancelar</button><button type="button" class="save" id="eq-salvar" style="max-width:260px">Salvar equipe</button></div></div>':"");}
+function htmlMetas(){const V=COM.cfg.valores,A=COM.cfg.atividades;
+  return '<div class="block"><h3 style="margin:0 0 4px">Valor do desconto por erro</h3><p class="note" style="margin:0 0 10px">Cada ocorrência no mês desconta este valor do colaborador responsável.</p><div class="com-grid3">'+
+    COM_ERROS.map(([t,n,p])=>'<div class="field"><label>'+esc(n)+' <small>('+p+')</small></label><input class="in" data-vv="'+t+'" inputmode="decimal" value="'+(V[t]||"")+'" placeholder="R$ 0,00"></div>').join("")+
+    '<div class="field"><label>Falta (chamada)</label><input class="in" data-vv="falta" inputmode="decimal" value="'+(V.falta||"")+'" placeholder="R$ 0,00"></div><div class="field"><label>Atraso (chamada)</label><input class="in" data-vv="atraso" inputmode="decimal" value="'+(V.atraso||"")+'" placeholder="R$ 0,00"></div></div></div>'+
+    '<div class="block"><div class="com-row"><h3 style="margin:0">Atividades que geram comissão</h3><button type="button" class="btn sm" id="at-add">＋ Atividade</button></div><p class="note" style="margin:4px 0 10px">Valor pago por unidade realizada. As quantidades do mês são lançadas na aba “Atividades do mês”.</p>'+
+    (A.length?A.map((a,i)=>'<div class="com-at"><input class="in" data-an="'+i+'" value="'+esc(a.nome)+'" placeholder="Nome da atividade"><input class="in" data-au="'+i+'" value="'+esc(a.unidade||"")+'" placeholder="Unidade (ex.: palete)"><input class="in" data-av="'+i+'" inputmode="decimal" value="'+(a.valor||"")+'" placeholder="R$ por unidade"><button type="button" class="btn sm" data-ax="'+i+'">Remover</button></div>').join(""):'<p class="note">Nenhuma atividade cadastrada.</p>')+'</div>'+
+    '<button type="button" class="save" id="mt-salvar">Salvar metas e valores</button>';}
+function htmlLanc(){const A=COM.cfg.atividades,L=COM.lanc,mem=COM.cfg.equipes.flatMap(e=>e.membros.map(m=>Object.assign({eq:e.nome},m)));
+  if(!mem.length)return '<div class="block"><p class="note">Monte as equipes primeiro.</p></div>';
+  return '<div class="block"><h3 style="margin:0 0 4px">Atividades de '+esc(mesNome(COM.mes))+'</h3><p class="note" style="margin:0 0 10px">'+(A.length?"Informe a quantidade realizada por colaborador. Ajuste: valor extra (+) ou desconto manual (−) com motivo.":"Cadastre as atividades em “Metas e valores” para lançar quantidades.")+'</p><div class="com-tbl"><table class="fx-t"><thead><tr><th>Colaborador</th><th>Equipe</th>'+A.map(a=>'<th class="n">'+esc(a.nome)+(a.unidade?'<br><small>'+esc(a.unidade)+'</small>':'')+'</th>').join("")+'<th class="n">Ajuste R$</th><th>Motivo do ajuste</th></tr></thead><tbody>'+
+    mem.map(m=>{const at=L.ativ[m.mat]||{},aj=L.ajustes[m.mat]||{};return '<tr><td>'+esc(curto(m.nome))+'<br><small>'+esc(m.mat)+'</small></td><td>'+esc(m.eq)+'</td>'+A.map(a=>'<td class="n"><input class="in sm" data-lq="'+m.mat+'|'+a.id+'" inputmode="numeric" value="'+(at[a.id]||"")+'"></td>').join("")+
+      '<td class="n"><input class="in sm" data-lj="'+m.mat+'" inputmode="decimal" value="'+(aj.valor||"")+'"></td><td><input class="in sm" data-lm="'+m.mat+'" value="'+esc(aj.motivo||"")+'"></td></tr>';}).join("")+'</tbody></table></div>'+
+    '<button type="button" class="save" id="la-salvar" style="margin-top:12px">Salvar atividades do mês</button></div>';}
+function bindCom(){const box=$("com");
+  box.querySelectorAll("[data-ca]").forEach(b=>b.onclick=()=>{COM.aba=b.dataset.ca;COM.edit=null;renderCom();});
+  $("com-mes").onchange=e=>{if(!e.target.value)return;COM.mes=e.target.value;COM.cfg=null;comCarregar(false);};
+  $("com-upd").onclick=()=>comCarregar(true);
+  if($("com-pr"))$("com-pr").onclick=()=>comImprimir(COM.aba==="desc"?"desc":"com");
+  if(COM.aba==="equipes"){
+    $("eq-nova").onclick=()=>{COM.edit={novo:true,id:uid(),nome:"",lider:"",liderNome:"",membros:[],base:0,metaErros:0,redutor:50,maxFaltas:0,metaAtiv:0,bonus:0};renderCom();$("eq-form").scrollIntoView({behavior:"smooth"});};
+    box.querySelectorAll("[data-eqe]").forEach(b=>b.onclick=()=>{COM.edit=JSON.parse(JSON.stringify(COM.cfg.equipes.find(e=>e.id===b.dataset.eqe)));renderCom();$("eq-form").scrollIntoView({behavior:"smooth"});});
+    box.querySelectorAll("[data-eqx]").forEach(b=>b.onclick=async()=>{const e=COM.cfg.equipes.find(x=>x.id===b.dataset.eqx);if(!e||!confirm("Excluir a equipe "+e.nome+"?"))return;COM.cfg.equipes=COM.cfg.equipes.filter(x=>x!==e);await comSalvar("config",COM.cfg,"Equipe excluída.");renderCom();});
+    if(COM.edit){const ed=COM.edit,lp=picker($("eq-lider"),{ph:"Matrícula ou nome do líder",search:searchColab,describe:descColab,novo:true,onPick:k=>{ed.lider=k==null?"":C.mat[k];ed.liderNome=k==null?"":C.nome[k];}});if(ed.lider&&cIdx.has(ed.lider))lp.set(cIdx.get(ed.lider));
+      const guarda=()=>{ed.nome=$("eq-nome").value.trim();ed.base=numIn($("eq-base").value);ed.metaErros=parseInt($("eq-merr").value,10)||0;ed.redutor=parseInt($("eq-red").value,10)||0;ed.maxFaltas=parseInt($("eq-mf").value,10)||0;ed.metaAtiv=parseInt($("eq-mat").value,10)||0;ed.bonus=numIn($("eq-bon").value);};
+      picker($("eq-pk"),{ph:"Adicionar membro: matrícula ou nome",search:searchColab,describe:descColab,novo:true,onPick:k=>{if(k==null)return;guarda();const mat=C.mat[k];
+        const outra=COM.cfg.equipes.find(e=>e.id!==ed.id&&e.membros.some(m=>m.mat===mat));if(outra){toast(C.nome[k]+" já está na equipe "+outra.nome+".");renderCom();return;}
+        if(!ed.membros.some(m=>m.mat===mat)){const f=C.fun[k]||"",pap=$("eq-papel").value;ed.membros.push({mat,nome:C.nome[k],funcao:f,papel:pap});}renderCom();$("eq-form").scrollIntoView();}});
+      box.querySelectorAll("[data-mx]").forEach(b=>b.onclick=()=>{guarda();ed.membros.splice(+b.dataset.mx,1);renderCom();$("eq-form").scrollIntoView();});
+      box.querySelectorAll("[data-mp]").forEach(s=>s.onchange=()=>{ed.membros[+s.dataset.mp].papel=s.value;});
+      $("eq-canc").onclick=()=>{COM.edit=null;renderCom();};
+      $("eq-salvar").onclick=async()=>{guarda();if(!ed.nome){toast("Dê um nome à equipe.");return;}if(!ed.membros.length){toast("Adicione ao menos um membro.");return;}
+        const cp=Object.assign({},ed);delete cp.novo;const i=COM.cfg.equipes.findIndex(e=>e.id===ed.id);if(i>=0)COM.cfg.equipes[i]=cp;else COM.cfg.equipes.push(cp);
+        if(await comSalvar("config",COM.cfg,"Equipe salva.")){COM.edit=null;renderCom();}};}}
+  if(COM.aba==="metas"){const sync=()=>{box.querySelectorAll("[data-vv]").forEach(i=>COM.cfg.valores[i.dataset.vv]=numIn(i.value));
+      box.querySelectorAll("[data-an]").forEach(i=>{const a=COM.cfg.atividades[+i.dataset.an];a.nome=i.value.trim();a.unidade=box.querySelector('[data-au="'+i.dataset.an+'"]').value.trim();a.valor=numIn(box.querySelector('[data-av="'+i.dataset.an+'"]').value);});};
+    $("at-add").onclick=()=>{sync();COM.cfg.atividades.push({id:uid(),nome:"",unidade:"",valor:0});renderCom();};
+    box.querySelectorAll("[data-ax]").forEach(b=>b.onclick=()=>{sync();COM.cfg.atividades.splice(+b.dataset.ax,1);renderCom();});
+    $("mt-salvar").onclick=async()=>{sync();COM.cfg.atividades=COM.cfg.atividades.filter(a=>a.nome);await comSalvar("config",COM.cfg,"Metas e valores salvos.");renderCom();};}
+  if(COM.aba==="lanc"&&$("la-salvar"))$("la-salvar").onclick=async()=>{const L={ativ:{},ajustes:{}};
+    box.querySelectorAll("[data-lq]").forEach(i=>{const [m,a]=i.dataset.lq.split("|"),q=parseInt(i.value,10)||0;if(q)(L.ativ[m]=L.ativ[m]||{})[a]=q;});
+    box.querySelectorAll("[data-lj]").forEach(i=>{const v=numIn(i.value),mo=box.querySelector('[data-lm="'+i.dataset.lj+'"]').value.trim();if(v||mo)L.ajustes[i.dataset.lj]={valor:v,motivo:mo};});
+    if(await comSalvar("lanc_"+COM.mes,L,"Atividades de "+mesNome(COM.mes)+" salvas.")){COM.lanc=L;}};}
+// ---- chamada ----
+const CH={data:todayISO(),eq:"",marc:{},busy:false,msg:"",cfg:null,rows:null};
+async function chaCarregar(){if(CH.busy)return;if(DEMO||!SHEET_URL){CH.msg="A chamada usa a planilha.";renderCha();return;}CH.busy=true;CH.msg="Carregando…";renderCha();
+  try{const j=await comPost({acao:"cha_ler"});CH.cfg=Object.assign(comCfg0(),j.config||{});CH.rows=tabRows(j);CH.msg="";chaDoDia();}catch(e){CH.msg=e.message;}CH.busy=false;renderCha();}
+function chaDoDia(){CH.marc={};const d=fdISO(CH.data);(CH.rows||[]).filter(r=>r.Data===d).forEach(r=>CH.marc[r.Matricula]={st:r.Status,obs:r.Observacao||""});}
+function renderCha(){const box=$("cha");if(!box)return;const E=(CH.cfg&&CH.cfg.equipes)||[],eqs=CH.eq?E.filter(e=>e.id===CH.eq):E;
+  const [y,mm]=CH.data.split("-").map(Number),a=new Date(y,mm-1,1).getTime(),b=new Date(y,mm,1).getTime(),mes={};(CH.rows||[]).forEach(r=>{const t=pts(r.Data);if(t>=a&&t<b){const x=mes[r.Matricula]=mes[r.Matricula]||{};x[r.Status]=(x[r.Status]||0)+1;}});
+  box.innerHTML='<div class="block"><div class="com-top"><label class="com-mes">Data <input class="in" type="date" id="ch-data" value="'+CH.data+'"></label><label class="com-mes">Equipe <select class="in" id="ch-eq"><option value="">Todas</option>'+E.map(e=>'<option value="'+e.id+'"'+(CH.eq===e.id?" selected":"")+'>'+esc(e.nome)+'</option>').join("")+'</select></label>'+
+    '<button type="button" class="btn" id="ch-todos">Marcar todos presentes</button><button type="button" class="btn" id="ch-upd"'+(CH.busy?" disabled":"")+'>'+(CH.busy?"Carregando…":"Atualizar")+'</button></div>'+(CH.msg?'<p class="note" style="margin:8px 0 0">'+esc(CH.msg)+'</p>':'')+'</div>'+
+    (CH.cfg&&!E.length?'<div class="block"><p class="note">Nenhuma equipe cadastrada. Monte as equipes em Comissão → Equipes.</p></div>':'')+
+    eqs.map(e=>'<div class="block"><h3 style="margin:0 0 8px">'+esc(e.nome)+' <small>· '+e.membros.length+' membro(s)</small></h3>'+e.membros.map(m=>{const c=CH.marc[m.mat]||{},ms=mes[m.mat]||{};
+      return '<div class="ch-it"><div class="ch-n"><b>'+esc(m.nome)+'</b><small>'+esc(m.mat)+' · '+esc(m.papel||"")+' · no mês: '+(ms["Falta"]||0)+' falta(s), '+(ms["Atraso"]||0)+' atraso(s)</small></div>'+
+        '<div class="ch-st" role="radiogroup">'+CHA_ST.map(s=>'<button type="button" role="radio" data-cm="'+m.mat+'" data-cs="'+s+'" aria-checked="'+(c.st===s)+'">'+s+'</button>').join("")+'</div>'+
+        '<input class="in sm" data-co="'+m.mat+'" placeholder="Observação" value="'+esc(c.obs||"")+'"></div>';}).join("")+'</div>').join("")+
+    (eqs.length?'<button type="button" class="save" id="ch-salvar">Salvar chamada de '+fdISO(CH.data)+'</button>':'');
+  $("ch-data").onchange=e=>{CH.data=e.target.value||todayISO();chaDoDia();renderCha();};$("ch-eq").onchange=e=>{CH.eq=e.target.value;renderCha();};$("ch-upd").onclick=chaCarregar;
+  $("ch-todos").onclick=()=>{eqs.forEach(e=>e.membros.forEach(m=>{if(!CH.marc[m.mat]||!CH.marc[m.mat].st)CH.marc[m.mat]={st:"Presente",obs:(CH.marc[m.mat]||{}).obs||""};}));renderCha();};
+  box.querySelectorAll("[data-cs]").forEach(b=>b.onclick=()=>{const k=b.dataset.cm;CH.marc[k]=CH.marc[k]||{obs:""};CH.marc[k].st=b.dataset.cs;box.querySelectorAll('[data-cm="'+k+'"]').forEach(x=>x.setAttribute("aria-checked",String(x===b)));});
+  box.querySelectorAll("[data-co]").forEach(i=>i.oninput=()=>{const k=i.dataset.co;CH.marc[k]=CH.marc[k]||{};CH.marc[k].obs=i.value;});
+  if($("ch-salvar"))$("ch-salvar").onclick=async()=>{const regs=[];eqs.forEach(e=>e.membros.forEach(m=>{const c=CH.marc[m.mat];if(c&&c.st)regs.push({Matricula:m.mat,Nome:m.nome,Equipe:e.nome,Status:c.st,Observacao:c.obs||""});}));
+    const falt=eqs.reduce((s,e)=>s+e.membros.filter(m=>!(CH.marc[m.mat]&&CH.marc[m.mat].st)).length,0);if(!regs.length){toast("Marque a situação de ao menos um colaborador.");return;}
+    if(falt&&!confirm(falt+" colaborador(es) sem marcação. Salvar mesmo assim?"))return;
+    try{const j=await comPost({acao:"cha_salvar",data:fdISO(CH.data),registros:regs});toast("Chamada salva: "+j.novos+" nova(s), "+j.atualizados+" atualizada(s).");await chaCarregar();}catch(e){toast(e.message);}};}
+(function(){const s=document.createElement("style");s.textContent=".com-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.com-top .seg{flex:1 1 100%}.com-mes{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem}.com-mes .in{min-height:40px;width:auto}"+
+ ".com-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.com-eq{border-top:1px solid var(--line);padding:10px 0}.com-grid,.com-grid3,.com-grid4{display:grid;gap:0 14px;grid-template-columns:1fr}.com-add{display:grid;grid-template-columns:1fr 150px;gap:8px;align-items:start}"+
+ ".com-at{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}.com-rel{overflow:auto;margin-top:12px}.com-rel .pd.fx{margin:0}.com-pr .save{max-width:340px}.com-tbl{overflow:auto}.com-tbl .in.sm{min-height:36px;width:90px;text-align:right}.com-tbl td:last-child .in.sm{width:180px;text-align:left}"+
+ ".ch-it{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}.ch-n small{display:block;color:var(--muted)}.ch-st{display:flex;flex-wrap:wrap;gap:6px}.ch-st button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 10px;font-size:.82rem;cursor:pointer}"+
+ ".ch-st button[aria-checked='true']{background:var(--brand);color:#fff;border-color:var(--brand)}.ch-st button[data-cs='Falta'][aria-checked='true']{background:#DC2626;border-color:#DC2626}.ch-st button[data-cs='Atraso'][aria-checked='true']{background:#CA8A04;border-color:#CA8A04}"+
+ "@media (min-width:700px){.com-grid{grid-template-columns:1fr 1fr}.com-grid3{grid-template-columns:repeat(3,1fr)}.com-grid4{grid-template-columns:repeat(3,1fr)}.ch-it{grid-template-columns:240px 1fr 200px;align-items:center}.com-top .seg{flex:1 1 auto}}";document.head.appendChild(s);})();
+
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){
   const root=document.documentElement;
@@ -2053,9 +2214,9 @@ function fxSac(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.sac).filter(sacVa
     aero:'<path d="M4 20V4"/><path d="M4 6h10v6H4"/><path d="M14 9h6v11"/><path d="M2 20h20"/>',pp:'<path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>',sac:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="2" y="14" width="5" height="6" rx="1"/><rect x="17" y="14" width="5" height="6" rx="1"/>',vales:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
     fechamento:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',painel:'<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
     registros:'<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',bases:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
-    admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'};
-  const NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",sac:"SAC – Ocorrências",vales:"Emissão de vales",fechamento:"Fechamento",painel:"Painel de ruas",registros:"Registros",bases:"Bases e planilha",admin:"Administração"};
-  const GRUPOS=[["lanc","Lançamentos de auditoria",["ruas","retorno","cargas","aero","pp","sac"],true],["gest","Gestão",["fechamento","painel","registros","vales"]],["sist","Sistema",["bases","admin"]]];
+    com:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/>',cha:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="m9 15 2 2 4-4"/>',admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>'};
+  const NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",sac:"SAC – Ocorrências",com:"Comissão",cha:"Chamada",vales:"Emissão de vales",fechamento:"Fechamento",painel:"Painel de ruas",registros:"Registros",bases:"Bases e planilha",admin:"Administração"};
+  const GRUPOS=[["lanc","Lançamentos de auditoria",["ruas","retorno","cargas","aero","pp","sac"],true],["ce","Controle de Estoque",["cha","com"]],["gest","Gestão",["fechamento","painel","registros","vales"]],["sist","Sistema",["bases","admin"]]];
   const nav=document.querySelector("nav");const btn={};nav.querySelectorAll("button[data-v]").forEach(b=>btn[b.dataset.v]=b);
   Object.entries(btn).forEach(([v,b])=>{const tn=[...b.childNodes].find(n=>n.nodeType===3&&n.data.trim());if(tn)tn.data="";const s=document.createElement("span");s.className="dk-t";s.textContent=NOME[v]||v;b.prepend(s);
     if(ICO[v])b.insertAdjacentHTML("afterbegin",'<svg class="dk-i" viewBox="0 0 24 24" aria-hidden="true">'+ICO[v]+'</svg>');b.title=NOME[v]||v;});
