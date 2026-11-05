@@ -963,7 +963,7 @@ renderItens();
 /* integração com o app de auditoria (quando aberto dentro da aba Cesta básica) */
 (function(){var emb=false;try{emb=window.self!==window.top;}catch(e){emb=true;}
   if(emb){document.documentElement.classList.add('embed');var s=document.createElement('style');s.textContent='.embed .side-import{display:none!important}.embed body{padding-right:0!important}';document.head.appendChild(s);}
-  window.cestaArquivo=function(f,tipo){var inp=document.getElementById(tipo==='foto'?'foto':'file');if(!inp||!f)return false;var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true;};
+  window.cestaArquivo=function(f,tipo){var inp=document.getElementById(tipo==='foto'?'foto':'file');if(!inp||!f)return false;try{f=new File([f],f.name,{type:f.type,lastModified:f.lastModified});}catch(e){}var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true;};
 })();
 </script>
 </body>
