@@ -170,8 +170,8 @@ $("sheet").addEventListener("click",e=>{if(e.target.id==="sheet"&&auditor)$("she
 paintWho(); if(DEMO&&!auditor)$("sheet").hidden=false;
 
 // navegação
-const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],com:["Comissão – Controle de Estoque","Descontos por erros das auditorias, equipes, metas, atividades e comissão do mês."],cha:["Chamada – Controle de Estoque","Presença diária das equipes; faltas e atrasos entram no cálculo da comissão."],sac:["SAC – Ocorrências","Faltas e sobras de conferência: valor, descrição e matrícula automáticos, termo de NC e histórico."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
-function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="sac")paintSAC();if(v==="com"){renderCom();if(!COM.cfg)comCarregar(false);}if(v==="cha"){renderCha();if(!CH.cfg)chaCarregar();}if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","sac","vales","com","cha","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
+const BAND={ruas:["Auditoria de ruas","Inicie a rua e lance os endereços em sequência."],retorno:["Auditoria de retorno","Inicie a rua e lance todos os retornos antes de finalizar."],com:["Comissão","Lançamento de quantidades por atividade, valores, descontos das auditorias e relatório para o gestor."],cha:["Chamada","Dashboard, chamada por turno (8h, 10h e 12h), histórico e equipe do controle de estoque."],sac:["SAC – Ocorrências","Faltas e sobras de conferência: valor, descrição e matrícula automáticos, termo de NC e histórico."],pp:["Prevenção de Perdas","Registre avarias e consumo indevido com foto; o termo sai pronto para assinatura."],vales:["Emissão de vales","Confirme se o vale de cada ocorrência da Prevenção de Perdas foi emitido."],aero:["Auditoria aéreo","Operadores de empilhadeira: lance as ocorrências; o valor é calculado pela 286."],cargas:["Auditoria de cargas","Informe Box, O.S. e conferente e lance os itens da carga."],admin:["Administração de acessos","Logins, senhas e acessos da aba Permissionamento."],fechamento:["Fechamento","KPIs e gráficos de cada auditoria, para computador e impressão."],registros:["Registros","Histórico das auditorias e não conformidades."],painel:["Painel de ruas","Qualidade por rua, evolução, previsão e ranking dos repositores."],bases:["Bases e planilha","Atualize as bases 286 e 8022 e o envio ao Google Sheets."]};
+function go(v){if(!BAND[v]||!podeVer(v))v=primeiraTela();if(v==="retorno")paintRT();if(v==="cargas")paintCG();if(v==="aero")paintAE();if(v==="pp")paintPP();if(v==="sac")paintSAC();if(v==="com"||v==="cha"){ceRender();if(!CE.cfg)ceCarregar(false);}if(v==="vales"){renderVales();carregarVales();}["ruas","retorno","cargas","aero","pp","sac","vales","com","cha","admin","fechamento","registros","painel","bases"].forEach(x=>$("v-"+x).hidden=x!==v);document.body.classList.toggle("wide",v==="fechamento");if(v==="admin")carregarAdmin();if(v==="fechamento"){renderFech();carregarFech();}if(v==="bases")paintBases();if(v==="painel"){renderPainel();carregarPainel();}
   document.querySelectorAll("nav button[data-v]").forEach(b=>{if(b.dataset.v===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("band-t").textContent=BAND[v][0];$("band-p").textContent=BAND[v][1];window.scrollTo(0,0);if(v==="registros")renderRecords();}
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.v)));
@@ -2037,166 +2037,250 @@ function fxSac(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.sac).filter(sacVa
 (function(){const s=document.createElement("style");s.textContent=".sh-h{margin-top:6px}.sh-h summary{cursor:pointer;font-size:.85rem;color:var(--brand);font-weight:600}.sh-h pre{white-space:pre-wrap;font:inherit;font-size:.82rem;color:var(--muted);margin:6px 0 0;background:var(--surface-2);border-radius:8px;padding:8px}"+
   "html.desk #s-hist .sh-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}html.desk #s-hist .sh-list>.block{margin:0}html.desk #s-hist .seg{display:flex}html.desk #s-hist .seg button{flex:1}";document.head.appendChild(s);})();
 
-// ===== Comissão do controle de estoque + chamada =====
+// ===== Controle de Estoque: chamada, equipe e comissão (modelo de referência) =====
+const CE_SETOR="Administrativo / Controle de Estoque";
+const CE_TEAM_SEED=[["10003713", "ADRIELLY SILVA SANTOS", "AUXILIAR DE LOGISTICA", "DEVOLUÇÃO", "08:00"], ["10002802", "ALAN JONES FERREIRA DE CARVALHO", "ANALISTA DE LOGISTICA", "FATURAMENTO", "10:00"], ["10002874", "CAINA SOARES VASCONCELOS", "ASSISTENTE DE LOGISTICA", "SUPPLY CHAIN", "08:00"], ["10003725", "CARLOS EDUARDO PIRES DE ALMEIDA", "AUXILIAR DE DEPOSITO", "ESTOQUE", "08:00"], ["10002959", "DIEGO ALVES COSTA", "ANALISTA DE LOGISTICA", "SHELF LIFE", "08:00"], ["10002793", "ELISNAR SOUZA PEREIRA", "AUXILIAR DE LOGISTICA", "TREINAMENTO", "08:00"], ["10003250", "FRANCISCO ANDRE ARAUJO DE CARVALHO", "CONFERENTE", "CONFERENTE DEVOLUÇÃO", "08:00"], ["10003923", "JESSICA GABRIELE DE OLIVEIRA EVANGELISTA", "AUXILIAR DE DEPOSITO", "DEVOLUÇÃO", "08:00"], ["10002703", "LEANDRO JOAQUIM DA SILVA", "AUXILIAR DE LOGISTICA", "ESTOQUE", "10:00"], ["10003583", "LEANDRO SANTOS RABELLO", "AUXILIAR DE LOGISTICA", "SHELF LIFE", "08:00"], ["10000985", "LEONARDO DOMIENSE CABRAL", "ANALISTA DE LOGISTICA NIVEL II", "FATURAMENTO", "10:00"], ["10003341", "LILIANE DE SOUZA", "AUXILIAR DE LOGISTICA", "FATURAMENTO", "08:00"], ["10003868", "LUCIMAR LEAL DE SOUSA", "ANALISTA DE COMPRAS JUNIOR", "CADASTRO", "08:00"], ["10002517", "LUIS SILVA BRITO", "ASSISTENTE DE LOGISTICA", "ESTOQUE", "08:00"], ["10000511", "OLIMPIO PINHEIRO DA SILVA", "CONFERENTE CARGA/ DESCARGA - NIVEL I", "CONFERENTE DEVOLUÇÃO", "08:00"], ["10003396", "RONAN CARLOS ROSA JUNIOR", "AUXILIAR DE LOGISTICA", "FATURAMENTO", "10:00"], ["10002961", "ROSEANE PEREIRA DA SILVA", "ANALISTA DE LOGISTICA", "ENTRADA DE NOTAS", "10:00"], ["10002939", "WAGNER FERNANDES DA SILVA ALMEIDA", "ANALISTA DE LOGISTICA", "ESTOQUE", "08:00"]];
+const CE_ATR_SEED=[['Saldo de Picking',0.028],['Auditoria de Aero',0.0028],['Capacidade',0.028],['Câmara Fria',5.5],['Corretivo Rua 49',15],['Erros Operador',8],['Validade',0.15],['Missão',50],['Missão Adega',100],['Inventário',0.15],['Transferências',0.5],['Cara Crachá',3],['Procura',600],['Cesta Básica',2.5],['Remonte',25],['Garantido',200]];
+const CE_TURNOS=["08:00","10:00","12:00"];
+const CE_ST={presente:["Presente","ok"],ferias:["Férias","vac"],folga:["Folga","off"],falta:["Falta","bad"],atestado:["Atestado","med"]};
+const CE_STK=Object.keys(CE_ST),CE_LAB2K={};CE_STK.forEach(k=>CE_LAB2K[CE_ST[k][0]]=k);
 const COM_ERROS=[["conf_carga","Conferência (auditoria de cargas)","Conferente"],["sac_falta","SAC – falta","Conferente"],["sac_sobra","SAC – sobra","Conferente"],["rep_rua","Auditoria de rua (1 por rua/dia)","Repositor"],["rep_ret","Auditoria de retorno","Repositor"],["oper_aero","Auditoria aéreo","Operador"]];
-const COM_PAPEIS=["Conferente","Repositor","Operador","Outro"];
-const CHA_ST=["Presente","Falta","Falta justificada","Atestado","Folga","Férias","Atraso"];
-const COM={cfg:null,lanc:null,mes:new Date().toISOString().slice(0,7),aba:"painel",busy:false,msg:"",edit:null,cha:null};
-const comCfg0=()=>({valores:{conf_carga:0,sac_falta:0,sac_sobra:0,rep_rua:0,rep_ret:0,oper_aero:0,falta:0,atraso:0},atividades:[],equipes:[]});
-const uid=()=>Math.random().toString(36).slice(2,8);
-const tabRows=j=>(j&&j.registros||[]).map(r=>{const o={};(j.colunas||[]).forEach((c,i)=>o[c]=r[i]==null?"":String(r[i]));return o;});
-const comPost=b=>ppPost(b);
-const mesRange=m=>{const [y,mm]=m.split("-").map(Number);return [new Date(y,mm-1,1).getTime(),new Date(y,mm,1).getTime()];};
-const mesNome=m=>{const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});};
-const num=v=>{const n=parseFloat(String(v==null?"":v).replace(/\./g,"").replace(",","."));return isFinite(n)?n:0;};
-const numIn=v=>String(v==null?"":v).includes(",")?num(v):(parseFloat(v)||0);
-async function comCarregar(forcar){if(COM.busy)return;if(DEMO||!SHEET_URL){COM.msg="A comissão usa a planilha: faça login com internet.";renderCom();return;}
-  COM.busy=true;COM.msg="Carregando configuração e auditorias…";renderCom();
-  try{const j=await comPost({acao:"com_ler",chaves:["config","lanc_"+COM.mes]});COM.cfg=Object.assign(comCfg0(),j.valores.config||{});COM.cfg.valores=Object.assign(comCfg0().valores,COM.cfg.valores||{});
-    COM.lanc=j.valores["lanc_"+COM.mes]||{ativ:{},ajustes:{}};
-    const c=await comPost({acao:"cha_ler"});COM.cha=tabRows(c);
-    if(forcar||!FECH.dados)await carregarFech(false);COM.msg=FECH.dados?"":"Não consegui ler as auditorias ("+(FECH.info||"sem resposta")+").";}catch(e){COM.msg=e.message;}
-  COM.busy=false;renderCom();}
-async function comSalvar(chave,valor,ok){try{await comPost({acao:"com_salvar",chave,valor});toast(ok||"Salvo na planilha.");return true;}catch(e){toast(e.message);return false;}}
-// ---- cálculo ----
-function comErros(){const [a,b]=mesRange(COM.mes),noMes=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<b);const D=FECH.dados||{};const E={};
-  const add=(mat,nome,tipo,v)=>{mat=String(mat||"").trim();const k=mat||("nome:"+nome);if(!mat&&!nome)return;const x=E[k]=E[k]||{mat,nome:nome||"",n:{},v:0,tot:0};if(!x.nome&&nome)x.nome=nome;x.n[tipo]=(x.n[tipo]||0)+1;x.v+=v;x.tot++;};
-  noMes(D.cargas).filter(r=>r.Causador!=="Separador").forEach(r=>{const p=causadorDe(r);add(p.m,p.n,"conf_carga",pnum(r.Valor_Total));});
-  noMes(D.sac).filter(sacValida).forEach(r=>add(r.Matricula_Conferente,r.Conferente,r.Motivo==="Sobra"?"sac_sobra":"sac_falta",pnum(r.Valor)));
-  const vis=new Set();noMes(D.ruas).filter(r=>pbool(r.Possui_NC)).forEach(r=>{const k=(r.Matricula_Colaborador_NC||r.Nome_Colaborador_NC)+"|"+(unz(r.Rua)||"")+"|"+fxDiaKey(r.ts);if(vis.has(k)){const x=E[String(r.Matricula_Colaborador_NC||"").trim()||("nome:"+r.Nome_Colaborador_NC)];if(x)x.v+=pnum(r.Valor_Divergencia);return;}vis.add(k);add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_rua",pnum(r.Valor_Divergencia));});
-  noMes(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(r=>add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_ret",pnum(r.Valor_Divergencia)));
-  noMes(D.aero).forEach(r=>add(r.Matricula_Operador,r.Operador,"oper_aero",pnum(r["Vlr. Total"])));
-  const V=COM.cfg.valores;Object.values(E).forEach(x=>{x.desc=COM_ERROS.reduce((s,[t])=>s+(x.n[t]||0)*(+V[t]||0),0);});return E;}
-function comPresenca(){const [a,b]=mesRange(COM.mes),P={};(COM.cha||[]).filter(r=>{const d=pts(r.Data);return d>=a&&d<b;}).forEach(r=>{const x=P[r.Matricula]=P[r.Matricula]||{};x[r.Status]=(x[r.Status]||0)+1;});return P;}
-function comCalc(){const E=comErros(),P=comPresenca(),V=COM.cfg.valores,A=COM.cfg.atividades,L=COM.lanc||{ativ:{},ajustes:{}};
-  const eq=COM.cfg.equipes.map(e=>{const mem=e.membros.map(m=>{const er=E[m.mat]||{n:{},v:0,tot:0,desc:0};const pr=P[m.mat]||{};const at=L.ativ&&L.ativ[m.mat]||{};
-      const ativV=A.reduce((s,a)=>s+(+at[a.id]||0)*(+a.valor||0),0),ativQ=A.reduce((s,a)=>s+(+at[a.id]||0),0),aj=L.ajustes&&L.ajustes[m.mat]||{valor:0,motivo:""};
-      const faltas=pr["Falta"]||0,atrasos=pr["Atraso"]||0;return {m,er,pr,ativV,ativQ,aj,faltas,atrasos,descF:faltas*(+V.falta||0)+atrasos*(+V.atraso||0)};});
-    const errEq=mem.reduce((s,x)=>s+x.er.tot,0),ativEq=mem.reduce((s,x)=>s+x.ativQ,0);
-    const fator=(+e.metaErros>0&&errEq>+e.metaErros)?Math.max(0,1-(+e.redutor||0)/100):1,bateuAtiv=+e.metaAtiv>0&&ativEq>=+e.metaAtiv;
-    mem.forEach(x=>{x.base=(+e.base||0)*fator;x.bonus=bateuAtiv?(+e.bonus||0):0;x.perde=+e.maxFaltas>0&&x.faltas>+e.maxFaltas;
-      x.bruto=x.base+x.bonus+x.ativV+(+x.aj.valor||0);x.desc=x.er.desc+x.descF;x.liq=x.perde?0:Math.max(0,x.bruto-x.desc);});
-    return {e,mem,errEq,ativEq,fator,bateuAtiv,metaErrOk:!(+e.metaErros>0&&errEq>+e.metaErros)};});
-  return {E,eq};}
-// ---- relatórios (tela e impressão) ----
-const comHead=(tit,n)=>'<div class="fx-h"><div><h1>'+esc(tit)+'</h1><p>Mês de referência: <b>'+esc(mesNome(COM.mes))+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>Registros: <b>'+n+'</b></div></div>';
-const comFoot=t=>'<div class="fx-f"><span>'+esc(t)+' · '+esc(mesNome(COM.mes))+'</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div>';
-const R$=v=>BRL.format(+v||0);
-function equipeDe(mat){const e=COM.cfg.equipes.find(e=>e.membros.some(m=>m.mat===mat));return e?e.nome:"";}
-function relDescontos(){const E=comErros(),V=COM.cfg.valores,L=Object.values(E);
-  const grupo=(tit,tipos,cor)=>{const G=L.filter(x=>tipos.some(t=>x.n[t])).map(x=>({x,n:tipos.reduce((s,t)=>s+(x.n[t]||0),0),d:tipos.reduce((s,t)=>s+(x.n[t]||0)*(+V[t]||0),0)})).sort((a,b)=>b.d-a.d||b.n-a.n);
-    return fxCard(tit+' <small style="font-weight:400">('+G.length+')</small>',fxTable([{t:"Colaborador"},{t:"Matrícula"},{t:"Equipe"}].concat(tipos.map(t=>({t:COM_ERROS.find(z=>z[0]===t)[1].replace(/ \(.*\)/,""),n:1}))).concat([{t:"Total",n:1},{t:"Desconto",n:1}]),
-      G.map(g=>[esc(g.x.nome||"—"),esc(g.x.mat||"—"),esc(equipeDe(g.x.mat)||"—")].concat(tipos.map(t=>g.x.n[t]||"")).concat(['<b>'+g.n+'</b>','<b style="color:#B91C1C">'+R$(g.d)+'</b>']))));};
+const CE={cfg:null,cha:null,lanc:null,busy:false,msg:"",tab:"painel",d:todayISO(),fSub:"",fTurno:"",q:"",hMes:todayISO().slice(0,7),hMat:"",
+  cTab:"painel",cDe:todayISO().slice(0,8)+"01",cAte:todayISO(),qd:{data:todayISO(),mat:"",obs:"",q:{}},lq:""};
+const ceUid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+const ceTL=t=>t?(t.slice(3)==="00"?String(+t.slice(0,2))+"h":t.replace(":","h")):"Sem turno";
+const ceBRL=n=>(+n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2,maximumFractionDigits:4});
+const ceNum=n=>(+n||0).toLocaleString("pt-BR",{maximumFractionDigits:2});
+const cePct=n=>isFinite(n)?n.toLocaleString("pt-BR",{maximumFractionDigits:1})+"%":"—";
+const ceMul=(a,b)=>Number((a*b).toFixed(6));
+const ceParse=s=>{s=String(s==null?"":s).trim().replace(/[R$\s]/g,"");if(s.includes(","))s=s.replace(/\./g,"").replace(",",".");const n=parseFloat(s);return isFinite(n)?n:0;};
+const ceIso=br=>{const m=String(br||"").match(/^(\d{2})\/(\d{2})\/(\d{4})/);return m?m[3]+"-"+m[2]+"-"+m[1]:String(br||"").slice(0,10);};
+const ceBr=iso=>iso?iso.slice(0,10).split("-").reverse().join("/"):"—";
+const ceWd=iso=>new Date(iso+"T12:00:00").toLocaleDateString("pt-BR",{weekday:"long"});
+const ceCap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const ceMesNome=m=>{const [y,mo]=m.split("-").map(Number);return new Date(y,mo-1,15).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});};
+const ceRows=j=>(j&&j.registros||[]).map(r=>{const o={};(j.colunas||[]).forEach((c,i)=>o[c]=r[i]==null?"":String(r[i]));return o;});
+const ceCfg0=()=>({v:2,equipe:CE_TEAM_SEED.map(([mat,nome,cargo,subsetor,turno])=>({mat,nome,cargo,subsetor,turno})),
+  atividades:CE_ATR_SEED.map(([nome,valor],i)=>({id:ceUid(),nome,valor,desc:"",ativo:true,ordem:i})),valores:{conf_carga:0,sac_falta:0,sac_sobra:0,rep_rua:0,rep_ret:0,oper_aero:0}});
+const ceCom=()=>ehAdm()||temPerm("aud_com");
+const ceEq=()=>(CE.cfg&&CE.cfg.equipe)||[];
+const ceFunc=m=>ceEq().find(f=>f.mat===m);
+const ceCurto=n=>{const p=String(n||"").split(" ").filter(Boolean);return p.length>1?ceCap(p[0].toLowerCase())+" "+ceCap(p[p.length-1].toLowerCase()):ceCap(String(p[0]||"").toLowerCase());};
+const ceSubs=()=>[...new Set(ceEq().map(f=>f.subsetor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+async function ceCarregar(forcar){if(CE.busy)return;if(DEMO||!SHEET_URL){CE.msg="Chamada e comissão usam a planilha: faça login com internet.";ceRender();return;}
+  CE.busy=true;CE.msg="Carregando da planilha…";ceRender();
+  try{const j=await ppPost({acao:"cha_ler"});CE.cha=ceRows(j);let cfg=j.config;
+    if(!cfg||!cfg.equipe||!cfg.equipe.length||(cfg.v||0)<2){cfg=Object.assign(ceCfg0(),cfg&&cfg.valores?{valores:Object.assign(ceCfg0().valores,cfg.valores)}:{});if(ceCom())await ppPost({acao:"com_salvar",chave:"config",valor:cfg}).catch(()=>{});}
+    cfg.valores=Object.assign(ceCfg0().valores,cfg.valores||{});CE.cfg=cfg;
+    if(ceCom()){const l=await ppPost({acao:"cl_ler"});CE.lanc=ceRows(l).filter(x=>x.ID).map(x=>Object.assign(x,{_d:ceIso(x.Data),_q:ceParse(x.Quantidade),_v:ceParse(x.Valor_Unitario),_t:ceParse(x.Total)}));
+      if(forcar||!FECH.dados)await carregarFech(false);}
+    CE.msg="";}catch(e){CE.msg=e.message;}CE.busy=false;ceRender();}
+async function ceSalvarCfg(ok){try{await ppPost({acao:"com_salvar",chave:"config",valor:CE.cfg});toast(ok||"Salvo.");return true;}catch(e){toast(e.message);return false;}}
+// ---- chamada: dados ----
+function ceRegs(d){const br=ceBr(d),o={};(CE.cha||[]).forEach(r=>{if(r.Data===br){const k=CE_LAB2K[r.Status]||(r.Status==="Falta justificada"?"falta":"");if(k)o[r.Matricula]={s:k,obs:r.Observacao||"",por:r.Registrado_Por,em:r.Registrado_Em};}});return o;}
+function ceLista(){const q=norm(CE.q);return ceEq().filter(f=>(!CE.fSub||f.subsetor===CE.fSub)&&(!CE.fTurno||f.turno===CE.fTurno)&&(!q||norm(f.nome+" "+f.mat+" "+f.cargo).includes(q))).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));}
+function ceStats(r,list){const c={total:list.length,presente:0,ferias:0,folga:0,falta:0,atestado:0,sem:0};list.forEach(f=>{const s=r[f.mat]&&r[f.mat].s;if(s&&c[s]!=null)c[s]++;else c.sem++;});c.esc=c.total-c.ferias-c.folga-c.atestado;c.taxa=c.esc?c.presente/c.esc*100:NaN;return c;}
+function cePeriodo(de,ate){const out={};(CE.cha||[]).forEach(r=>{const d=ceIso(r.Data);if(d<de||d>ate)return;const k=CE_LAB2K[r.Status];if(!k)return;const o=out[r.Matricula]=out[r.Matricula]||{presente:0,ferias:0,folga:0,falta:0,atestado:0};o[k]++;});return out;}
+async function ceMarcar(regs,d){try{await ppPost({acao:"cha_salvar",data:ceBr(d),registros:regs});
+    const br=ceBr(d),agora=fmtDT(new Date());regs.forEach(r=>{const i=(CE.cha||[]).findIndex(x=>x.Data===br&&x.Matricula===r.Matricula);const row={Chave:br+"|"+r.Matricula,Data:br,Matricula:r.Matricula,Nome:r.Nome,Equipe:r.Equipe,Turno:r.Turno,Status:r.Status,Observacao:r.Observacao||"",Registrado_Por:(nomeAud()||"")+" ("+auditor+")",Registrado_Em:agora};
+      if(i>=0)CE.cha[i]=row;else (CE.cha=CE.cha||[]).push(row);});return true;}catch(e){toast(e.message);return false;}}
+// ---- comissão: dados ----
+function ceLancs(){return (CE.lanc||[]).filter(l=>l._d>=CE.cDe&&l._d<=CE.cAte);}
+function ceErros(de,ate){const a=new Date(de+"T00:00:00").getTime(),b=new Date(ate+"T23:59:59").getTime(),noP=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<=b),D=FECH.dados||{},E={};
+  const add=(mat,nome,tipo,v)=>{mat=String(mat||"").trim();const k=mat||("nome:"+nome);if(!mat&&!nome)return;const x=E[k]=E[k]||{mat,nome:nome||"",n:{},v:0,tot:0};x.n[tipo]=(x.n[tipo]||0)+1;x.v+=v;x.tot++;};
+  noP(D.cargas).filter(r=>r.Causador!=="Separador").forEach(r=>{const p=causadorDe(r);add(p.m,p.n,"conf_carga",pnum(r.Valor_Total));});
+  noP(D.sac).filter(sacValida).forEach(r=>add(r.Matricula_Conferente,r.Conferente,r.Motivo==="Sobra"?"sac_sobra":"sac_falta",pnum(r.Valor)));
+  const vis=new Set();noP(D.ruas).filter(r=>pbool(r.Possui_NC)).forEach(r=>{const k=(r.Matricula_Colaborador_NC||r.Nome_Colaborador_NC)+"|"+(unz(r.Rua)||"")+"|"+fxDiaKey(r.ts);if(vis.has(k))return;vis.add(k);add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_rua",pnum(r.Valor_Divergencia));});
+  noP(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(r=>add(r.Matricula_Colaborador_NC,r.Nome_Colaborador_NC,"rep_ret",pnum(r.Valor_Divergencia)));
+  noP(D.aero).forEach(r=>add(r.Matricula_Operador,r.Operador,"oper_aero",pnum(r["Vlr. Total"])));
+  const V=CE.cfg.valores;Object.values(E).forEach(x=>x.desc=COM_ERROS.reduce((s,[t])=>s+(x.n[t]||0)*(+V[t]||0),0));return E;}
+function ceResumo(){const ls=ceLancs(),por={};ls.forEach(l=>{const o=por[l.Matricula]=por[l.Matricula]||{mat:l.Matricula,n:0,total:0};o.n++;o.total+=l._t;});
+  const E=ceErros(CE.cDe,CE.cAte),pc=cePeriodo(CE.cDe,CE.cAte);ceEq().forEach(f=>{if(!por[f.mat]&&((E[f.mat]&&E[f.mat].desc)||0))por[f.mat]={mat:f.mat,n:0,total:0};});
+  const rows=Object.values(por).map(o=>{const f=ceFunc(o.mat),e=E[o.mat]||{desc:0,tot:0};return Object.assign(o,{f,nome:f?f.nome:(ls.find(l=>l.Matricula===o.mat)||{}).Nome||o.mat,pc:pc[o.mat]||{presente:0,falta:0},err:e.tot,desc:e.desc,liq:Math.max(0,o.total-e.desc)});}).sort((a,b)=>b.total-a.total);
+  const atr={};ls.forEach(l=>{const o=atr[l.Atividade]=atr[l.Atividade]||{nome:l.Atividade,qtd:0,total:0,n:0};o.qtd+=l._q;o.total+=l._t;o.n++;});
+  return {ls,rows,E,atr:Object.values(atr).sort((a,b)=>b.total-a.total),total:ls.reduce((s,l)=>s+l._t,0),desc:rows.reduce((s,o)=>s+o.desc,0),liq:rows.reduce((s,o)=>s+o.liq,0)};}
+// ---- componentes ----
+const ceKpi=(l,v,s,c,hero)=>'<div class="ce-kpi k-'+c+(hero?" hero":"")+'"><span>'+l+'</span><strong>'+v+'</strong>'+(s?'<small>'+s+'</small>':'')+'</div>';
+const ceBadge=s=>s&&CE_ST[s]?'<span class="ce-b b-'+CE_ST[s][1]+'">'+CE_ST[s][0]+'</span>':'<span class="ce-b b-none">Sem registro</span>';
+const ceVazio=(t,s)=>'<div class="ce-empty"><b>'+t+'</b>'+(s||"")+'</div>';
+const ceSub=(tabs,cur,act)=>'<div class="ce-subnav">'+tabs.map(([k,l])=>'<button type="button" data-'+act+'="'+k+'" class="'+(cur===k?"on":"")+'">'+l+'</button>').join("")+'</div>';
+const ceTurnoOpts=(sel,all)=>(all!=null?'<option value="">'+all+'</option>':'')+[...new Set(CE_TURNOS.concat(ceEq().map(f=>f.turno).filter(Boolean)))].sort().map(t=>'<option value="'+t+'"'+(t===sel?" selected":"")+'>Entrada '+ceTL(t)+'</option>').join("");
+function ceFiltros(comData){return '<div class="ce-filters">'+(comData?'<label class="ce-fld"><span>Data</span><input type="date" id="ce-d" value="'+CE.d+'"></label>':'')+
+  '<label class="ce-fld"><span>Subsetor</span><select id="ce-sub"><option value="">Todos os subsetores</option>'+ceSubs().map(s=>'<option'+(s===CE.fSub?" selected":"")+'>'+esc(s)+'</option>').join("")+'</select></label>'+
+  '<label class="ce-fld"><span>Turno</span><select id="ce-turno">'+ceTurnoOpts(CE.fTurno,"Todos os turnos")+'</select></label>'+
+  '<label class="ce-fld grow"><span>Buscar</span><input type="search" id="ce-q" value="'+esc(CE.q)+'" placeholder="Nome, matrícula ou cargo"></label></div>';}
+// ---- dashboard (tela e impressão) ----
+const CE_DBT=[["total","Total"],["presente","Presentes"],["esc","Escalados"],["falta","Faltas"],["folga","Folgas"],["ferias","Férias"],["atestado","Atestados"]];
+const CE_AUS=[["ferias","Férias","#1F5DB8"],["folga","Folga","#94580A"],["falta","Falta","#B3261E"],["atestado","Atestado","#6E3FB8"]];
+function ceBoard(d){const list=ceLista(),r=ceRegs(d),c=ceStats(r,list),aus=CE_AUS.map(a=>a[0]);const reg=list.filter(f=>!aus.includes(r[f.mat]&&r[f.mat].s));
+  const now=new Date(),nowH=now.getHours()+now.getMinutes()/60;reg.sort((a,b)=>((r[a.mat]&&r[a.mat].s==="presente"?0:1)-(r[b.mat]&&r[b.mat].s==="presente"?0:1))||(a.turno||"99").localeCompare(b.turno||"99")||a.nome.localeCompare(b.nome,"pt-BR"));
+  const stl=f=>{if(r[f.mat]&&r[f.mat].s==="presente")return '<span class="db-st ok">Presente</span>';const h=parseInt(f.turno,10)||8;if(d>todayISO()||(d===todayISO()&&nowH<h))return '<span class="db-st wait">Entrada '+ceTL(f.turno)+'</span>';return '<span class="db-st none">Sem registro</span>';};
+  const filtro=[CE.fSub,CE.fTurno?"Entrada "+ceTL(CE.fTurno):"",CE.q?"Busca: "+CE.q:""].filter(Boolean).join(" | ");
+  return '<div class="ce-db"><div class="ce-dbh"><div><h2>'+CE_SETOR+'</h2><p>Relatório de presença | '+ceCap(ceWd(d))+', '+ceBr(d)+(filtro?" | "+esc(filtro):"")+'</p></div><img src="'+LOGO_WHITE_SRC()+'" alt="Santa Therezinha"></div><div class="ce-dbb">'+
+    '<div class="ce-tiles">'+CE_DBT.map(([k,l])=>'<div class="ce-tile t-'+k+'"><b>'+c[k]+'</b><span>'+l+'</span></div>').join("")+'</div>'+
+    '<h3 class="ce-sec">Ausências do dia</h3><div class="ce-aus">'+CE_AUS.map(([k,l,col])=>{const a=list.filter(f=>r[f.mat]&&r[f.mat].s===k);return '<div class="ce-box" style="--c:'+col+'"><h4>'+l+' ('+a.length+')</h4>'+(a.length?'<ul>'+a.map(f=>'<li>'+esc(f.nome)+(r[f.mat].obs?'<small>'+esc(r[f.mat].obs)+'</small>':'')+'</li>').join("")+'</ul>':'<span class="nada">Nenhum</span>')+'</div>';}).join("")+'</div>'+
+    '<h3 class="ce-sec"><i class="ce-dot"></i>Registro de presença ('+reg.length+')</h3><table class="ce-tbl"><thead><tr><th>Nome</th><th>Código</th><th>Subsetor</th><th>Entrada</th><th>Status</th><th>Data</th></tr></thead><tbody>'+
+    (reg.map(f=>'<tr><td class="n">'+esc(f.nome)+'</td><td>'+esc(f.mat)+'</td><td>'+esc(f.subsetor||"—")+'</td><td>'+ceTL(f.turno)+'</td><td>'+stl(f)+'</td><td>'+ceBr(d)+'</td></tr>').join("")||'<tr><td colspan="6" style="text-align:center;padding:18px">Ninguém neste filtro.</td></tr>')+'</tbody></table></div>'+
+    '<div class="ce-dbf"><span>'+CE_SETOR+' | Painel de gestão | Taxa de presença '+cePct(c.taxa)+'</span><span>Gerado em '+fmtDT(new Date())+'</span></div></div>';}
+function LOGO_WHITE_SRC(){const h=$("hdr-logo");return h&&h.src?h.src:LOGO_BLUE;}
+// ---- render chamada ----
+function ceRender(){const box=$("cha");if(box)box.innerHTML=ceChaHTML();const cb=$("com");if(cb)cb.innerHTML=ceComHTML();ceBind();}
+function ceTopo(){return (CE.msg?'<p class="note" style="margin:0 0 10px">'+esc(CE.msg)+'</p>':'');}
+function ceChaHTML(){if(!CE.cfg)return ceTopo()+(CE.busy?"":'<button type="button" class="btn" data-ce="reload">Carregar</button>');
+  const tabs=[["painel","Dashboard"],["chamada","Chamada"],["historico","Histórico"]].concat(ceCom()?[["equipe","Montar equipe"]]:[]);let h=ceTopo()+ceSub(tabs,CE.tab,"cet");
+  const d=CE.d,r=ceRegs(d),list=ceLista(),c=ceStats(r,list);
+  if(CE.tab==="painel")h+='<div class="ce-acts"><button type="button" class="btn" data-cet="chamada">Fazer chamada</button><button type="button" class="btn" data-ce="printDia">Imprimir / PDF</button><button type="button" class="btn" data-ce="reload">Atualizar</button></div>'+ceFiltros(true)+'<div class="ce-dbwrap">'+ceBoard(d)+'</div>';
+  if(CE.tab==="chamada"){const done=c.total-c.sem,grupos=[...new Set(CE_TURNOS.concat(list.map(f=>f.turno||"")))].sort().map(t=>({t,l:list.filter(f=>(f.turno||"")===t)})).filter(g=>g.l.length);
+    const row=f=>{const s=r[f.mat]&&r[f.mat].s||"";return '<div class="ce-crow s-'+(s||"none")+'"><div><span class="nm">'+esc(f.nome)+'</span><span class="sub">'+esc(f.mat)+(f.subsetor?" | "+esc(f.subsetor):"")+(f.cargo?" | "+esc(f.cargo):"")+'</span></div>'+
+      '<div class="ce-seg" role="group">'+CE_STK.map(k=>'<button type="button" class="'+CE_ST[k][1]+(s===k?" on":"")+'" aria-pressed="'+(s===k)+'" data-mk="'+f.mat+'" data-s="'+k+'">'+CE_ST[k][0]+'</button>').join("")+'</div>'+
+      '<input class="in ce-obs" data-obs="'+f.mat+'" value="'+esc(r[f.mat]&&r[f.mat].obs||"")+'" placeholder="Observação (opcional)"></div>';};
+    h+='<p class="note" style="margin:0 0 10px">'+ceCap(ceWd(d))+', '+ceBr(d)+'. Cada marcação é salva na hora na planilha e entra no histórico.</p><div class="ce-acts"><button type="button" class="btn" data-ce="bulk"'+(c.sem?"":" disabled")+'>Marcar '+c.sem+' sem registro como presentes</button><button type="button" class="btn" data-ce="printDia">Imprimir</button></div>'+ceFiltros(true)+
+      '<div class="ce-prog"><b>'+done+' de '+c.total+' registrados</b><div class="ce-bar"><i style="width:'+(c.total?done/c.total*100:0)+'%"></i></div><span class="ce-b b-ok">'+c.presente+' presentes</span><span class="ce-b b-vac">'+c.ferias+' férias</span><span class="ce-b b-off">'+c.folga+' folga</span><span class="ce-b b-bad">'+c.falta+' faltas</span><span class="ce-b b-med">'+c.atestado+' atestados</span></div>'+
+      (d>todayISO()?'<p class="ce-b b-off" style="margin-bottom:12px">Atenção: data futura. Use para lançar férias e folgas programadas.</p>':'')+
+      (grupos.map(g=>'<div class="block"><div class="ce-th"><h3>Entrada '+ceTL(g.t)+'</h3><span class="muted">'+g.l.length+' funcionário'+(g.l.length>1?"s":"")+'</span></div>'+g.l.map(row).join("")+'</div>').join("")||'<div class="block">'+ceVazio("Nenhum funcionário neste filtro.")+'</div>');}
+  if(CE.tab==="historico"){const m=CE.hMes,de=m+"-01",ate=m+"-31",dias=[...new Set((CE.cha||[]).map(x=>ceIso(x.Data)).filter(x=>x>=de&&x<=ate))].sort().reverse(),eq=ceEq().slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR")),f=ceFunc(CE.hMat);
+    let emp="";if(f){const pc=cePeriodo(de,ate)[f.mat]||{presente:0,ferias:0,folga:0,falta:0,atestado:0},recs=(CE.cha||[]).filter(x=>x.Matricula===f.mat&&ceIso(x.Data)>=de&&ceIso(x.Data)<=ate).sort((a,b)=>ceIso(a.Data).localeCompare(ceIso(b.Data)));
+      emp='<div class="ce-kpis">'+ceKpi("Presenças",pc.presente,"","ok")+ceKpi("Férias",pc.ferias,"","vac")+ceKpi("Folgas",pc.folga,"","off")+ceKpi("Faltas",pc.falta,"","bad")+ceKpi("Atestados",pc.atestado,"","med")+'</div>'+
+        '<div class="ce-tblw"><table class="ce-t"><thead><tr><th>Data</th><th>Status</th><th>Observação</th><th>Registrado por</th></tr></thead><tbody>'+(recs.map(x=>'<tr><td>'+esc(x.Data)+' <span class="sub">'+ceWd(ceIso(x.Data))+'</span></td><td>'+ceBadge(CE_LAB2K[x.Status])+'</td><td class="muted">'+esc(x.Observacao||"")+'</td><td>'+esc(x.Registrado_Por||"")+'<span class="sub">'+esc(x.Registrado_Em||"")+'</span></td></tr>').join("")||'<tr><td colspan="4">'+ceVazio("Sem registros neste mês.")+'</td></tr>')+'</tbody></table></div>';}
+    h+='<div class="ce-filters"><label class="ce-fld"><span>Mês</span><input type="month" id="ce-hmes" value="'+m+'"></label></div>'+
+      '<div class="block"><div class="ce-th"><h3>Dias com chamada em '+ceMesNome(m)+'</h3><span class="muted">'+dias.length+' dia(s)</span></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Data</th><th class="num">Presentes</th><th class="num">Férias</th><th class="num">Folga</th><th class="num">Faltas</th><th class="num">Atestados</th><th class="num">Sem registro</th><th class="num">Presença</th><th></th></tr></thead><tbody>'+
+      (dias.map(dd=>{const c2=ceStats(ceRegs(dd),ceEq());return '<tr><td><span class="nm">'+ceBr(dd)+'</span><span class="sub">'+ceWd(dd)+'</span></td><td class="num">'+c2.presente+'</td><td class="num">'+c2.ferias+'</td><td class="num">'+c2.folga+'</td><td class="num">'+c2.falta+'</td><td class="num">'+c2.atestado+'</td><td class="num">'+c2.sem+'</td><td class="num"><b>'+cePct(c2.taxa)+'</b></td><td class="num"><button type="button" class="btn sm" data-verdia="'+dd+'">Ver e imprimir</button> <button type="button" class="btn sm" data-editdia="'+dd+'">Editar</button></td></tr>';}).join("")||'<tr><td colspan="9">'+ceVazio("Nenhuma chamada neste mês.")+'</td></tr>')+'</tbody></table></div></div>'+
+      '<div class="block"><div class="ce-th"><h3>Histórico por funcionário</h3><select class="in" id="ce-hmat" style="max-width:360px"><option value="">Escolha um funcionário</option>'+eq.map(x=>'<option value="'+x.mat+'"'+(x.mat===CE.hMat?" selected":"")+'>'+esc(x.nome)+' ('+x.mat+')</option>').join("")+'</select></div>'+(f?emp:'<p class="muted" style="margin:0">Escolha um funcionário para ver presenças, férias, folgas e faltas do mês.</p>')+'</div>';}
+  if(CE.tab==="equipe"&&ceCom()){const eq=ceEq().slice().sort((a,b)=>(a.subsetor||"").localeCompare(b.subsetor||"","pt-BR")||a.nome.localeCompare(b.nome,"pt-BR"));
+    h+='<div class="block"><div class="ce-th"><h3>'+CE_SETOR+'</h3><span class="muted">'+eq.length+' funcionário(s)</span></div><div class="field"><label>Adicionar à equipe</label><div id="ce-add"></div></div>'+
+      '<div class="ce-tblw"><table class="ce-t"><thead><tr><th>Funcionário</th><th>Cargo</th><th>Subsetor</th><th>Entrada</th><th></th></tr></thead><tbody>'+eq.map(f=>'<tr><td><span class="nm">'+esc(f.nome)+'</span><span class="sub">'+esc(f.mat)+'</span></td><td>'+esc(f.cargo||"")+'</td>'+
+        '<td><input class="in sm" list="ce-dl-sub" data-esub="'+f.mat+'" value="'+esc(f.subsetor||"")+'"></td><td><select class="in sm" data-etur="'+f.mat+'">'+ceTurnoOpts(f.turno)+'</select></td><td class="num"><button type="button" class="btn sm" data-erem="'+f.mat+'">Remover</button></td></tr>').join("")+'</tbody></table></div>'+
+      '<datalist id="ce-dl-sub">'+ceSubs().map(s=>'<option value="'+esc(s)+'">').join("")+'</datalist><button type="button" class="save" data-ce="eqSave" style="margin-top:12px">Salvar equipe</button></div>';}
+  return h;}
+// ---- render comissão ----
+function ceComHTML(){if(!ceCom())return "";if(!CE.cfg)return ceTopo()+(CE.busy?"":'<button type="button" class="btn" data-ce="reload">Carregar</button>');
+  const tabs=[["painel","Painel"],["lancar","Lançar quantidades"],["atrib","Atividades e valores"],["desc","Descontos (auditorias)"]];
+  let h=ceTopo()+'<div class="ce-acts"><button type="button" class="save" data-ce="printCom" style="max-width:300px;margin:0">Imprimir para o gestor</button>'+(CE.cTab==="desc"?'<button type="button" class="btn" data-ce="printDesc">Imprimir descontos</button>':'')+'<button type="button" class="btn" data-ce="reload">Atualizar</button></div>'+ceSub(tabs,CE.cTab,"cct");
+  const per='<div class="ce-filters"><label class="ce-fld"><span>De</span><input type="date" id="ce-cde" value="'+CE.cDe+'"></label><label class="ce-fld"><span>Até</span><input type="date" id="ce-cate" value="'+CE.cAte+'"></label>'+(CE.cTab==="lancar"?'<label class="ce-fld grow"><span>Buscar lançamento</span><input type="search" id="ce-lq" value="'+esc(CE.lq)+'" placeholder="Nome, matrícula ou atividade"></label>':'')+'</div>';
+  const atrs=CE.cfg.atividades.filter(a=>a.ativo!==false).sort((a,b)=>(a.ordem==null?999:a.ordem)-(b.ordem==null?999:b.ordem));
+  if(CE.cTab==="painel"){const R=ceResumo(),top=R.rows[0];
+    h+=per+'<div class="ce-kpis">'+ceKpi("Total de comissões",ceBRL(R.total),"no período","brand",1)+ceKpi("Lançamentos",R.ls.length,"","brand")+ceKpi("Comissionados",R.rows.filter(o=>o.total).length,"funcionários","ok")+ceKpi("Média por funcionário",ceBRL(R.rows.length?R.total/R.rows.length:0),"","vac")+ceKpi("Maior comissão",top?ceBRL(top.total):"—",top?esc(ceCurto(top.nome)):"","off")+ceKpi("Descontos (auditorias)",ceBRL(R.desc),"","bad")+ceKpi("Total líquido",ceBRL(R.liq),"","ok")+'</div>'+
+      '<div class="block"><div class="ce-th"><h3>Comissão por funcionário</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Funcionário</th><th>Subsetor</th><th class="num">Presenças</th><th class="num">Faltas</th><th class="num">Lançamentos</th><th class="num">Comissão</th><th class="num">Erros</th><th class="num">Descontos</th><th class="num">Líquido</th></tr></thead><tbody>'+
+      (R.rows.map(o=>'<tr><td><span class="nm">'+esc(o.nome)+'</span><span class="sub">'+esc(o.mat)+'</span></td><td>'+esc(o.f&&o.f.subsetor||"—")+'</td><td class="num">'+o.pc.presente+'</td><td class="num">'+(o.pc.falta?'<span class="ce-b b-bad">'+o.pc.falta+'</span>':"0")+'</td><td class="num">'+o.n+'</td><td class="num"><b>'+ceBRL(o.total)+'</b></td><td class="num">'+(o.err||"–")+'</td><td class="num">'+(o.desc?'<span style="color:#B3261E">'+ceBRL(o.desc)+'</span>':"–")+'</td><td class="num"><b style="color:#17733F">'+ceBRL(o.liq)+'</b></td></tr>').join("")||'<tr><td colspan="9">'+ceVazio("Nenhum lançamento no período.","Use “Lançar quantidades”.")+'</td></tr>')+
+      '</tbody>'+(R.rows.length?'<tfoot><tr><td colspan="5">Total geral</td><td class="num">'+ceBRL(R.total)+'</td><td></td><td class="num">'+ceBRL(R.desc)+'</td><td class="num">'+ceBRL(R.liq)+'</td></tr></tfoot>':'')+'</table></div></div>'+
+      '<div class="block"><div class="ce-th"><h3>Por atividade</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Atividade</th><th class="num">Lançamentos</th><th class="num">Quantidade</th><th class="num">Total</th></tr></thead><tbody>'+(R.atr.map(a=>'<tr><td class="nm">'+esc(a.nome)+'</td><td class="num">'+a.n+'</td><td class="num">'+ceNum(a.qtd)+'</td><td class="num"><b>'+ceBRL(a.total)+'</b></td></tr>').join("")||'<tr><td colspan="4">'+ceVazio("Sem dados no período.")+'</td></tr>')+'</tbody></table></div></div>';}
+  if(CE.cTab==="lancar"){const qd=CE.qd,tot=atrs.reduce((t,a)=>t+ceMul(ceParse(qd.q[a.id]),a.valor),0),q=norm(CE.lq);
+    const ls=ceLancs().filter(l=>!q||norm(l.Matricula+" "+l.Nome+" "+l.Atividade).includes(q)).sort((a,b)=>b._d.localeCompare(a._d)||String(b.Registrado_Em).localeCompare(String(a.Registrado_Em)));
+    h+='<div class="block"><div class="ce-th"><h3>Lançar quantidades por funcionário</h3><span class="muted">Comissão = quantidade × valor do item, sem arredondamento.</span></div>'+
+      '<div class="ce-fgrid"><label class="ce-fld"><span>Data</span><input type="date" id="ce-qdata" value="'+(qd.data||todayISO())+'"></label><label class="ce-fld span2"><span>Funcionário</span><select class="in" id="ce-qmat"><option value="">Escolha o funcionário</option>'+ceEq().slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR")).map(f=>'<option value="'+f.mat+'"'+(f.mat===qd.mat?" selected":"")+'>'+esc(f.mat+" - "+f.nome)+'</option>').join("")+'</select></label><label class="ce-fld span2"><span>Observação</span><input id="ce-qobs" value="'+esc(qd.obs)+'" placeholder="Opcional"></label></div>'+
+      '<div class="ce-tblw" style="margin-top:12px"><table class="ce-t"><thead><tr><th>Atividade</th><th class="num">Valor item</th><th class="num">Quantidade</th><th class="num">Comissão</th></tr></thead><tbody>'+
+      atrs.map(a=>{const v=ceParse(qd.q[a.id]);return '<tr><td class="nm">'+esc(a.nome)+'</td><td class="num">'+ceBRL(a.valor)+'</td><td class="num"><input class="in sm ce-qin" data-qd="'+a.id+'" inputmode="decimal" value="'+esc(qd.q[a.id]||"")+'" placeholder="0"></td><td class="num" id="ce-qs-'+a.id+'">'+(v?ceBRL(ceMul(v,a.valor)):"—")+'</td></tr>';}).join("")+
+      '</tbody><tfoot><tr><td colspan="3">Total da comissão</td><td class="num" id="ce-qtot">'+ceBRL(tot)+'</td></tr></tfoot></table></div>'+
+      '<div class="ce-acts" style="margin-top:12px"><button type="button" class="save" data-ce="qdSave" style="max-width:260px;margin:0">Lançar comissão</button><button type="button" class="btn" data-ce="qdClear">Limpar quantidades</button></div></div>'+per+
+      '<div class="block"><div class="ce-th"><h3>Lançamentos do período</h3><span class="muted">'+ls.length+' lançamento(s) | '+ceBRL(ls.reduce((s,l)=>s+l._t,0))+'</span></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Data</th><th>Funcionário</th><th>Atividade</th><th class="num">Qtd</th><th class="num">Unitário</th><th class="num">Total</th><th>Observação</th><th></th></tr></thead><tbody>'+
+      (ls.map(l=>'<tr><td>'+ceBr(l._d)+'</td><td><span class="nm">'+esc(l.Nome)+'</span><span class="sub">'+esc(l.Matricula)+'</span></td><td>'+esc(l.Atividade)+'</td><td class="num">'+ceNum(l._q)+'</td><td class="num">'+ceBRL(l._v)+'</td><td class="num"><b>'+ceBRL(l._t)+'</b></td><td class="muted">'+esc(l.Observacao||"")+'</td><td class="num"><button type="button" class="btn sm" data-led="'+esc(l.ID)+'">Editar</button> <button type="button" class="btn sm" data-ldel="'+esc(l.ID)+'">Excluir</button></td></tr>').join("")||'<tr><td colspan="8">'+ceVazio("Nenhum lançamento no período.")+'</td></tr>')+'</tbody></table></div></div>';}
+  if(CE.cTab==="atrib"){const list=CE.cfg.atividades.slice().sort((a,b)=>(a.ordem==null?999:a.ordem)-(b.ordem==null?999:b.ordem)),V=CE.cfg.valores;
+    h+='<div class="block"><div class="ce-th"><h3>Nova atividade</h3></div><div class="ce-fgrid"><label class="ce-fld span2"><span>Nome da atividade</span><input id="ce-anome" placeholder="Ex.: Conferência de carga"></label><label class="ce-fld"><span>Valor por unidade (R$)</span><input id="ce-avalor" inputmode="decimal" placeholder="0,00"></label><label class="ce-fld span2"><span>Descrição</span><input id="ce-adesc" placeholder="Opcional"></label></div><button type="button" class="btn" data-ce="addAtr" style="margin-top:12px">Adicionar atividade</button></div>'+
+      '<div class="block"><div class="ce-th"><h3>Atividades cadastradas</h3></div><div class="ce-tblw"><table class="ce-t"><thead><tr><th>Atividade</th><th class="num">Valor</th><th class="num">Lançamentos</th><th>Situação</th><th></th></tr></thead><tbody>'+
+      list.map(a=>{const n=(CE.lanc||[]).filter(l=>l.Atividade_Id===a.id).length;return '<tr><td><span class="nm">'+esc(a.nome)+'</span>'+(a.desc?'<span class="sub">'+esc(a.desc)+'</span>':'')+'</td><td class="num">'+ceBRL(a.valor)+'</td><td class="num">'+n+'</td><td>'+(a.ativo===false?'<span class="ce-b b-none">Inativa</span>':'<span class="ce-b b-ok">Ativa</span>')+'</td><td class="num"><button type="button" class="btn sm" data-aed="'+a.id+'">Editar valor</button> <button type="button" class="btn sm" data-atog="'+a.id+'">'+(a.ativo===false?"Ativar":"Inativar")+'</button>'+(n?'':' <button type="button" class="btn sm" data-adel="'+a.id+'">Excluir</button>')+'</td></tr>';}).join("")+'</tbody></table></div></div>'+
+      '<div class="block"><div class="ce-th"><h3>Desconto por erro (auditorias)</h3><span class="muted">Valor descontado da comissão a cada ocorrência no período.</span></div><div class="ce-fgrid">'+COM_ERROS.map(([t,n,p])=>'<label class="ce-fld"><span>'+esc(n)+' ('+p+')</span><input data-vv="'+t+'" inputmode="decimal" value="'+(V[t]?String(V[t]).replace(".",","):"")+'" placeholder="R$ 0,00"></label>').join("")+'</div><button type="button" class="btn" data-ce="vvSave" style="margin-top:12px">Salvar valores de desconto</button></div>';}
+  if(CE.cTab==="desc")h+=per+'<div class="block"><div class="com-rel"><div class="pd fx">'+ceRelDesc()+'</div></div></div>';
+  return h;}
+// ---- relatórios ----
+function ceHead(tit,sub){return '<div class="fx-h"><div><h1>'+esc(tit)+'</h1><p>'+sub+'</p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>'+CE_SETOR+'</div></div>';}
+function ceFoot(t){return '<div class="fx-f"><span>'+esc(t)+' · '+ceBr(CE.cDe)+' a '+ceBr(CE.cAte)+'</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div>';}
+function ceRelDesc(){const E=ceErros(CE.cDe,CE.cAte),V=CE.cfg.valores,L=Object.values(E);
+  const grupo=(tit,tipos)=>{const G=L.filter(x=>tipos.some(t=>x.n[t])).map(x=>({x,n:tipos.reduce((s,t)=>s+(x.n[t]||0),0),d:tipos.reduce((s,t)=>s+(x.n[t]||0)*(+V[t]||0),0)})).sort((a,b)=>b.d-a.d||b.n-a.n);
+    return fxCard(tit+' <small style="font-weight:400">('+G.length+')</small>',fxTable([{t:"Colaborador"},{t:"Matrícula"},{t:"Na equipe"}].concat(tipos.map(t=>({t:COM_ERROS.find(z=>z[0]===t)[1].replace(/ \(.*\)/,""),n:1}))).concat([{t:"Total",n:1},{t:"Valor mercadoria",n:1},{t:"Desconto",n:1}]),
+      G.map(g=>[esc(g.x.nome||"—"),esc(g.x.mat||"—"),ceFunc(g.x.mat)?"Sim":"–"].concat(tipos.map(t=>g.x.n[t]||"")).concat(['<b>'+g.n+'</b>',ceBRL(g.x.v),'<b style="color:#B91C1C">'+ceBRL(g.d)+'</b>']))));};
   const tot=L.reduce((s,x)=>s+x.desc,0),nOc=L.reduce((s,x)=>s+x.tot,0);
-  return comHead("Controle de Estoque — Descontos por erros",nOc)+
-    fxKpis([{t:"Colaboradores com erro",v:L.length,c:"#0F172A"},{t:"Ocorrências",v:nOc,c:"#DC2626"},{t:"Total de descontos",v:R$(tot),c:"#B91C1C"},
-      {t:"Valores por erro",v:COM_ERROS.filter(([t])=>+V[t]).length+"/"+COM_ERROS.length,c:"#2563EB",s:"tipos com valor definido"}],true)+
+  return ceHead("Descontos por erros de auditoria","Período: <b>"+ceBr(CE.cDe)+" a "+ceBr(CE.cAte)+"</b>")+
+    fxKpis([{t:"Colaboradores com erro",v:L.length,c:"#0F172A"},{t:"Ocorrências",v:nOc,c:"#DC2626"},{t:"Total de descontos",v:ceBRL(tot),c:"#B91C1C"},{t:"Da equipe",v:L.filter(x=>ceFunc(x.mat)).length,c:"#2563EB",s:"colaboradores do controle de estoque"}],true)+
     grupo("Conferentes",["conf_carga","sac_falta","sac_sobra"])+'<div style="height:10px"></div>'+grupo("Repositores",["rep_rua","rep_ret"])+'<div style="height:10px"></div>'+grupo("Operadores",["oper_aero"])+
-    '<p class="fx-e" style="margin-top:8px">Valores por erro: '+COM_ERROS.map(([t,n])=>esc(n)+" "+R$(V[t])).join(" · ")+'.</p>'+comFoot("Descontos do controle de estoque");}
-function relComissao(){const {eq}=comCalc(),all=eq.flatMap(q=>q.mem),tot=all.reduce((s,x)=>s+x.liq,0),desc=all.reduce((s,x)=>s+x.desc,0);
-  return comHead("Controle de Estoque — Comissão",all.length)+
-    fxKpis([{t:"Equipes",v:eq.length,c:"#0F172A",s:eq.filter(q=>q.metaErrOk).length+" dentro da meta de erros"},{t:"Colaboradores",v:all.length,c:"#2563EB"},{t:"Comissão bruta",v:R$(all.reduce((s,x)=>s+x.bruto,0)),c:"#16A34A"},
-      {t:"Descontos",v:R$(desc),c:"#B91C1C"},{t:"Comissão líquida",v:R$(tot),c:"#15803D",s:all.filter(x=>x.perde).length?all.filter(x=>x.perde).length+" sem comissão por faltas":""}],true)+
-    eq.map(q=>fxCard(esc(q.e.nome)+' <small style="font-weight:400">· líder: '+esc(q.e.liderNome||"—")+' · erros da equipe: '+q.errEq+(+q.e.metaErros?" / meta "+q.e.metaErros:"")+(q.fator<1?' · <b style="color:#B91C1C">base reduzida '+Math.round((1-q.fator)*100)+'%</b>':'')+(+q.e.metaAtiv?' · atividades: '+q.ativEq+' / meta '+q.e.metaAtiv+(q.bateuAtiv?' ✔':''):'')+'</small>',
-      fxTable([{t:"Colaborador"},{t:"Função"},{t:"Base",n:1},{t:"Bônus",n:1},{t:"Atividades",n:1},{t:"Ajuste",n:1},{t:"Erros",n:1},{t:"Desc. erros",n:1},{t:"Faltas/atrasos",n:1},{t:"Desc. presença",n:1},{t:"Líquido",n:1}],
-        q.mem.map(x=>[esc(x.m.nome)+'<br><small>'+esc(x.m.mat)+'</small>',esc(x.m.papel||""),R$(x.base),R$(x.bonus),R$(x.ativV),(+x.aj.valor?R$(x.aj.valor):"–"),x.er.tot||"–",x.er.desc?'<span style="color:#B91C1C">'+R$(x.er.desc)+'</span>':"–",
-          (x.faltas||x.atrasos)?x.faltas+" / "+x.atrasos:"–",x.descF?'<span style="color:#B91C1C">'+R$(x.descF)+'</span>':"–",x.perde?'<b style="color:#B91C1C">R$ 0,00</b><br><small>excedeu faltas</small>':'<b style="color:#15803D">'+R$(x.liq)+'</b>']))+
-      '<p class="fx-e" style="text-align:right;margin-top:4px">Total da equipe: <b>'+R$(q.mem.reduce((s,x)=>s+x.liq,0))+'</b></p>')).join('<div style="height:10px"></div>')+
-    (eq.length?"":'<p class="fx-e">Nenhuma equipe cadastrada. Monte as equipes na aba Equipes.</p>')+
-    '<div class="sg sg2" style="margin-top:26px"><div><b>Controle de Estoque</b>&nbsp;</div><div><b>Gerência</b>&nbsp;</div></div>'+comFoot("Comissão do controle de estoque");}
-function comImprimir(tipo){const html=tipo==="desc"?relDescontos():relComissao(),tit=tipo==="desc"?"Descontos":"Comissao";
-  openDoc({html:'<div class="pd fx">'+html+'</div>',multi:false,land:true,name:"Controle_Estoque_"+tit+"_"+COM.mes+".pdf",title:"Controle de Estoque – "+(tipo==="desc"?"Descontos":"Comissão"),short:"Controle de Estoque – "+(tipo==="desc"?"Descontos":"Comissão")+" – "+mesNome(COM.mes),text:"*CONTROLE DE ESTOQUE – "+(tipo==="desc"?"DESCONTOS":"COMISSÃO")+"*\n"+mesNome(COM.mes)});}
-// ---- tela ----
-function renderCom(){const box=$("com");if(!box)return;const abas=[["painel","Comissão"],["desc","Descontos"],["lanc","Atividades do mês"],["equipes","Equipes"],["metas","Metas e valores"]];
-  let h='<div class="block"><div class="com-top"><div class="seg" role="tablist">'+abas.map(([k,t])=>'<button type="button" data-ca="'+k+'" aria-pressed="'+(COM.aba===k)+'">'+t+'</button>').join("")+'</div>'+
-    '<label class="com-mes">Mês <input class="in" type="month" id="com-mes" value="'+COM.mes+'"></label><button type="button" class="btn" id="com-upd"'+(COM.busy?" disabled":"")+'>'+(COM.busy?"Carregando…":"Atualizar")+'</button></div>'+(COM.msg?'<p class="note" style="margin:8px 0 0">'+esc(COM.msg)+'</p>':'')+'</div>';
-  if(!COM.cfg){box.innerHTML=h;bindCom();return;}
-  if(COM.aba==="painel"||COM.aba==="desc")h+='<div class="block"><div class="com-pr"><button type="button" class="save" id="com-pr">Imprimir / PDF – '+(COM.aba==="desc"?"Descontos":"Comissão")+'</button></div><div class="com-rel"><div class="pd fx">'+(COM.aba==="desc"?relDescontos():relComissao())+'</div></div></div>';
-  if(COM.aba==="equipes")h+=htmlEquipes();if(COM.aba==="metas")h+=htmlMetas();if(COM.aba==="lanc")h+=htmlLanc();
-  box.innerHTML=h;bindCom();}
-function htmlEquipes(){const E=COM.cfg.equipes,ed=COM.edit;
-  return '<div class="block"><div class="com-row"><h3 style="margin:0">Equipes do controle de estoque</h3><button type="button" class="save sm" id="eq-nova">＋ Nova equipe</button></div>'+
-    (E.length?E.map(e=>'<div class="com-eq"><div class="com-row"><div><b>'+esc(e.nome)+'</b><br><small>Líder: '+esc(e.liderNome||"—")+' · '+e.membros.length+' membro(s) · base '+R$(e.base)+'</small></div><div><button type="button" class="btn sm" data-eqe="'+e.id+'">Editar</button> <button type="button" class="btn sm" data-eqx="'+e.id+'">Excluir</button></div></div>'+
-      '<div class="tags">'+e.membros.map(m=>'<span class="tag">'+esc(curto(m.nome))+' · '+esc(m.papel||"")+'</span>').join("")+'</div></div>').join(""):'<p class="note">Nenhuma equipe. Clique em “Nova equipe”.</p>')+'</div>'+
-    (ed?'<div class="block" id="eq-form"><h3 style="margin:0 0 10px">'+(ed.novo?"Nova equipe":"Editar equipe")+'</h3>'+
-      '<div class="com-grid"><div class="field"><label>Nome da equipe</label><input class="in" id="eq-nome" value="'+esc(ed.nome)+'"></div><div class="field"><label>Líder</label><div id="eq-lider"></div></div></div>'+
-      '<div class="com-grid4"><div class="field"><label>Comissão base por membro (R$)</label><input class="in" id="eq-base" inputmode="decimal" value="'+(ed.base||"")+'"></div><div class="field"><label>Meta: máximo de erros da equipe no mês</label><input class="in" id="eq-merr" inputmode="numeric" value="'+(ed.metaErros||"")+'"></div>'+
-      '<div class="field"><label>Redução da base se passar (%)</label><input class="in" id="eq-red" inputmode="numeric" value="'+(ed.redutor==null?50:ed.redutor)+'"></div><div class="field"><label>Máximo de faltas (acima: sem comissão)</label><input class="in" id="eq-mf" inputmode="numeric" value="'+(ed.maxFaltas||"")+'"></div>'+
-      '<div class="field"><label>Meta de atividades da equipe (qtd.)</label><input class="in" id="eq-mat" inputmode="numeric" value="'+(ed.metaAtiv||"")+'"></div><div class="field"><label>Bônus por membro se bater a meta (R$)</label><input class="in" id="eq-bon" inputmode="decimal" value="'+(ed.bonus||"")+'"></div></div>'+
-      '<div class="field"><label>Membros</label><div class="com-add"><div id="eq-pk"></div><select class="in" id="eq-papel">'+COM_PAPEIS.map(p=>'<option>'+p+'</option>').join("")+'</select></div>'+
-      '<div id="eq-mem">'+ed.membros.map((m,i)=>'<div class="li"><div><b>'+esc(m.nome)+'</b> <small>· '+esc(m.mat)+' · '+esc(m.funcao||"")+'</small></div><div><select class="in sm" data-mp="'+i+'">'+COM_PAPEIS.map(p=>'<option'+(p===m.papel?" selected":"")+'>'+p+'</option>').join("")+'</select> <button type="button" class="btn sm" data-mx="'+i+'">Remover</button></div></div>').join("")+'</div></div>'+
-      '<div class="com-row" style="margin-top:12px"><button type="button" class="btn" id="eq-canc">Cancelar</button><button type="button" class="save" id="eq-salvar" style="max-width:260px">Salvar equipe</button></div></div>':"");}
-function htmlMetas(){const V=COM.cfg.valores,A=COM.cfg.atividades;
-  return '<div class="block"><h3 style="margin:0 0 4px">Valor do desconto por erro</h3><p class="note" style="margin:0 0 10px">Cada ocorrência no mês desconta este valor do colaborador responsável.</p><div class="com-grid3">'+
-    COM_ERROS.map(([t,n,p])=>'<div class="field"><label>'+esc(n)+' <small>('+p+')</small></label><input class="in" data-vv="'+t+'" inputmode="decimal" value="'+(V[t]||"")+'" placeholder="R$ 0,00"></div>').join("")+
-    '<div class="field"><label>Falta (chamada)</label><input class="in" data-vv="falta" inputmode="decimal" value="'+(V.falta||"")+'" placeholder="R$ 0,00"></div><div class="field"><label>Atraso (chamada)</label><input class="in" data-vv="atraso" inputmode="decimal" value="'+(V.atraso||"")+'" placeholder="R$ 0,00"></div></div></div>'+
-    '<div class="block"><div class="com-row"><h3 style="margin:0">Atividades que geram comissão</h3><button type="button" class="btn sm" id="at-add">＋ Atividade</button></div><p class="note" style="margin:4px 0 10px">Valor pago por unidade realizada. As quantidades do mês são lançadas na aba “Atividades do mês”.</p>'+
-    (A.length?A.map((a,i)=>'<div class="com-at"><input class="in" data-an="'+i+'" value="'+esc(a.nome)+'" placeholder="Nome da atividade"><input class="in" data-au="'+i+'" value="'+esc(a.unidade||"")+'" placeholder="Unidade (ex.: palete)"><input class="in" data-av="'+i+'" inputmode="decimal" value="'+(a.valor||"")+'" placeholder="R$ por unidade"><button type="button" class="btn sm" data-ax="'+i+'">Remover</button></div>').join(""):'<p class="note">Nenhuma atividade cadastrada.</p>')+'</div>'+
-    '<button type="button" class="save" id="mt-salvar">Salvar metas e valores</button>';}
-function htmlLanc(){const A=COM.cfg.atividades,L=COM.lanc,mem=COM.cfg.equipes.flatMap(e=>e.membros.map(m=>Object.assign({eq:e.nome},m)));
-  if(!mem.length)return '<div class="block"><p class="note">Monte as equipes primeiro.</p></div>';
-  return '<div class="block"><h3 style="margin:0 0 4px">Atividades de '+esc(mesNome(COM.mes))+'</h3><p class="note" style="margin:0 0 10px">'+(A.length?"Informe a quantidade realizada por colaborador. Ajuste: valor extra (+) ou desconto manual (−) com motivo.":"Cadastre as atividades em “Metas e valores” para lançar quantidades.")+'</p><div class="com-tbl"><table class="fx-t"><thead><tr><th>Colaborador</th><th>Equipe</th>'+A.map(a=>'<th class="n">'+esc(a.nome)+(a.unidade?'<br><small>'+esc(a.unidade)+'</small>':'')+'</th>').join("")+'<th class="n">Ajuste R$</th><th>Motivo do ajuste</th></tr></thead><tbody>'+
-    mem.map(m=>{const at=L.ativ[m.mat]||{},aj=L.ajustes[m.mat]||{};return '<tr><td>'+esc(curto(m.nome))+'<br><small>'+esc(m.mat)+'</small></td><td>'+esc(m.eq)+'</td>'+A.map(a=>'<td class="n"><input class="in sm" data-lq="'+m.mat+'|'+a.id+'" inputmode="numeric" value="'+(at[a.id]||"")+'"></td>').join("")+
-      '<td class="n"><input class="in sm" data-lj="'+m.mat+'" inputmode="decimal" value="'+(aj.valor||"")+'"></td><td><input class="in sm" data-lm="'+m.mat+'" value="'+esc(aj.motivo||"")+'"></td></tr>';}).join("")+'</tbody></table></div>'+
-    '<button type="button" class="save" id="la-salvar" style="margin-top:12px">Salvar atividades do mês</button></div>';}
-function bindCom(){const box=$("com");
-  box.querySelectorAll("[data-ca]").forEach(b=>b.onclick=()=>{COM.aba=b.dataset.ca;COM.edit=null;renderCom();});
-  $("com-mes").onchange=e=>{if(!e.target.value)return;COM.mes=e.target.value;COM.cfg=null;comCarregar(false);};
-  $("com-upd").onclick=()=>comCarregar(true);
-  if($("com-pr"))$("com-pr").onclick=()=>comImprimir(COM.aba==="desc"?"desc":"com");
-  if(COM.aba==="equipes"){
-    $("eq-nova").onclick=()=>{COM.edit={novo:true,id:uid(),nome:"",lider:"",liderNome:"",membros:[],base:0,metaErros:0,redutor:50,maxFaltas:0,metaAtiv:0,bonus:0};renderCom();$("eq-form").scrollIntoView({behavior:"smooth"});};
-    box.querySelectorAll("[data-eqe]").forEach(b=>b.onclick=()=>{COM.edit=JSON.parse(JSON.stringify(COM.cfg.equipes.find(e=>e.id===b.dataset.eqe)));renderCom();$("eq-form").scrollIntoView({behavior:"smooth"});});
-    box.querySelectorAll("[data-eqx]").forEach(b=>b.onclick=async()=>{const e=COM.cfg.equipes.find(x=>x.id===b.dataset.eqx);if(!e||!confirm("Excluir a equipe "+e.nome+"?"))return;COM.cfg.equipes=COM.cfg.equipes.filter(x=>x!==e);await comSalvar("config",COM.cfg,"Equipe excluída.");renderCom();});
-    if(COM.edit){const ed=COM.edit,lp=picker($("eq-lider"),{ph:"Matrícula ou nome do líder",search:searchColab,describe:descColab,novo:true,onPick:k=>{ed.lider=k==null?"":C.mat[k];ed.liderNome=k==null?"":C.nome[k];}});if(ed.lider&&cIdx.has(ed.lider))lp.set(cIdx.get(ed.lider));
-      const guarda=()=>{ed.nome=$("eq-nome").value.trim();ed.base=numIn($("eq-base").value);ed.metaErros=parseInt($("eq-merr").value,10)||0;ed.redutor=parseInt($("eq-red").value,10)||0;ed.maxFaltas=parseInt($("eq-mf").value,10)||0;ed.metaAtiv=parseInt($("eq-mat").value,10)||0;ed.bonus=numIn($("eq-bon").value);};
-      picker($("eq-pk"),{ph:"Adicionar membro: matrícula ou nome",search:searchColab,describe:descColab,novo:true,onPick:k=>{if(k==null)return;guarda();const mat=C.mat[k];
-        const outra=COM.cfg.equipes.find(e=>e.id!==ed.id&&e.membros.some(m=>m.mat===mat));if(outra){toast(C.nome[k]+" já está na equipe "+outra.nome+".");renderCom();return;}
-        if(!ed.membros.some(m=>m.mat===mat)){const f=C.fun[k]||"",pap=$("eq-papel").value;ed.membros.push({mat,nome:C.nome[k],funcao:f,papel:pap});}renderCom();$("eq-form").scrollIntoView();}});
-      box.querySelectorAll("[data-mx]").forEach(b=>b.onclick=()=>{guarda();ed.membros.splice(+b.dataset.mx,1);renderCom();$("eq-form").scrollIntoView();});
-      box.querySelectorAll("[data-mp]").forEach(s=>s.onchange=()=>{ed.membros[+s.dataset.mp].papel=s.value;});
-      $("eq-canc").onclick=()=>{COM.edit=null;renderCom();};
-      $("eq-salvar").onclick=async()=>{guarda();if(!ed.nome){toast("Dê um nome à equipe.");return;}if(!ed.membros.length){toast("Adicione ao menos um membro.");return;}
-        const cp=Object.assign({},ed);delete cp.novo;const i=COM.cfg.equipes.findIndex(e=>e.id===ed.id);if(i>=0)COM.cfg.equipes[i]=cp;else COM.cfg.equipes.push(cp);
-        if(await comSalvar("config",COM.cfg,"Equipe salva.")){COM.edit=null;renderCom();}};}}
-  if(COM.aba==="metas"){const sync=()=>{box.querySelectorAll("[data-vv]").forEach(i=>COM.cfg.valores[i.dataset.vv]=numIn(i.value));
-      box.querySelectorAll("[data-an]").forEach(i=>{const a=COM.cfg.atividades[+i.dataset.an];a.nome=i.value.trim();a.unidade=box.querySelector('[data-au="'+i.dataset.an+'"]').value.trim();a.valor=numIn(box.querySelector('[data-av="'+i.dataset.an+'"]').value);});};
-    $("at-add").onclick=()=>{sync();COM.cfg.atividades.push({id:uid(),nome:"",unidade:"",valor:0});renderCom();};
-    box.querySelectorAll("[data-ax]").forEach(b=>b.onclick=()=>{sync();COM.cfg.atividades.splice(+b.dataset.ax,1);renderCom();});
-    $("mt-salvar").onclick=async()=>{sync();COM.cfg.atividades=COM.cfg.atividades.filter(a=>a.nome);await comSalvar("config",COM.cfg,"Metas e valores salvos.");renderCom();};}
-  if(COM.aba==="lanc"&&$("la-salvar"))$("la-salvar").onclick=async()=>{const L={ativ:{},ajustes:{}};
-    box.querySelectorAll("[data-lq]").forEach(i=>{const [m,a]=i.dataset.lq.split("|"),q=parseInt(i.value,10)||0;if(q)(L.ativ[m]=L.ativ[m]||{})[a]=q;});
-    box.querySelectorAll("[data-lj]").forEach(i=>{const v=numIn(i.value),mo=box.querySelector('[data-lm="'+i.dataset.lj+'"]').value.trim();if(v||mo)L.ajustes[i.dataset.lj]={valor:v,motivo:mo};});
-    if(await comSalvar("lanc_"+COM.mes,L,"Atividades de "+mesNome(COM.mes)+" salvas.")){COM.lanc=L;}};}
-// ---- chamada ----
-const CH={data:todayISO(),eq:"",marc:{},busy:false,msg:"",cfg:null,rows:null};
-async function chaCarregar(){if(CH.busy)return;if(DEMO||!SHEET_URL){CH.msg="A chamada usa a planilha.";renderCha();return;}CH.busy=true;CH.msg="Carregando…";renderCha();
-  try{const j=await comPost({acao:"cha_ler"});CH.cfg=Object.assign(comCfg0(),j.config||{});CH.rows=tabRows(j);CH.msg="";chaDoDia();}catch(e){CH.msg=e.message;}CH.busy=false;renderCha();}
-function chaDoDia(){CH.marc={};const d=fdISO(CH.data);(CH.rows||[]).filter(r=>r.Data===d).forEach(r=>CH.marc[r.Matricula]={st:r.Status,obs:r.Observacao||""});}
-function renderCha(){const box=$("cha");if(!box)return;const E=(CH.cfg&&CH.cfg.equipes)||[],eqs=CH.eq?E.filter(e=>e.id===CH.eq):E;
-  const [y,mm]=CH.data.split("-").map(Number),a=new Date(y,mm-1,1).getTime(),b=new Date(y,mm,1).getTime(),mes={};(CH.rows||[]).forEach(r=>{const t=pts(r.Data);if(t>=a&&t<b){const x=mes[r.Matricula]=mes[r.Matricula]||{};x[r.Status]=(x[r.Status]||0)+1;}});
-  box.innerHTML='<div class="block"><div class="com-top"><label class="com-mes">Data <input class="in" type="date" id="ch-data" value="'+CH.data+'"></label><label class="com-mes">Equipe <select class="in" id="ch-eq"><option value="">Todas</option>'+E.map(e=>'<option value="'+e.id+'"'+(CH.eq===e.id?" selected":"")+'>'+esc(e.nome)+'</option>').join("")+'</select></label>'+
-    '<button type="button" class="btn" id="ch-todos">Marcar todos presentes</button><button type="button" class="btn" id="ch-upd"'+(CH.busy?" disabled":"")+'>'+(CH.busy?"Carregando…":"Atualizar")+'</button></div>'+(CH.msg?'<p class="note" style="margin:8px 0 0">'+esc(CH.msg)+'</p>':'')+'</div>'+
-    (CH.cfg&&!E.length?'<div class="block"><p class="note">Nenhuma equipe cadastrada. Monte as equipes em Comissão → Equipes.</p></div>':'')+
-    eqs.map(e=>'<div class="block"><h3 style="margin:0 0 8px">'+esc(e.nome)+' <small>· '+e.membros.length+' membro(s)</small></h3>'+e.membros.map(m=>{const c=CH.marc[m.mat]||{},ms=mes[m.mat]||{};
-      return '<div class="ch-it"><div class="ch-n"><b>'+esc(m.nome)+'</b><small>'+esc(m.mat)+' · '+esc(m.papel||"")+' · no mês: '+(ms["Falta"]||0)+' falta(s), '+(ms["Atraso"]||0)+' atraso(s)</small></div>'+
-        '<div class="ch-st" role="radiogroup">'+CHA_ST.map(s=>'<button type="button" role="radio" data-cm="'+m.mat+'" data-cs="'+s+'" aria-checked="'+(c.st===s)+'">'+s+'</button>').join("")+'</div>'+
-        '<input class="in sm" data-co="'+m.mat+'" placeholder="Observação" value="'+esc(c.obs||"")+'"></div>';}).join("")+'</div>').join("")+
-    (eqs.length?'<button type="button" class="save" id="ch-salvar">Salvar chamada de '+fdISO(CH.data)+'</button>':'');
-  $("ch-data").onchange=e=>{CH.data=e.target.value||todayISO();chaDoDia();renderCha();};$("ch-eq").onchange=e=>{CH.eq=e.target.value;renderCha();};$("ch-upd").onclick=chaCarregar;
-  $("ch-todos").onclick=()=>{eqs.forEach(e=>e.membros.forEach(m=>{if(!CH.marc[m.mat]||!CH.marc[m.mat].st)CH.marc[m.mat]={st:"Presente",obs:(CH.marc[m.mat]||{}).obs||""};}));renderCha();};
-  box.querySelectorAll("[data-cs]").forEach(b=>b.onclick=()=>{const k=b.dataset.cm;CH.marc[k]=CH.marc[k]||{obs:""};CH.marc[k].st=b.dataset.cs;box.querySelectorAll('[data-cm="'+k+'"]').forEach(x=>x.setAttribute("aria-checked",String(x===b)));});
-  box.querySelectorAll("[data-co]").forEach(i=>i.oninput=()=>{const k=i.dataset.co;CH.marc[k]=CH.marc[k]||{};CH.marc[k].obs=i.value;});
-  if($("ch-salvar"))$("ch-salvar").onclick=async()=>{const regs=[];eqs.forEach(e=>e.membros.forEach(m=>{const c=CH.marc[m.mat];if(c&&c.st)regs.push({Matricula:m.mat,Nome:m.nome,Equipe:e.nome,Status:c.st,Observacao:c.obs||""});}));
-    const falt=eqs.reduce((s,e)=>s+e.membros.filter(m=>!(CH.marc[m.mat]&&CH.marc[m.mat].st)).length,0);if(!regs.length){toast("Marque a situação de ao menos um colaborador.");return;}
-    if(falt&&!confirm(falt+" colaborador(es) sem marcação. Salvar mesmo assim?"))return;
-    try{const j=await comPost({acao:"cha_salvar",data:fdISO(CH.data),registros:regs});toast("Chamada salva: "+j.novos+" nova(s), "+j.atualizados+" atualizada(s).");await chaCarregar();}catch(e){toast(e.message);}};}
-(function(){const s=document.createElement("style");s.textContent=".com-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.com-top .seg{flex:1 1 100%}.com-mes{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem}.com-mes .in{min-height:40px;width:auto}"+
- ".com-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.com-eq{border-top:1px solid var(--line);padding:10px 0}.com-grid,.com-grid3,.com-grid4{display:grid;gap:0 14px;grid-template-columns:1fr}.com-add{display:grid;grid-template-columns:1fr 150px;gap:8px;align-items:start}"+
- ".com-at{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}.com-rel{overflow:auto;margin-top:12px}.com-rel .pd.fx{margin:0}.com-pr .save{max-width:340px}.com-tbl{overflow:auto}.com-tbl .in.sm{min-height:36px;width:90px;text-align:right}.com-tbl td:last-child .in.sm{width:180px;text-align:left}"+
- ".ch-it{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}.ch-n small{display:block;color:var(--muted)}.ch-st{display:flex;flex-wrap:wrap;gap:6px}.ch-st button{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:6px 10px;font-size:.82rem;cursor:pointer}"+
- ".ch-st button[aria-checked='true']{background:var(--brand);color:#fff;border-color:var(--brand)}.ch-st button[data-cs='Falta'][aria-checked='true']{background:#DC2626;border-color:#DC2626}.ch-st button[data-cs='Atraso'][aria-checked='true']{background:#CA8A04;border-color:#CA8A04}"+
- "@media (min-width:700px){.com-grid{grid-template-columns:1fr 1fr}.com-grid3{grid-template-columns:repeat(3,1fr)}.com-grid4{grid-template-columns:repeat(3,1fr)}.ch-it{grid-template-columns:240px 1fr 200px;align-items:center}.com-top .seg{flex:1 1 auto}}";document.head.appendChild(s);})();
+    '<p class="fx-e" style="margin-top:8px">Desconto por erro: '+COM_ERROS.map(([t,n])=>esc(n)+" "+ceBRL(V[t])).join(" · ")+'.</p>'+ceFoot("Descontos do controle de estoque");}
+function ceRelCom(){const R=ceResumo();
+  return ceHead("Relatório de comissão","Período de <b>"+ceBr(CE.cDe)+" a "+ceBr(CE.cAte)+"</b>")+
+    fxKpis([{t:"Total de comissões",v:ceBRL(R.total),c:"#0A3D91"},{t:"Lançamentos",v:R.ls.length,c:"#1D5FD1"},{t:"Comissionados",v:R.rows.filter(o=>o.total).length,c:"#17733F"},{t:"Descontos (auditorias)",v:ceBRL(R.desc),c:"#B91C1C"},{t:"Total líquido",v:ceBRL(R.liq),c:"#15803D"}],true)+
+    fxCard("Resumo por funcionário",fxTable([{t:"Matrícula"},{t:"Nome"},{t:"Subsetor"},{t:"Presenças",n:1},{t:"Faltas",n:1},{t:"Lançamentos",n:1},{t:"Comissão",n:1},{t:"Descontos",n:1},{t:"Líquido",n:1}],
+      R.rows.map(o=>[esc(o.mat),esc(o.nome),esc(o.f&&o.f.subsetor||"—"),o.pc.presente,o.pc.falta,o.n,'<b>'+ceBRL(o.total)+'</b>',o.desc?'<span style="color:#B91C1C">'+ceBRL(o.desc)+'</span>':"–",'<b style="color:#15803D">'+ceBRL(o.liq)+'</b>']).concat(R.rows.length?[['<b>Total geral</b>',"","","","","",'<b>'+ceBRL(R.total)+'</b>','<b>'+ceBRL(R.desc)+'</b>','<b>'+ceBRL(R.liq)+'</b>']]:[])))+
+    '<div style="height:10px"></div>'+fxCard("Por atividade",fxTable([{t:"Atividade"},{t:"Lançamentos",n:1},{t:"Quantidade",n:1},{t:"Total",n:1}],R.atr.map(a=>[esc(a.nome),a.n,ceNum(a.qtd),'<b>'+ceBRL(a.total)+'</b>'])))+
+    '<div class="sg sg2" style="margin-top:26px"><div><b>Controle de Estoque</b>&nbsp;</div><div><b>Gerência</b>&nbsp;</div></div>'+ceFoot("Comissão do controle de estoque");}
+function cePrint(html,nome,tit){openDoc({html:'<div class="pd fx">'+html+'</div>',multi:false,land:true,name:nome+".pdf",title:tit,short:tit,text:"*"+tit.toUpperCase()+"*"});}
+// ---- eventos ----
+function ceBind(){const on=(sel,ev,fn)=>document.querySelectorAll(sel).forEach(e=>e[ev]=fn);
+  on("[data-cet]","onclick",e=>{CE.tab=e.currentTarget.dataset.cet;ceRender();});on("[data-cct]","onclick",e=>{CE.cTab=e.currentTarget.dataset.cct;ceRender();});
+  on('[data-ce="reload"]',"onclick",()=>ceCarregar(true));
+  const v=(id,fn)=>{const el=$(id);if(el)el.onchange=fn;};
+  v("ce-d",e=>{CE.d=e.target.value||todayISO();ceRender();});v("ce-sub",e=>{CE.fSub=e.target.value;ceRender();});v("ce-turno",e=>{CE.fTurno=e.target.value;ceRender();});
+  v("ce-hmes",e=>{CE.hMes=e.target.value||todayISO().slice(0,7);ceRender();});v("ce-hmat",e=>{CE.hMat=e.target.value;ceRender();});
+  v("ce-cde",e=>{CE.cDe=e.target.value||CE.cDe;ceRender();});v("ce-cate",e=>{CE.cAte=e.target.value||CE.cAte;ceRender();});
+  const busca=(id,k)=>{const el=$(id);if(el)el.oninput=()=>{CE[k]=el.value;clearTimeout(el._t);el._t=setTimeout(()=>{ceRender();const n=$(id);if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},350);};};busca("ce-q","q");busca("ce-lq","lq");
+  on('[data-ce="printDia"]',"onclick",()=>cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d)));
+  on("[data-verdia]","onclick",e=>{CE.d=e.currentTarget.dataset.verdia;cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d));});
+  on("[data-editdia]","onclick",e=>{CE.d=e.currentTarget.dataset.editdia;CE.tab="chamada";ceRender();});
+  on("[data-mk]","onclick",async e=>{const b=e.currentTarget,f=ceFunc(b.dataset.mk);if(!f)return;const obs=(document.querySelector('[data-obs="'+f.mat+'"]')||{}).value||"";
+    b.closest(".ce-seg").querySelectorAll("button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-pressed",String(x===b));});b.closest(".ce-crow").className="ce-crow s-"+b.dataset.s;
+    if(await ceMarcar([{Matricula:f.mat,Nome:f.nome,Equipe:f.subsetor,Turno:f.turno,Status:CE_ST[b.dataset.s][0],Observacao:obs}],CE.d))ceRender();});
+  on("[data-obs]","onchange",async e=>{const f=ceFunc(e.target.dataset.obs),r=ceRegs(CE.d)[f.mat];if(!r){toast("Marque a situação primeiro; a observação vai junto.");return;}await ceMarcar([{Matricula:f.mat,Nome:f.nome,Equipe:f.subsetor,Turno:f.turno,Status:CE_ST[r.s][0],Observacao:e.target.value}],CE.d);});
+  on('[data-ce="bulk"]',"onclick",async()=>{const r=ceRegs(CE.d),L=ceLista().filter(f=>!r[f.mat]);if(!L.length)return;if(!confirm("Marcar "+L.length+" funcionário(s) sem registro como presentes em "+ceBr(CE.d)+"?"))return;
+    if(await ceMarcar(L.map(f=>({Matricula:f.mat,Nome:f.nome,Equipe:f.subsetor,Turno:f.turno,Status:"Presente",Observacao:""})),CE.d)){toast(L.length+" marcado(s) como presentes.");ceRender();}});
+  // equipe
+  if($("ce-add"))picker($("ce-add"),{ph:"Matrícula ou nome do colaborador",search:searchColab,describe:descColab,novo:true,onPick:k=>{if(k==null)return;const mat=C.mat[k];if(ceFunc(mat)){toast("Já está na equipe.");ceRender();return;}
+    CE.cfg.equipe.push({mat,nome:C.nome[k],cargo:C.fun[k]||"",subsetor:"",turno:"08:00"});toast(C.nome[k]+" adicionado. Clique em Salvar equipe.");ceRender();}});
+  on("[data-esub]","onchange",e=>{const f=ceFunc(e.target.dataset.esub);if(f)f.subsetor=e.target.value.trim().toUpperCase();});
+  on("[data-etur]","onchange",e=>{const f=ceFunc(e.target.dataset.etur);if(f)f.turno=e.target.value;});
+  on("[data-erem]","onclick",e=>{const f=ceFunc(e.currentTarget.dataset.erem);if(!f||!confirm("Remover "+f.nome+" da equipe?"))return;CE.cfg.equipe=CE.cfg.equipe.filter(x=>x!==f);ceRender();toast("Removido. Clique em Salvar equipe.");});
+  on('[data-ce="eqSave"]',"onclick",async()=>{if(await ceSalvarCfg("Equipe salva na planilha."))ceRender();});
+  // comissão
+  on('[data-ce="printCom"]',"onclick",()=>cePrint(ceRelCom(),"Comissao_"+CE.cDe+"_a_"+CE.cAte,"Relatório de comissão"));
+  on('[data-ce="printDesc"]',"onclick",()=>cePrint(ceRelDesc(),"Descontos_"+CE.cDe+"_a_"+CE.cAte,"Descontos por erros de auditoria"));
+  const qdata=$("ce-qdata");if(qdata)qdata.onchange=e=>CE.qd.data=e.target.value;const qm=$("ce-qmat");if(qm)qm.onchange=e=>CE.qd.mat=e.target.value;const qo=$("ce-qobs");if(qo)qo.oninput=e=>CE.qd.obs=e.target.value;
+  on(".ce-qin","oninput",e=>{const id=e.target.dataset.qd;CE.qd.q[id]=e.target.value;const atrs=CE.cfg.atividades,a=atrs.find(x=>x.id===id),v=ceParse(e.target.value);$("ce-qs-"+id).textContent=v?ceBRL(ceMul(v,a.valor)):"—";
+    $("ce-qtot").textContent=ceBRL(atrs.filter(x=>x.ativo!==false).reduce((t,x)=>t+ceMul(ceParse(CE.qd.q[x.id]),x.valor),0));});
+  on('[data-ce="qdClear"]',"onclick",()=>{CE.qd.q={};ceRender();});
+  on('[data-ce="qdSave"]',"onclick",async()=>{const qd=CE.qd,f=ceFunc(qd.mat);if(!f){toast("Escolha o funcionário.");return;}const regs=CE.cfg.atividades.filter(a=>a.ativo!==false&&ceParse(qd.q[a.id])>0).map(a=>{const q=ceParse(qd.q[a.id]);
+      return {ID:"CL-"+ceUid(),Data:ceBr(qd.data||todayISO()),Matricula:f.mat,Nome:f.nome,Subsetor:f.subsetor||"",Atividade_Id:a.id,Atividade:a.nome,Quantidade:q,Valor_Unitario:a.valor,Total:ceMul(q,a.valor),Observacao:qd.obs||""};});
+    if(!regs.length){toast("Informe ao menos uma quantidade.");return;}
+    try{await ppPost({acao:"cl_salvar",registros:regs});regs.forEach(r=>CE.lanc.push(Object.assign({},r,{_d:ceIso(r.Data),_q:r.Quantidade,_v:r.Valor_Unitario,_t:r.Total,Registrado_Em:fmtDT(new Date())})));
+      toast(regs.length+" lançamento(s) – "+ceBRL(regs.reduce((s,r)=>s+r.Total,0))+" para "+ceCurto(f.nome)+".");CE.qd.q={};CE.qd.obs="";ceRender();}catch(e){toast(e.message);}});
+  on("[data-ldel]","onclick",async e=>{const id=e.currentTarget.dataset.ldel,l=CE.lanc.find(x=>x.ID===id);if(!l||!confirm("Excluir o lançamento de "+l.Nome+" – "+l.Atividade+" ("+ceBRL(l._t)+")?"))return;
+    try{await ppPost({acao:"cl_excluir",ids:[id]});CE.lanc=CE.lanc.filter(x=>x!==l);toast("Lançamento excluído.");ceRender();}catch(x){toast(x.message);}});
+  on("[data-led]","onclick",async e=>{const l=CE.lanc.find(x=>x.ID===e.currentTarget.dataset.led);if(!l)return;const nv=prompt("Nova quantidade para "+l.Atividade+" ("+l.Nome+"):",String(l._q).replace(".",","));if(nv==null)return;const q=ceParse(nv);if(!(q>0)){toast("Quantidade inválida.");return;}
+    const r={ID:l.ID,Data:l.Data,Matricula:l.Matricula,Nome:l.Nome,Subsetor:l.Subsetor||"",Atividade_Id:l.Atividade_Id,Atividade:l.Atividade,Quantidade:q,Valor_Unitario:l._v,Total:ceMul(q,l._v),Observacao:l.Observacao||""};
+    try{await ppPost({acao:"cl_salvar",registros:[r]});Object.assign(l,r,{_q:q,_t:r.Total});toast("Lançamento atualizado.");ceRender();}catch(x){toast(x.message);}});
+  on('[data-ce="addAtr"]',"onclick",async()=>{const nome=($("ce-anome").value||"").trim(),valor=ceParse($("ce-avalor").value);if(!nome||!(valor>0)){toast("Informe nome e valor por unidade.");return;}
+    if(CE.cfg.atividades.some(a=>norm(a.nome)===norm(nome))){toast("Já existe uma atividade com esse nome.");return;}CE.cfg.atividades.push({id:ceUid(),nome,valor,desc:($("ce-adesc").value||"").trim(),ativo:true,ordem:CE.cfg.atividades.length});if(await ceSalvarCfg("Atividade adicionada."))ceRender();});
+  on("[data-aed]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.aed);const nv=prompt("Valor por unidade de “"+a.nome+"” (R$):",String(a.valor).replace(".",","));if(nv==null)return;const v=ceParse(nv);if(!(v>0)){toast("Valor inválido.");return;}a.valor=v;if(await ceSalvarCfg("Valor atualizado. Vale para os próximos lançamentos."))ceRender();});
+  on("[data-atog]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.atog);a.ativo=a.ativo===false;if(await ceSalvarCfg(a.ativo?"Atividade ativada.":"Atividade inativada."))ceRender();});
+  on("[data-adel]","onclick",async e=>{const a=CE.cfg.atividades.find(x=>x.id===e.currentTarget.dataset.adel);if(!a||!confirm("Excluir a atividade “"+a.nome+"”?"))return;CE.cfg.atividades=CE.cfg.atividades.filter(x=>x!==a);if(await ceSalvarCfg("Atividade excluída."))ceRender();});
+  on('[data-ce="vvSave"]',"onclick",async()=>{document.querySelectorAll("[data-vv]").forEach(i=>CE.cfg.valores[i.dataset.vv]=ceParse(i.value));if(await ceSalvarCfg("Valores de desconto salvos."))ceRender();});}
+(function(){const s=document.createElement("style");s.textContent=`
+.ce-subnav{display:flex;flex-wrap:wrap;gap:4px;background:var(--surface-2,#EEF2F8);padding:4px;border-radius:10px;margin-bottom:14px}.ce-subnav button{flex:1 1 auto;border:0;background:none;padding:9px 14px;border-radius:8px;font-weight:700;color:var(--muted);cursor:pointer}
+.ce-subnav button.on{background:var(--surface);color:#1D5FD1;box-shadow:0 1px 3px rgba(10,61,145,.15)}
+.ce-acts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.ce-filters,.ce-fgrid{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;align-items:flex-end}.ce-fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}.ce-fgrid .span2{grid-column:span 2}
+.ce-fld{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700;color:var(--muted);min-width:150px}.ce-fld.grow{flex:1 1 220px}.ce-fld input,.ce-fld select{min-height:40px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;font-size:.92rem;color:var(--ink);background:var(--surface)}
+.ce-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}.ce-kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+.ce-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,#1D5FD1)}.ce-kpi span{display:block;font-size:.8rem;font-weight:700;color:var(--muted)}.ce-kpi strong{display:block;font-size:1.55rem;font-weight:800;line-height:1.15;margin-top:4px;color:var(--c,var(--ink))}.ce-kpi small{color:var(--muted);font-size:.75rem}
+.k-ok{--c:#17733F}.k-vac{--c:#1F5DB8}.k-off{--c:#94580A}.k-bad{--c:#B3261E}.k-med{--c:#6E3FB8}.k-brand{--c:#1D5FD1}.ce-kpi.hero{background:#0A3D91;border-color:#0A3D91;--c:#fff}.ce-kpi.hero span,.ce-kpi.hero small{color:rgba(255,255,255,.82)}.ce-kpi.hero::before{display:none}
+.ce-b{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.75rem;font-weight:800}.b-ok{background:#E3F5EA;color:#17733F}.b-vac{background:#E4EEFB;color:#1F5DB8}.b-off{background:#FBF0DF;color:#94580A}.b-bad{background:#FBE5E3;color:#B3261E}.b-med{background:#EFE7FB;color:#6E3FB8}.b-none{background:#EEF1F5;color:#5B6B85}
+.ce-prog{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}.ce-bar{flex:1 1 160px;height:8px;background:var(--surface-2,#EEF2F8);border-radius:99px;overflow:hidden}.ce-bar i{display:block;height:100%;background:#17A35A}
+.ce-th{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}.ce-th h3{margin:0;font-size:1.05rem;color:#1D5FD1}
+.ce-crow{display:grid;gap:8px;padding:10px 0;border-top:1px solid var(--line)}.ce-crow .nm{display:block;font-weight:700}.ce-crow .sub,.ce-t .sub{display:block;font-size:.78rem;color:var(--muted);border:0!important;padding:0!important;margin:0!important;background:none!important}.ce-t .nm{font-weight:700}
+.ce-seg{display:flex;flex-wrap:wrap;gap:6px}.ce-seg button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 11px;font-weight:700;font-size:.82rem;cursor:pointer;color:var(--ink)}
+.ce-seg button.on.ok{background:#17733F;border-color:#17733F;color:#fff}.ce-seg button.on.vac{background:#1F5DB8;border-color:#1F5DB8;color:#fff}.ce-seg button.on.off{background:#94580A;border-color:#94580A;color:#fff}.ce-seg button.on.bad{background:#B3261E;border-color:#B3261E;color:#fff}.ce-seg button.on.med{background:#6E3FB8;border-color:#6E3FB8;color:#fff}
+.ce-obs{min-height:38px}
+.ce-tblw{overflow:auto}.ce-t{width:100%;border-collapse:collapse;font-size:.88rem}.ce-t th{text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:8px;border-bottom:1px solid var(--line);background:var(--surface-2,#F6F8FB)}.ce-t td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}.ce-t .num{text-align:right;white-space:nowrap}.ce-t tfoot td{font-weight:800;background:var(--surface-2,#F6F8FB)}.ce-t .in.sm{min-height:34px;max-width:110px;text-align:right}.ce-t input[list]{max-width:200px;text-align:left}
+.ce-empty{padding:18px;text-align:center;color:var(--muted)}.ce-empty b{display:block;color:var(--ink);margin-bottom:4px}
+.ce-dbwrap{overflow-x:auto;border-radius:16px;border:1px solid var(--line);box-shadow:0 4px 18px rgba(15,23,42,.08)}
+.ce-db{min-width:980px;background:#F4F7FC;color:#13223D;font-family:Manrope,"Segoe UI",Arial,sans-serif}.ce-dbh{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 28px;color:#fff;border-bottom:4px solid #2F74FF;background-color:#0A3D91;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 10px,transparent 10px 22px);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ce-dbh h2{font-size:24px;font-weight:800;margin:0;color:#fff}.ce-dbh p{margin:5px 0 0;color:#D5E2F7;font-weight:600;font-size:14px}.ce-dbh img{height:50px;width:auto}.ce-dbb{padding:20px 28px}
+.ce-tiles{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}.ce-tile{background:#0B1F45;border-radius:12px;padding:16px 8px 14px;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ce-tile b{display:block;font-size:40px;font-weight:800;line-height:1;color:#fff}.ce-tile span{display:block;margin-top:9px;font-size:11px;font-weight:800;letter-spacing:.14em;color:#AFC2E4;text-transform:uppercase}
+.t-presente b{color:#5EE39B}.t-esc b{color:#7FB2FF}.t-falta b{color:#FF8A80}.t-folga b{color:#FFC861}.t-ferias b{color:#6FD3FF}.t-atestado b{color:#C9A7FF}
+.ce-sec{font-size:12.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0A3D91;margin:22px 0 10px;display:flex;align-items:center;gap:8px}.ce-dot{width:12px;height:12px;border-radius:3px;background:#17A35A;display:inline-block}
+.ce-aus{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.ce-box{background:#fff;border:1px solid #D7E2F2;border-top:4px solid var(--c);border-radius:10px;padding:12px 14px;min-height:96px}.ce-box h4{margin:0 0 8px;padding-bottom:7px;border-bottom:1px solid #E3EAF5;font-size:12.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+.ce-box ul{list-style:none;margin:0;padding:0;font-size:13px;font-weight:700}.ce-box li+li{margin-top:4px}.ce-box li small{display:block;font-weight:600;color:#7484A0;font-size:11.5px}.ce-box .nada{color:#9AA8BF;font-size:13px}
+.ce-tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid #D7E2F2;border-radius:10px;overflow:hidden;font-size:13px}.ce-tbl th{background:#0A3D91;color:#fff;text-align:left;padding:9px 12px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ce-tbl td{padding:8px 12px;border-top:1px solid #E3EAF5}.ce-tbl td.n{font-weight:800}
+.db-st{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800}.db-st.ok{background:#E3F5EA;color:#17733F}.db-st.wait{background:#E4EEFB;color:#1F5DB8}.db-st.none{background:#EEF1F5;color:#5B6B85}
+.ce-dbf{display:flex;justify-content:space-between;gap:12px;padding:12px 28px;border-top:1px solid #D7E2F2;font-size:12px;color:#5B6B85;background:#fff}
+#print .ce-db{min-width:0;width:100%}#print .pd.fx .ce-db{margin:-16px -20px}
+@media (min-width:760px){.ce-crow{grid-template-columns:minmax(220px,1.2fr) auto minmax(180px,1fr);align-items:center}}
+`;document.head.appendChild(s);})();
 
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){

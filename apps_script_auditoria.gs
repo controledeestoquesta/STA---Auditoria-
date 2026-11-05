@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 24)
+ * Auditoria STA – Santa Therezinha (versão 25)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -97,14 +97,17 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
-  if (['com_ler', 'com_salvar', 'cha_ler', 'cha_salvar'].indexOf(dados.acao) >= 0) {
+  if (['com_ler', 'com_salvar', 'cha_ler', 'cha_salvar', 'cl_ler', 'cl_salvar', 'cl_excluir'].indexOf(dados.acao) >= 0) {
     const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
-    const ehCom = dados.acao.indexOf('com_') === 0;
+    const ehCom = dados.acao.indexOf('com_') === 0 || dados.acao.indexOf('cl_') === 0;
     if (ehCom ? !pode('aud_com') : !(pode('aud_cha') || pode('aud_com'))) return resposta({ ok: false, erro: ehCom ? 'Sem permissão de comissão (aud_com).' : 'Sem permissão de chamada (aud_cha).' });
     const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
     try {
       if (dados.acao === 'com_ler') return resposta(comLer(dados.chaves || []));
       if (dados.acao === 'com_salvar') return resposta(comSalvar(dados.chave, dados.valor, sessao));
+      if (dados.acao === 'cl_ler') return resposta(Object.assign({ ok: true }, lerAba(abrirPlanilha(), ABA_LANC, CAMPOS_LANC)));
+      if (dados.acao === 'cl_salvar') return resposta(lancSalvar(dados.registros || [], sessao));
+      if (dados.acao === 'cl_excluir') return resposta(lancExcluir(dados.ids || []));
       if (dados.acao === 'cha_ler') return resposta(Object.assign({ ok: true, config: comLer(['config']).valores.config || null }, lerAba(abrirPlanilha(), ABA_CHAMADA, CAMPOS_CHAMADA)));
       return resposta(chaSalvar(dados.data, dados.registros || [], sessao));
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
@@ -218,7 +221,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 24, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 25, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -493,7 +496,9 @@ function validarListasPP(sh, cab) {
 /* ===================== Comissão e chamada ===================== */
 const ABA_COMISSAO = 'Comissao_Config';
 const ABA_CHAMADA = 'Chamada';
-const CAMPOS_CHAMADA = ['Chave', 'Data', 'Matricula', 'Nome', 'Equipe', 'Status', 'Observacao', 'Registrado_Por', 'Registrado_Em'];
+const CAMPOS_CHAMADA = ['Chave', 'Data', 'Matricula', 'Nome', 'Equipe', 'Turno', 'Status', 'Observacao', 'Registrado_Por', 'Registrado_Em'];
+const ABA_LANC = 'Comissao_Lancamentos';
+const CAMPOS_LANC = ['ID', 'Data', 'Matricula', 'Nome', 'Subsetor', 'Atividade_Id', 'Atividade', 'Quantidade', 'Valor_Unitario', 'Total', 'Observacao', 'Registrado_Por', 'Registrado_Em'];
 const STATUS_CHAMADA = ['Presente', 'Falta', 'Falta justificada', 'Atestado', 'Folga', 'Férias', 'Atraso'];
 
 function abaComissao() {
@@ -522,6 +527,39 @@ function comSalvar(chave, valor, sessao) {
   if (i >= 0) sh.getRange(i + 2, 1, 1, 4).setValues(linha); else sh.getRange(n + 1, 1, 1, 4).setValues(linha);
   return { ok: true, chave: chave, em: quando };
 }
+function abaLanc() {
+  const ss = abrirPlanilha();
+  let sh = ss.getSheetByName(ABA_LANC);
+  if (!sh) { sh = ss.insertSheet(ABA_LANC); sh.appendRow(CAMPOS_LANC); sh.setFrozenRows(1); sh.getRange('A:C').setNumberFormat('@'); }
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  CAMPOS_LANC.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  return { sh: sh, cab: cab };
+}
+/** Lançamentos de comissão: grava (ou regrava pelo ID). */
+function lancSalvar(registros, sessao) {
+  const A = abaLanc(), sh = A.sh, cab = A.cab, iId = cab.indexOf('ID'), n = sh.getLastRow();
+  const ids = n >= 2 ? sh.getRange(2, iId + 1, n - 1, 1).getValues().map(function (l) { return String(l[0]); }) : [];
+  const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
+  let novos = 0, atual = 0, prox = n + 1;
+  registros.forEach(function (r) {
+    if (!r.ID || !r.Matricula) return;
+    const obj = Object.assign({}, r, { Registrado_Por: por, Registrado_Em: quando });
+    const linha = [cab.map(function (c) { return obj[c] == null ? '' : obj[c]; })];
+    const i = ids.indexOf(String(r.ID));
+    if (i >= 0) { sh.getRange(i + 2, 1, 1, cab.length).setValues(linha); atual++; }
+    else { sh.getRange(prox, 1, 1, cab.length).setValues(linha); ids.push(String(r.ID)); prox++; novos++; }
+  });
+  return { ok: true, novos: novos, atualizados: atual, por: por, em: quando };
+}
+function lancExcluir(lista) {
+  const A = abaLanc(), sh = A.sh, iId = A.cab.indexOf('ID'), n = sh.getLastRow();
+  if (n < 2) return { ok: true, excluidos: 0 };
+  const alvo = lista.map(String), ids = sh.getRange(2, iId + 1, n - 1, 1).getValues().map(function (l) { return String(l[0]); });
+  let k = 0;
+  for (let i = ids.length - 1; i >= 0; i--) if (alvo.indexOf(ids[i]) >= 0) { sh.deleteRow(i + 2); k++; }
+  return { ok: true, excluidos: k };
+}
+
 /** Grava a chamada de um dia (uma linha por colaborador; regrava se já existir). */
 function chaSalvar(data, registros, sessao) {
   if (!/^\d{2}\/\d{2}\/\d{4}$/.test(String(data))) throw new Error('Data inválida.');
@@ -538,7 +576,7 @@ function chaSalvar(data, registros, sessao) {
   registros.forEach(function (r) {
     if (STATUS_CHAMADA.indexOf(r.Status) < 0 || !r.Matricula) return;
     const k = data + '|' + r.Matricula;
-    const obj = { Chave: k, Data: data, Matricula: String(r.Matricula), Nome: r.Nome || '', Equipe: r.Equipe || '', Status: r.Status, Observacao: r.Observacao || '', Registrado_Por: por, Registrado_Em: quando };
+    const obj = { Chave: k, Data: data, Matricula: String(r.Matricula), Nome: r.Nome || '', Equipe: r.Equipe || '', Turno: r.Turno || '', Status: r.Status, Observacao: r.Observacao || '', Registrado_Por: por, Registrado_Em: quando };
     const linha = [cab.map(function (c) { return obj[c] == null ? '' : obj[c]; })];
     const i = ks.indexOf(k);
     if (i >= 0) { sh.getRange(i + 2, 1, 1, cab.length).setValues(linha); atual++; }
