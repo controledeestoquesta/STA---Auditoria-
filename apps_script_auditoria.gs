@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 27)
+ * Auditoria STA – Santa Therezinha (versão 28)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -173,15 +173,17 @@ function doPost(e) {
       (grupos[aba] = grupos[aba] || []).push(r);
     });
     let adicionados = 0;
+    const rejeitados = [];
+    const ehAdm = sessao.permissoes.indexOf('aud_adm') >= 0;
     for (const aba in grupos) {
       const cfg = ABAS[aba];
-      if (!cfg) return resposta({ ok: false, erro: 'Tipo de auditoria desconhecido: ' + aba });
-      if (sessao.permissoes.indexOf(cfg.perm) < 0) {
-        return resposta({ ok: false, erro: 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + cfg.perm + ' na aba Permissionamento.' });
-      }
-      adicionados += gravar(ss, cfg, grupos[aba]);
+      let erro = '';
+      if (!cfg) erro = 'Tipo de auditoria desconhecido: ' + aba + '. Atualize o Apps Script.';
+      else if (!ehAdm && sessao.permissoes.indexOf(cfg.perm) < 0) erro = 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + cfg.perm + ' na aba Permissionamento.';
+      if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); } catch (e) { erro = String(e && e.message || e); } }
+      if (erro) grupos[aba].forEach(function (r) { rejeitados.push({ id: r && r.ID_Auditoria, aba: aba, erro: erro }); });
     }
-    return resposta({ ok: true, adicionados: adicionados });
+    return resposta({ ok: true, adicionados: adicionados, rejeitados: rejeitados });
   } catch (err) {
     return resposta({ ok: false, erro: String(err) });
   } finally {
@@ -230,7 +232,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 27, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 28, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }

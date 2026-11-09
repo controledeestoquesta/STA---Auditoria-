@@ -410,7 +410,7 @@ async function postSheet(body){
     throw new Error("o Apps Script não confirmou o recebimento. Abra o link /exec no navegador para ver o motivo (veja a aba Bases).");}
   let txt="";try{txt=await r.text();}catch(e){}
   let j=null;try{j=JSON.parse(txt);}catch(e){}
-  if(j&&j.ok)return {ok:true,confirmado:true,adicionados:j.adicionados};
+  if(j&&j.ok)return {ok:true,confirmado:true,adicionados:j.adicionados,rejeitados:j.rejeitados||[]};
   if(j&&j.erro){if(j.login&&!DEMO)setTimeout(revalidar,100);throw new Error(j.erro);}
   if(/<html|<!DOCTYPE/i.test(txt))throw new Error("o Apps Script respondeu com página de erro ou de login. Confira: código completo colado (função doPost), implantação como App da Web com Quem pode acessar = Qualquer pessoa.");
   throw new Error("resposta inesperada da planilha (HTTP "+r.status+").");
@@ -418,17 +418,25 @@ async function postSheet(body){
 async function sheetSync(all){
   if(!SHEET_URL)return 0;if(!navigator.onLine){paintSync();return 0;}
   if(syncing){syncAgain=true;return 0;}
-  syncing=true;let sent=0;
+  syncing=true;let sent=0,errSync="";
   try{
     do{syncAgain=false;
       const list=[...HIST.values()].filter(r=>all||r._sheet!==SHEET_URL).sort((a,b)=>a.ts-b.ts);all=false;
       for(let i=0;i<list.length;i+=3){const batch=list.slice(i,i+3);
         if(!DEMO&&!(LOGIN&&LOGIN.token))throw new Error("faça login para enviar.");
-        const res=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:batch.map(toSheet)}));
-        for(const r of batch){r._sheet=SHEET_URL;await histPut(r);sent++;}
-        lastSheetErr="";if(res.confirmado){lastSheetOk=fmtDT(new Date()).slice(0,16);store.set("audcd_sheet_ok",lastSheetOk);}
+        let res=null;
+        try{res=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:batch.map(toSheet)}));}
+        catch(e){const m=(e&&e.message)||"";if(/sem internet|faça login|página de erro|não liberou|não confirmou/i.test(m))throw e;
+          // erro só deste lote (ex.: setor novo sem a versão do Apps Script): envia um por um e segue com os demais
+          for(const r of batch){try{const r1=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:[toSheet(r)]}));if((r1.rejeitados||[]).length)throw new Error(r1.rejeitados[0].erro);r._sheet=SHEET_URL;r._sheetErr="";await histPut(r);sent++;}
+            catch(x){r._sheetErr=(x&&x.message)||"erro";errSync=r._sheetErr+" (setor: "+(r._aba||"ruas")+")";}}
+          continue;}
+        const rej=new Map((res.rejeitados||[]).map(x=>[String(x.id),x.erro]));
+        for(const r of batch){if(rej.has(String(r.ID_Auditoria))){r._sheetErr=rej.get(String(r.ID_Auditoria));errSync=r._sheetErr+" (setor: "+(r._aba||"ruas")+")";continue;}r._sheet=SHEET_URL;r._sheetErr="";await histPut(r);sent++;}
+        if(res.confirmado){lastSheetOk=fmtDT(new Date()).slice(0,16);store.set("audcd_sheet_ok",lastSheetOk);}
       }
     }while(syncAgain);
+    lastSheetErr=errSync;
   }catch(e){lastSheetErr=(e&&e.message)||"falha de conexão.";}
   syncing=false;paintSync();if(sent&&$("v-painel")&&!$("v-painel").hidden)setTimeout(()=>carregarPainel(),1500);return sent;
 }
