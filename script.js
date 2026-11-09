@@ -2141,6 +2141,16 @@ function ceBoard(d){const list=ceLista(),r=ceRegs(d),c=ceStats(r,list),aus=CE_AU
     '<h3 class="ce-sec"><i class="ce-dot"></i>Registro de presença ('+reg.length+')</h3><table class="ce-tbl"><thead><tr><th>Nome</th><th>Código</th><th>Subsetor</th><th>Entrada</th><th>Status</th><th>Data</th></tr></thead><tbody>'+
     (reg.map(f=>'<tr><td class="n">'+esc(f.nome)+'</td><td>'+esc(f.mat)+'</td><td>'+esc(f.subsetor||"—")+'</td><td>'+ceTL(f.turno)+'</td><td>'+stl(f)+'</td><td>'+ceBr(d)+'</td></tr>').join("")||'<tr><td colspan="6" style="text-align:center;padding:18px">Ninguém neste filtro.</td></tr>')+'</tbody></table></div>'+
     '<div class="ce-dbf"><span>'+CE_SETOR+' | Painel de gestão | Taxa de presença '+cePct(c.taxa)+'</span><span>Gerado em '+fmtDT(new Date())+'</span></div></div>';}
+
+async function ceExportImg(fmt){try{toast("Gerando imagem da chamada…");if(!window.html2canvas)await loadScript("lib/html2canvas.min.js");
+    const box=document.createElement("div");box.style.cssText="position:fixed;left:-12000px;top:0;width:1120px;background:#F4F7FC;z-index:-1";box.innerHTML=ceBoard(CE.d);document.body.appendChild(box);
+    await new Promise(r=>setTimeout(r,80));const el=box.firstElementChild;el.style.minWidth="0";el.style.width="1120px";
+    const cv=await window.html2canvas(el,{scale:2,backgroundColor:"#F4F7FC",useCORS:true,logging:false});box.remove();
+    const jpg=fmt==="jpg",mime=jpg?"image/jpeg":"image/png",nome="Chamada_"+CE.d+(CE.fSub?"_"+CE.fSub.replace(/\W+/g,"_"):"")+(CE.fTurno?"_"+CE.fTurno.replace(":","h"):"")+(jpg?".jpg":".png");
+    const blob=await new Promise(r=>cv.toBlob(r,mime,.92));const file=new File([blob],nome,{type:mime});
+    if(document.documentElement.classList.contains("mob")&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Chamada "+ceBr(CE.d)});return;}catch(e){if(e&&e.name==="AbortError")return;}}
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast("Imagem salva: "+nome);}
+  catch(e){toast("Não consegui gerar a imagem: "+(e.message||e));}}
 function LOGO_WHITE_SRC(){const h=$("hdr-logo");return h&&h.src?h.src:LOGO_BLUE;}
 // ---- render chamada ----
 function ceRender(){const box=$("cha");if(box)box.innerHTML=ceChaHTML();const cb=$("com");if(cb)cb.innerHTML=ceComHTML();ceBind();}
@@ -2148,12 +2158,12 @@ function ceTopo(){return (CE.msg?'<p class="note" style="margin:0 0 10px">'+esc(
 function ceChaHTML(){if(!CE.cfg)return ceTopo()+(CE.busy?"":'<button type="button" class="btn" data-ce="reload">Carregar</button>');
   const tabs=[["painel","Dashboard"],["chamada","Chamada"],["historico","Histórico"]].concat(ceCom()?[["equipe","Montar equipe"]]:[]);let h=ceTopo()+ceSub(tabs,CE.tab,"cet");
   const d=CE.d,r=ceRegs(d),list=ceLista(),c=ceStats(r,list);
-  if(CE.tab==="painel")h+='<div class="ce-acts"><button type="button" class="btn" data-cet="chamada">Fazer chamada</button><button type="button" class="btn" data-ce="printDia">Imprimir / PDF</button><button type="button" class="btn" data-ce="reload">Atualizar</button></div>'+ceFiltros(true)+'<div class="ce-dbwrap">'+ceBoard(d)+'</div>';
+  if(CE.tab==="painel")h+='<div class="ce-acts"><button type="button" class="btn" data-cet="chamada">Fazer chamada</button><button type="button" class="btn" data-ce="printDia">Imprimir / PDF</button><button type="button" class="btn" data-ce="imgPng">Exportar PNG</button><button type="button" class="btn" data-ce="imgJpg">Exportar JPEG</button><button type="button" class="btn" data-ce="reload">Atualizar</button></div>'+ceFiltros(true)+'<div class="ce-dbwrap">'+ceBoard(d)+'</div>';
   if(CE.tab==="chamada"){const done=c.total-c.sem,grupos=[...new Set(CE_TURNOS.concat(list.map(f=>f.turno||"")))].sort().map(t=>({t,l:list.filter(f=>(f.turno||"")===t)})).filter(g=>g.l.length);
     const row=f=>{const s=r[f.mat]&&r[f.mat].s||"";return '<div class="ce-crow s-'+(s||"none")+'"><div><span class="nm">'+esc(f.nome)+'</span><span class="sub">'+esc(f.mat)+(f.subsetor?" | "+esc(f.subsetor):"")+(f.cargo?" | "+esc(f.cargo):"")+'</span></div>'+
       '<div class="ce-seg" role="group">'+CE_STK.map(k=>'<button type="button" class="'+CE_ST[k][1]+(s===k?" on":"")+'" aria-pressed="'+(s===k)+'" data-mk="'+f.mat+'" data-s="'+k+'">'+CE_ST[k][0]+'</button>').join("")+'</div>'+
       '<input class="in ce-obs" data-obs="'+f.mat+'" value="'+esc(r[f.mat]&&r[f.mat].obs||"")+'" placeholder="Observação (opcional)"></div>';};
-    h+='<p class="note" style="margin:0 0 10px">'+ceCap(ceWd(d))+', '+ceBr(d)+'. Cada marcação é salva na hora na planilha e entra no histórico.</p><div class="ce-acts"><button type="button" class="btn" data-ce="bulk"'+(c.sem?"":" disabled")+'>Marcar '+c.sem+' sem registro como presentes</button><button type="button" class="btn" data-ce="printDia">Imprimir</button></div>'+ceFiltros(true)+
+    h+='<p class="note" style="margin:0 0 10px">'+ceCap(ceWd(d))+', '+ceBr(d)+'. Cada marcação é salva na hora na planilha e entra no histórico.</p><div class="ce-acts"><button type="button" class="btn" data-ce="bulk"'+(c.sem?"":" disabled")+'>Marcar '+c.sem+' sem registro como presentes</button><button type="button" class="btn" data-ce="printDia">Imprimir</button><button type="button" class="btn" data-ce="imgPng">Exportar PNG</button><button type="button" class="btn" data-ce="imgJpg">Exportar JPEG</button></div>'+ceFiltros(true)+
       '<div class="ce-prog"><b>'+done+' de '+c.total+' registrados</b><div class="ce-bar"><i style="width:'+(c.total?done/c.total*100:0)+'%"></i></div><span class="ce-b b-ok">'+c.presente+' presentes</span><span class="ce-b b-vac">'+c.ferias+' férias</span><span class="ce-b b-off">'+c.folga+' folga</span><span class="ce-b b-bad">'+c.falta+' faltas</span><span class="ce-b b-med">'+c.atestado+' atestados</span></div>'+
       (d>todayISO()?'<p class="ce-b b-off" style="margin-bottom:12px">Atenção: data futura. Use para lançar férias e folgas programadas.</p>':'')+
       (grupos.map(g=>'<div class="block"><div class="ce-th"><h3>Entrada '+ceTL(g.t)+'</h3><span class="muted">'+g.l.length+' funcionário'+(g.l.length>1?"s":"")+'</span></div>'+g.l.map(row).join("")+'</div>').join("")||'<div class="block">'+ceVazio("Nenhum funcionário neste filtro.")+'</div>');}
@@ -2234,6 +2244,7 @@ function ceBind(){const on=(sel,ev,fn)=>document.querySelectorAll(sel).forEach(e
   v("ce-cde",e=>{CE.cDe=e.target.value||CE.cDe;ceRender();});v("ce-cate",e=>{CE.cAte=e.target.value||CE.cAte;ceRender();});
   const busca=(id,k)=>{const el=$(id);if(el)el.oninput=()=>{CE[k]=el.value;clearTimeout(el._t);el._t=setTimeout(()=>{ceRender();const n=$(id);if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},350);};};busca("ce-q","q");busca("ce-lq","lq");
   on('[data-ce="printDia"]',"onclick",()=>cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d)));
+  on('[data-ce="imgPng"]',"onclick",()=>ceExportImg("png"));on('[data-ce="imgJpg"]',"onclick",()=>ceExportImg("jpg"));
   on("[data-verdia]","onclick",e=>{CE.d=e.currentTarget.dataset.verdia;cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d));});
   on("[data-editdia]","onclick",e=>{CE.d=e.currentTarget.dataset.editdia;CE.tab="chamada";ceRender();});
   on("[data-mk]","onclick",async e=>{const b=e.currentTarget,f=ceFunc(b.dataset.mk);if(!f)return;const obs=(document.querySelector('[data-obs="'+f.mat+'"]')||{}).value||"";
