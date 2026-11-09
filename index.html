@@ -228,6 +228,27 @@
     <iframe id="cb-frame" title="Painel de cesta básica" loading="lazy"></iframe>
   </section>
 
+  <section class="view" id="v-procura" hidden>
+    <p class="note" style="margin:0 0 10px">Data automática: <b id="o-data"></b> · Auditor: <b id="o-aud"></b>. Carregamento, Box e O.S. ficam preenchidos para lançar vários itens da mesma carga.</p>
+    <div class="block">
+      <div class="row3" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+        <div class="field" id="o-car-f"><label for="o-car">Carregamento</label><input class="in" id="o-car" inputmode="numeric" placeholder="Ex.: 3479175"></div>
+        <div class="field" id="o-box-f"><label for="o-box">Box</label><input class="in" id="o-box" inputmode="numeric" placeholder="Ex.: 12"></div>
+        <div class="field" id="o-os-f"><label for="o-os">Número O.S.</label><input class="in" id="o-os" inputmode="numeric" placeholder="Ex.: 12711360"></div>
+      </div>
+      <div class="field" id="o-prod-f"><label>Código / descrição do produto</label><div id="o-prod"></div></div>
+      <div class="field" id="o-qtd-f"><label for="o-qtd">Quantidade (unidades)</label><div class="stepper"><button type="button" data-oq="-1" aria-label="Diminuir">−</button><input class="in" id="o-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oq="1" aria-label="Aumentar">+</button></div></div>
+      <div class="money"><span>Valor<br><small id="o-calc"></small></span><b id="o-valor">R$ 0,00</b></div>
+    </div>
+    <div class="block">
+      <div class="field" id="o-mot-f"><span class="lbl">Motivo</span>
+        <div class="mot" id="o-mot" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Produto encontrado">Produto encontrado</button><button type="button" role="radio" aria-checked="false" data-m="Produto não encontrado">Produto não encontrado</button></div></div>
+      <div class="field" id="o-obs-f"><label for="o-obs">Observação</label><textarea class="in" id="o-obs" placeholder="Opcional"></textarea></div>
+    </div>
+    <button type="button" class="save" id="o-save">Salvar procura</button>
+    <div id="o-list" style="margin-top:12px"></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -343,6 +364,7 @@
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>
   <button type="button" data-v="sac" hidden>SAC</button>
+  <button type="button" data-v="procura" hidden>Procura</button>
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
   <button type="button" data-v="cesta" hidden>Cesta básica</button>
