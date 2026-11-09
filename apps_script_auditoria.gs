@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 29)
+ * Auditoria STA – Santa Therezinha (versão 30)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -45,7 +45,7 @@ const ABAS = {
     nome: 'Auditoria_Cargas', perm: 'aud_car',
     colunas: ['ID_Auditoria', 'DataHora', 'Matricula_Auditor', 'Nome_Auditor', 'Matricula_Conferente',
       'Nome_Conferente', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade',
-      'Motivo', 'Links_Fotos', 'ID_Sessao', 'Recebido_Em', 'Valor_Total', 'Causador', 'Matricula_Causador', 'Nome_Causador'],
+      'Motivo', 'Links_Fotos', 'ID_Sessao', 'Recebido_Em', 'Valor_Total', 'Causador', 'Matricula_Causador', 'Nome_Causador', 'Observacao'],
     texto: ['ID_Auditoria', 'DataHora', 'Matricula_Auditor', 'Matricula_Conferente', 'Box', 'Numero_OS',
       'Codigo_Produto', 'ID_Sessao', 'Matricula_Causador']
   },
@@ -232,7 +232,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 29, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 30, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
