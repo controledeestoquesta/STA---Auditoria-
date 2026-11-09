@@ -251,6 +251,15 @@
     <div id="o-list" style="margin-top:12px"></div>
   </section>
 
+  <section class="view" id="v-fat" hidden>
+    <div class="block cb-bar">
+      <div class="cb-txt"><b>Atualizar o dashboard de faturamento</b><small>Planilha XLSX com as abas de faturamento por cliente e/ou Super Adega (as abas são reconhecidas pelas colunas). Os dados ficam salvos neste aparelho.</small></div>
+      <label class="btn cb-btn">Importar XLSX<input type="file" id="ft-xlsx" accept=".xlsx,.xls" hidden></label>
+      <a class="btn cb-btn" href="faturamento.html" target="_blank" rel="noopener">Abrir em tela cheia</a>
+    </div>
+    <iframe id="ft-frame" class="emb-frame" title="Dashboard de faturamento" loading="lazy"></iframe>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -371,6 +380,7 @@
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
   <button type="button" data-v="cesta" hidden>Cesta básica</button>
+  <button type="button" data-v="fat" hidden>Faturamento</button>
   <button type="button" data-v="vales" hidden>Vales</button>
   <button type="button" data-v="registros">Registros<span class="badge" id="nav-pend" hidden></span></button>
   <button type="button" data-v="painel">Painel</button>
