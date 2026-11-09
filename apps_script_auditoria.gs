@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 28)
+ * Auditoria STA – Santa Therezinha (versão 29)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -76,11 +76,11 @@ const MOTIVOS_SAC = ['Falta', 'Sobra'];
 ABAS.procura = {
   nome: 'Auditoria_Procura', perm: 'aud_pro',
   colunas: ['Data', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo',
-    'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
+    'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
   texto: ['Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Matricula_Auditor', 'ID_Auditoria']
 };
-const MOTIVOS_PROCURA = ['Produto encontrado', 'Produto não encontrado'];
-const CAMPOS_PRO = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
+const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado'];
+const CAMPOS_PRO = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const STATUS_SAC = ['Aberta', 'Em tratativa', 'Encerrada'];
 const CAMPOS_SAC = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'NF', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Vl_Unitario', 'Valor', 'Motivo',
   'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Status_NC', 'Historico', 'Matricula_Registrou', 'Nome_Registrou', 'Origem', 'Links_Fotos', 'Recebido_Em'];
@@ -232,7 +232,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 28, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 29, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -604,7 +604,8 @@ function validarListas(sh, cab, listas) {
     listas.forEach(function (x) {
       const i = cab.indexOf(x[0]); if (i < 0) return;
       const r = sh.getRange(2, i + 1, Math.max(sh.getMaxRows() - 1, 1), 1);
-      if (r.getDataValidation()) return;
+      const v = r.getDataValidation(), cv = v && v.getCriteriaValues && v.getCriteriaValues()[0];
+      if (v && Array.isArray(cv) && x[1].every(function (o) { return cv.indexOf(o) >= 0; })) return;
       r.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(x[1], true).setAllowInvalid(false).build());
     });
   } catch (e) { }

@@ -2377,52 +2377,91 @@ function fxMapaRuas(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.aero),tit="M
 (function(){const s=document.createElement("style");s.textContent=".fx-sq>div em{display:block;font-style:normal;font-size:8.5px;font-weight:700;opacity:.85;min-height:10px}";document.head.appendChild(s);})();
 
 // ===== Auditoria de PROCURA (produto encontrado / não encontrado) =====
-const PRO_COLS=["Data","Carregamento","Box","Numero_OS","Codigo_Produto","Descricao_Produto","Quantidade","Vl_Unitario","Valor_Total","Motivo","Observacao","Matricula_Auditor","Nome_Auditor","ID_Auditoria","DataHora"];
-const PRO_ENC="Produto encontrado",PRO_NAO="Produto não encontrado";
+const PRO_COLS=["Data","Carregamento","Box","Numero_OS","Codigo_Produto","Descricao_Produto","Quantidade","Vl_Unitario","Valor_Total","Motivo","Qtd_Pedida","Qtd_Encontrada","Qtd_Falta","Valor_Encontrado","Valor_Falta","Observacao","Matricula_Auditor","Nome_Auditor","ID_Auditoria","DataHora"];
+const PRO_ENC="Produto encontrado",PRO_NAO="Produto não encontrado",PRO_PAR="Encontrado parcialmente";
+/* normaliza registros antigos (só Quantidade + Motivo) e novos (pedido × encontrado) */
+function proQ(r){const v=pnum(r.Vl_Unitario)||(pnum(r.Quantidade)?pnum(r.Valor_Total)/pnum(r.Quantidade):0);let ped=pnum(r.Qtd_Pedida),enc=pnum(r.Qtd_Encontrada);
+  if(!ped&&!(r.Qtd_Encontrada!==""&&r.Qtd_Encontrada!=null&&r.Qtd_Pedida)){ped=pnum(r.Quantidade);enc=r.Motivo===PRO_ENC?ped:0;}const f=Math.max(0,ped-enc);return {ped,enc,f,vu:v,vP:ped*v,vE:Math.min(enc,ped)*v,vF:f*v};}
+const proMot=(ped,enc)=>enc>=ped?PRO_ENC:enc>0?PRO_PAR:PRO_NAO;
 const PO={prod:null,mot:null};
 const oProd=picker($("o-prod"),{ph:"Código ou descrição do item",search:searchProd,describe:descProd,onPick:k=>{PO.prod=k;paintPRO();if(k!=null)setTimeout(()=>$("o-qtd").focus(),50);}});
 document.querySelectorAll("[data-oq]").forEach(b=>b.addEventListener("click",()=>{const i=$("o-qtd");i.value=Math.max(0,(parseInt(i.value,10)||0)+ +b.dataset.oq);paintPRO();}));
 $("o-qtd").addEventListener("input",paintPRO);
-document.querySelectorAll("#o-mot button").forEach(b=>b.addEventListener("click",()=>{PO.mot=b.dataset.m;setErr("o-mot-f","");paintPRO();}));
+document.querySelectorAll("[data-oe]").forEach(b=>b.addEventListener("click",()=>{const i=$("o-enc");i.value=Math.max(0,(parseInt(i.value,10)||0)+ +b.dataset.oe);paintPRO();}));
+$("o-enc").addEventListener("input",paintPRO);$("o-tudo").addEventListener("click",()=>{$("o-enc").value=poQ()||"";paintPRO();});$("o-nada").addEventListener("click",()=>{$("o-enc").value="0";paintPRO();});
+const poE=()=>{const v=String($("o-enc").value).trim();return v===""?null:Math.max(0,parseInt(v,10)||0);};
 const poQ=()=>{const v=String($("o-qtd").value).trim();return v===""?0:Math.max(0,parseInt(v,10)||0);};
-function paintPRO(){if(!$("o-valor"))return;const vl=PO.prod!=null?P.vl[PO.prod]:0,q=poQ();$("o-valor").textContent=BRL.format(q*vl);$("o-calc").textContent=q+" un × "+BRL.format(vl)+" (Vl. ult. entrada 286)";
+function paintPRO(){if(!$("o-valor"))return;const vl=PO.prod!=null?P.vl[PO.prod]:0,q=poQ(),e=poE();$("o-valor").textContent=BRL.format(q*vl);$("o-calc").textContent=q+" un × "+BRL.format(vl)+" (Vl. ult. entrada 286)";
+  if(q>0&&e!=null&&e<=q){const f=q-e;PO.mot=proMot(q,e);$("o-st").innerHTML='<span class="pro-b '+(f?(e?"par":"nao"):"ok")+'">'+PO.mot+'</span>';
+    $("o-res").innerHTML='<div><span>Encontrado</span><b>'+e+' un</b><small>'+BRL.format(e*vl)+'</small></div><div class="'+(f?"bad":"")+'"><span>A bloquear (perda)</span><b>'+f+' un</b><small>'+BRL.format(f*vl)+'</small></div>';}
+  else{PO.mot=null;$("o-st").innerHTML='<span class="pro-b">Informe pedido e encontrado</span>';$("o-res").innerHTML=e!=null&&e>q&&q>0?'<p class="err">A quantidade encontrada não pode ser maior que a pedida.</p>':"";}
   $("o-data").textContent=fmtDT(new Date()).slice(0,10);$("o-aud").textContent=(nomeAud()||"—")+" · matrícula "+(auditor||"—");
-  document.querySelectorAll("#o-mot button").forEach(b=>b.setAttribute("aria-checked",String(b.dataset.m===PO.mot)));listaPRO();}
+  listaPRO();}
 function listaPRO(){const t0=new Date();t0.setHours(0,0,0,0);const L=allRecs().filter(r=>r._aba==="procura"&&r.ts>=t0.getTime()&&r.Matricula_Auditor===auditor).sort((a,b)=>b.ts-a.ts);
-  const enc=L.filter(r=>r.Motivo===PRO_ENC),nao=L.filter(r=>r.Motivo===PRO_NAO),sv=l=>l.reduce((s,r)=>s+(+r.Valor_Total||0),0);
-  $("o-list").innerHTML=L.length?'<div class="block"><h3>Procuras de hoje <small>'+L.length+' · encontrados '+enc.length+' ('+BRL.format(sv(enc))+') · não encontrados '+nao.length+' ('+BRL.format(sv(nao))+')</small></h3>'+
-    L.map(r=>'<div class="li"><div><div class="d"><b>'+esc(r.Codigo_Produto)+'</b> – '+esc(r.Descricao_Produto)+'</div><div class="tags"><span class="tag '+(r.Motivo===PRO_ENC?"ok":"nc")+'">'+(r.Motivo===PRO_ENC?"Encontrado":"Não encontrado")+'</span><span class="tag">Carreg. '+esc(r.Carregamento)+'</span><span class="tag">Box '+esc(r.Box||"-")+'</span><span class="tag">O.S. '+esc(r.Numero_OS||"-")+'</span></div></div>'+
-      '<div><div class="v">'+esc(r.Quantidade)+' un<br>'+BRL.format(+r.Valor_Total||0)+'</div><div class="act"><button type="button" class="btn sm" data-pox="'+esc(r.ID_Auditoria)+'">Excluir</button></div></div></div>').join("")+'</div>':"";
+  const Q=L.map(proQ),sE=Q.reduce((s,x)=>s+x.vE,0),sF=Q.reduce((s,x)=>s+x.vF,0),uF=Q.reduce((s,x)=>s+x.f,0);
+  $("o-list").innerHTML=L.length?'<div class="block"><div class="ce-th" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><h3 style="margin:0">Procuras de hoje <small>'+L.length+' · encontrado '+BRL.format(sE)+' · a bloquear '+uF+' un ('+BRL.format(sF)+')</small></h3><button type="button" class="btn sm" id="o-exp"'+(uF?"":" disabled")+'>Exportar bloqueio</button></div>'+
+    L.map(r=>{const x=proQ(r);return '<div class="li"><div><div class="d"><b>'+esc(r.Codigo_Produto)+'</b> – '+esc(r.Descricao_Produto)+'</div><div class="tags"><span class="tag '+(x.f?"nc":"ok")+'">'+(x.f?(x.enc?"Parcial ":"Não encontrado ")+"· bloquear "+x.f+" un":"Encontrado")+'</span><span class="tag">Carreg. '+esc(r.Carregamento)+'</span><span class="tag">Box '+esc(r.Box||"-")+'</span><span class="tag">O.S. '+esc(r.Numero_OS||"-")+'</span></div></div>'+
+      '<div><div class="v">'+x.enc+'/'+x.ped+' un<br>'+BRL.format(x.vF)+'</div><div class="act"><button type="button" class="btn sm" data-pox="'+esc(r.ID_Auditoria)+'">Excluir</button></div></div></div>';}).join("")+'</div>':"";
+  if($("o-exp"))$("o-exp").onclick=()=>proExportar(L,"Hoje – "+fmtDT(new Date()).slice(0,10)+" · "+(nomeAud()||""));
   $("o-list").querySelectorAll("[data-pox]").forEach(b=>b.onclick=()=>delRec(b.dataset.pox).then(()=>paintPRO()));}
 $("o-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login primeiro.");return;}
   const errs=[],chk=(c,f,m)=>{setErr(f,c?m:"");if(c)errs.push(f);},d=i=>$(i).value.replace(/\D/g,""),q=poQ();
-  chk(!d("o-car"),"o-car-f","Informe o carregamento.");chk(PO.prod==null,"o-prod-f","Informe o item.");chk(!(q>0),"o-qtd-f","Informe a quantidade.");chk(!PO.mot,"o-mot-f","Escolha encontrado ou não encontrado.");
+  const e=poE();chk(!d("o-car"),"o-car-f","Informe o carregamento.");chk(PO.prod==null,"o-prod-f","Informe o item.");chk(!(q>0),"o-qtd-f","Informe a quantidade pedida na O.S.");
+  chk(e==null||e>q,"o-enc-f",e==null?"Informe quanto foi encontrado (0 se nada).":"Encontrado maior que o pedido.");
   if(errs.length){$(errs[0]).scrollIntoView({block:"center",behavior:"smooth"});toast("Revise os campos marcados.");return;}
   const now=new Date(),k=PO.prod,vl=P.vl[k];
   const rec={_aba:"procura",ID_Auditoria:newId("PRO"),Data:fmtDT(now).slice(0,10),DataHora:fmtDT(now),ts:now.getTime(),Carregamento:d("o-car"),Box:d("o-box"),Numero_OS:d("o-os"),Codigo_Produto:P.cod[k],Descricao_Produto:P.desc[k],
-    Quantidade:q,Vl_Unitario:vl,Valor_Total:Math.round(q*vl*100)/100,Motivo:PO.mot,Observacao:$("o-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:PO.mot===PRO_NAO};
-  $("o-save").disabled=true;const ok=await saveRec(rec);$("o-save").disabled=false;oProd.clear();PO.prod=null;PO.mot=null;$("o-qtd").value="";$("o-obs").value="";paintPRO();setTimeout(()=>$("o-prod").scrollIntoView({block:"center"}),50);
-  toast((ok||dbState==="off"?"Procura salva":"Salva neste aparelho, envio pendente")+" – "+(rec.Motivo===PRO_ENC?"encontrado ":"não encontrado ")+BRL.format(rec.Valor_Total)+".");});
-function cardPRO(r){return '<details class="rec '+(r.Motivo===PRO_ENC?"ok":"nc")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Procura</span><span>'+esc(r.Motivo||"")+'</span></div><div class="addr">Carreg. '+esc(r.Carregamento||"")+' · Box '+esc(r.Box||"-")+' · O.S. '+esc(r.Numero_OS||"-")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto)+'</div>'+
-  '<div class="tags"><span class="tag">'+esc(r.Quantidade)+' un</span><span class="tag '+(r.Motivo===PRO_ENC?"":"nc")+'">'+BRL.format(pnum(r.Valor_Total))+'</span></div></summary></details>';}
+    Quantidade:q,Vl_Unitario:vl,Valor_Total:Math.round(q*vl*100)/100,Motivo:proMot(q,e),Qtd_Pedida:q,Qtd_Encontrada:e,Qtd_Falta:q-e,Valor_Encontrado:Math.round(e*vl*100)/100,Valor_Falta:Math.round((q-e)*vl*100)/100,Observacao:$("o-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:q-e>0};
+  $("o-save").disabled=true;const ok=await saveRec(rec);$("o-save").disabled=false;oProd.clear();PO.prod=null;PO.mot=null;$("o-qtd").value="";$("o-enc").value="";$("o-obs").value="";paintPRO();setTimeout(()=>$("o-prod").scrollIntoView({block:"center"}),50);
+  toast((ok||dbState==="off"?"Procura salva":"Salva neste aparelho, envio pendente")+" – "+rec.Motivo+(rec.Qtd_Falta?" · bloquear "+rec.Qtd_Falta+" un ("+BRL.format(rec.Valor_Falta)+")":"")+".");});
+function cardPRO(r){const x=proQ(r);return '<details class="rec '+(r.Motivo===PRO_ENC?"ok":"nc")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Procura</span><span>'+esc(r.Motivo||"")+'</span></div><div class="addr">Carreg. '+esc(r.Carregamento||"")+' · Box '+esc(r.Box||"-")+' · O.S. '+esc(r.Numero_OS||"-")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto)+'</div>'+
+  '<div class="tags"><span class="tag">pedido '+x.ped+' · encontrado '+x.enc+'</span>'+(x.f?'<span class="tag nc">bloquear '+x.f+' un · '+BRL.format(x.vF)+'</span>':'')+'</div></summary></details>';}
 // fechamento
 FX_TAB.procura="Procura";FX_TIT.procura="Auditoria_Procura";
-function fxProcura(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filter(r=>r.Codigo_Produto).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor_Total)})),tit="Auditoria de Procura — Fechamento";
-  const enc=rows.filter(r=>r.Motivo===PRO_ENC),nao=rows.filter(r=>r.Motivo===PRO_NAO),sv=L=>L.reduce((s,r)=>s+r._v,0),sq=L=>L.reduce((s,r)=>s+r._q,0),vT=sv(rows),vE=sv(enc),vN=sv(nao),pE=vT?vE/vT:null;
-  const itens={};rows.forEach(r=>{const x=itens[r.Codigo_Produto]=itens[r.Codigo_Produto]||{d:r.Descricao_Produto,i:0,e:0,n:0,q:0,vE:0,vN:0};x.i++;x.q+=r._q;if(r.Motivo===PRO_ENC){x.e++;x.vE+=r._v;}else{x.n++;x.vN+=r._v;}});
-  const aud={};rows.forEach(r=>{const k=r.Nome_Auditor||r.Matricula_Auditor||"—";const x=aud[k]=aud[k]||{e:0,n:0};if(r.Motivo===PRO_ENC)x.e++;else x.n++;});
+function fxProcura(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filter(r=>r.Codigo_Produto).map(r=>Object.assign(r,{_x:proQ(r)})),tit="Auditoria de Procura — Fechamento";
+  const S=k=>rows.reduce((s,r)=>s+r._x[k],0),vP=S("vP"),vE=S("vE"),vF=S("vF"),pE=(vE+vF)?vE/(vE+vF):null,full=rows.filter(r=>!r._x.f),par=rows.filter(r=>r._x.f&&r._x.enc),nada=rows.filter(r=>r._x.f&&!r._x.enc);
+  const itens={};rows.forEach(r=>{const x=itens[r.Codigo_Produto]=itens[r.Codigo_Produto]||{d:r.Descricao_Produto,i:0,ped:0,enc:0,f:0,vE:0,vF:0};x.i++;x.ped+=r._x.ped;x.enc+=r._x.enc;x.f+=r._x.f;x.vE+=r._x.vE;x.vF+=r._x.vF;});
+  const aud={};rows.forEach(r=>{const k=r.Nome_Auditor||r.Matricula_Auditor||"—";const x=aud[k]=aud[k]||{n:0,f:0};x.n++;if(r._x.f)x.f++;});
   const porD={};rows.forEach(r=>{const k=fxDiaKey(r.ts);const x=porD[k]=porD[k]||{ts:r.ts,n:0};x.n++;});const linha=Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n)}));
   const pf=v=>v==null?"—":(v*100).toFixed(1).replace(".",",")+"%";
-  return fxHead(tit,rows.length)+
-    fxKpis([{t:"Itens procurados",v:rows.length,c:"#0F172A",s:sq(rows)+" un · "+BRL0(vT)},{t:"Encontrados",v:enc.length,c:"#16A34A",s:sq(enc)+" un · "+BRL0(vE)},{t:"Não encontrados",v:nao.length,c:"#DC2626",s:sq(nao)+" un"},
-      {t:"Valor final do corte",v:BRL0(vN),c:"#B91C1C",s:"itens não encontrados"},{t:"Valor evitado",v:BRL0(vE),c:"#15803D",s:"itens encontrados"},{t:"% evitado",v:pf(pE),c:"#15803D",s:"do valor procurado"}],true)+
+  return '<div class="fxq-cmp no-print"><button type="button" id="fxp-exp"'+(S("f")?"":" disabled")+'>Exportar lista de bloqueio do período</button></div>'+fxHead(tit,rows.length)+
+    fxKpis([{t:"Itens procurados",v:rows.length,c:"#0F172A",s:S("ped")+" un pedidas · "+BRL0(vP)},{t:"Encontrados",v:full.length,c:"#16A34A",s:"parciais: "+par.length+" · nada: "+nada.length},{t:"Unidades a bloquear",v:S("f"),c:"#DC2626",s:"de "+S("ped")+" pedidas"},
+      {t:"Valor final do corte",v:BRL0(vF),c:"#B91C1C",s:"unidades não encontradas"},{t:"Valor evitado",v:BRL0(vE),c:"#15803D",s:S("enc")+" un encontradas"},{t:"% evitado",v:pf(pE),c:"#15803D",s:"do valor procurado"}],true)+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+
-      fxCard("Top itens não encontrados (corte)",fxTable([{t:"Código"},{t:"Descrição"},{t:"Procuras",n:1},{t:"Não enc.",n:1},{t:"Valor do corte",n:1}],Object.entries(itens).filter(([,x])=>x.n).sort((a,b)=>b[1].vN-a[1].vN).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.i,'<b style="color:#B91C1C">'+x.n+'</b>','<b style="color:#B91C1C">'+BRL0(x.vN)+'</b>'])))+
-      fxCard("Encontrados × não encontrados",fxDonut([{l:"Encontrado",v:enc.length,c:"#16A34A"},{l:"Não encontrado",v:nao.length,c:"#DC2626"}]))+'</div>'+
+      fxCard("Top itens não encontrados (bloqueio)",fxTable([{t:"Código"},{t:"Descrição"},{t:"Pedido",n:1},{t:"Encontrado",n:1},{t:"Bloquear",n:1},{t:"Valor do corte",n:1}],Object.entries(itens).filter(([,x])=>x.f).sort((a,b)=>b[1].vF-a[1].vF).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,28)),x.ped,x.enc,'<b style="color:#B91C1C">'+x.f+'</b>','<b style="color:#B91C1C">'+BRL0(x.vF)+'</b>'])))+
+      fxCard("Situação das procuras",fxDonut([{l:"Encontrado",v:full.length,c:"#16A34A"},{l:"Parcial",v:par.length,c:"#CA8A04"},{l:"Não encontrado",v:nada.length,c:"#DC2626"}]))+'</div>'+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+
-      fxCard("Top itens procurados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Procuras",n:1},{t:"Encontrados",n:1},{t:"Un",n:1},{t:"Valor evitado",n:1}],Object.entries(itens).sort((a,b)=>b[1].i-a[1].i||(b[1].vE+b[1].vN)-(a[1].vE+a[1].vN)).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.i,x.e,x.q,'<span style="color:#15803D">'+BRL0(x.vE)+'</span>'])))+
-      fxCard("Auditores",fxBars(Object.entries(aud).sort((a,b)=>(b[1].e+b[1].n)-(a[1].e+a[1].n)).slice(0,8).map(([n,x])=>({l:curto(n),v:x.e+x.n,txt:x.e+" enc. · "+x.n+" não",c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-m"'))+'</div>'+
+      fxCard("Top itens procurados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Procuras",n:1},{t:"Pedido",n:1},{t:"Encontrado",n:1},{t:"Valor evitado",n:1}],Object.entries(itens).sort((a,b)=>b[1].i-a[1].i||b[1].ped-a[1].ped).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,28)),x.i,x.ped,x.enc,'<span style="color:#15803D">'+BRL0(x.vE)+'</span>'])))+
+      fxCard("Auditores",fxBars(Object.entries(aud).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([n,x])=>({l:curto(n),v:x.n,txt:x.n+" proc. · "+x.f+" c/ perda",c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-m"'))+'</div>'+
     fxFull("Procuras por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Auditoria de Procura");}
+document.addEventListener("click",e=>{if(e.target&&e.target.id==="fxp-exp"){const L=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filter(r=>r.Codigo_Produto);proExportar(L,fdISO(FECH.de)+" a "+fdISO(FECH.ate));}});
+/* ---- lista de bloqueio (PDF e Excel) ---- */
+function proBloq(L){const det=L.map(r=>Object.assign({r},proQ(r))).filter(x=>x.f>0).sort((a,b)=>(a.r.ts||0)-(b.r.ts||0)),it={};
+  det.forEach(x=>{const k=x.r.Codigo_Produto;const o=it[k]=it[k]||{cod:k,desc:x.r.Descricao_Produto,ped:0,enc:0,f:0,v:0,vu:x.vu,os:new Set()};o.ped+=x.ped;o.enc+=x.enc;o.f+=x.f;o.v+=x.vF;o.os.add(x.r.Numero_OS||x.r.Carregamento);});
+  return {det,itens:Object.values(it).sort((a,b)=>b.v-a.v)};}
+function proExportar(L,periodo){const B=proBloq(L);if(!B.det.length){toast("Nenhum item com unidades a bloquear.");return;}
+  const tot=B.itens.reduce((s,x)=>s+x.v,0),un=B.itens.reduce((s,x)=>s+x.f,0);
+  const html='<div class="pd fx">'+'<div class="fx-h"><div><h1>Lista de bloqueio — itens não encontrados na procura</h1><p>Período: <b>'+esc(periodo)+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>'+B.itens.length+' itens · '+un+' un · '+BRL.format(tot)+'</div></div>'+
+    fxKpis([{t:"Itens a bloquear",v:B.itens.length,c:"#0F172A"},{t:"Unidades a bloquear",v:un,c:"#DC2626"},{t:"Valor da perda",v:BRL0(tot),c:"#B91C1C"},{t:"Procuras com perda",v:B.det.length,c:"#B45309"}],true)+
+    fxCard("Bloqueio por item",fxTable([{t:"Código"},{t:"Descrição"},{t:"Pedido O.S.",n:1},{t:"Encontrado",n:1},{t:"Bloquear (un)",n:1},{t:"Vl. un.",n:1},{t:"Valor",n:1},{t:"O.S./carreg.",n:1},{t:"Bloqueado ✓"}],
+      B.itens.map(x=>['<b>'+esc(x.cod)+'</b>',esc(x.desc||""),x.ped,x.enc,'<b style="color:#B91C1C">'+x.f+'</b>',BRL.format(x.vu),'<b>'+BRL.format(x.v)+'</b>',x.os.size,'☐']).concat([['<b>Total</b>',"","","",'<b>'+un+'</b>',"",'<b>'+BRL.format(tot)+'</b>',"",""]])))+
+    '<div style="height:10px"></div>'+fxCard("Detalhe por O.S.",fxTable([{t:"Data"},{t:"Carregamento"},{t:"Box"},{t:"O.S."},{t:"Código"},{t:"Descrição"},{t:"Pedido",n:1},{t:"Encontrado",n:1},{t:"Bloquear",n:1},{t:"Auditor"}],
+      B.det.map(x=>[esc(String(x.r.DataHora||x.r.Data||"").slice(0,16)),esc(x.r.Carregamento||""),esc(x.r.Box||""),esc(x.r.Numero_OS||""),esc(x.r.Codigo_Produto),esc(String(x.r.Descricao_Produto||"").slice(0,30)),x.ped,x.enc,'<b style="color:#B91C1C">'+x.f+'</b>',esc(curto(x.r.Nome_Auditor||""))])))+
+    '<div class="sg sg2" style="margin-top:24px"><div><b>Auditor da procura</b>&nbsp;</div><div><b>Controle de Estoque (bloqueio)</b>&nbsp;</div></div>'+
+    '<div class="fx-f"><span>Lista de bloqueio · Procura</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div></div>';
+  openDoc({html,multi:false,land:true,name:"Bloqueio_Procura_"+todayISO()+".pdf",title:"Lista de bloqueio – Procura",short:"Lista de bloqueio – "+B.itens.length+" itens, "+un+" un, "+BRL.format(tot),
+    text:["*LISTA DE BLOQUEIO – PROCURA*",periodo,...B.itens.slice(0,40).map(x=>x.cod+" – "+x.desc+": bloquear "+x.f+" un (pedido "+x.ped+", encontrado "+x.enc+")"),"*Total: "+un+" un · "+BRL.format(tot)+"*"].join("\n")});
+  setTimeout(()=>{const bar=document.querySelector("#print .pv-bar");if(bar&&!bar.querySelector(".pv-xls")){const b=document.createElement("button");b.type="button";b.className="pv-xls";b.textContent="Baixar Excel";b.onclick=()=>proExcel(B,periodo);bar.appendChild(b);}},60);}
+async function proExcel(B,periodo){try{if(!window.XLSX)await loadScript(XLSX_URL_LOCAL());
+    const a=[["Lista de bloqueio – itens não encontrados (Procura)"],["Período: "+periodo],[],["Código","Descrição","Qtd pedida O.S.","Qtd encontrada","Qtd a bloquear","Vl. unitário","Valor da perda","Qtd de O.S./carregamentos"]].concat(B.itens.map(x=>[x.cod,x.desc,x.ped,x.enc,x.f,Math.round(x.vu*100)/100,Math.round(x.v*100)/100,x.os.size]));
+    const d=[["Data","Carregamento","Box","Número O.S.","Código","Descrição","Qtd pedida","Qtd encontrada","Qtd a bloquear","Vl. unitário","Valor da perda","Auditor"]].concat(B.det.map(x=>[String(x.r.DataHora||x.r.Data||"").slice(0,16),x.r.Carregamento||"",x.r.Box||"",x.r.Numero_OS||"",x.r.Codigo_Produto,x.r.Descricao_Produto||"",x.ped,x.enc,x.f,Math.round(x.vu*100)/100,Math.round(x.vF*100)/100,x.r.Nome_Auditor||""]));
+    const wb=XLSX.utils.book_new();const s1=XLSX.utils.aoa_to_sheet(a),s2=XLSX.utils.aoa_to_sheet(d);s1["!cols"]=[{wch:10},{wch:40},{wch:14},{wch:14},{wch:14},{wch:12},{wch:14},{wch:12}];s2["!cols"]=[{wch:16},{wch:14},{wch:6},{wch:12},{wch:10},{wch:40},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:24}];
+    XLSX.utils.book_append_sheet(wb,s1,"Bloqueio por item");XLSX.utils.book_append_sheet(wb,s2,"Detalhe por OS");XLSX.writeFile(wb,"Bloqueio_Procura_"+todayISO()+".xlsx");toast("Excel da lista de bloqueio baixado.");}
+  catch(e){toast("Não consegui gerar o Excel: "+(e.message||e));}}
+(function(){const s=document.createElement("style");s.textContent=".pro-res{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.pro-res>div{border:1px solid var(--line);border-radius:10px;padding:8px 10px}.pro-res span{display:block;font-size:.78rem;color:var(--muted);font-weight:600}.pro-res b{font-size:1.2rem}.pro-res small{display:block;color:var(--muted)}.pro-res .bad{border-color:#FCA5A5;background:#FEF2F2}.pro-res .bad b{color:#B91C1C}"+
+ ".pro-b{display:inline-block;padding:6px 12px;border-radius:999px;font-weight:700;font-size:.88rem;background:var(--surface-2,#EEF2F7);color:var(--muted)}.pro-b.ok{background:#DCFCE7;color:#15803D}.pro-b.par{background:#FEF3C7;color:#92400E}.pro-b.nao{background:#FEE2E2;color:#B91C1C}"+
+ ".pv-xls{border:1px solid #16A34A;background:#16A34A;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer}";document.head.appendChild(s);})();
+
 
 // ===== Versão desktop: identificação do aparelho e novo layout =====
 (function(){

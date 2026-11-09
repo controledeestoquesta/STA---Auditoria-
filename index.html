@@ -237,12 +237,14 @@
         <div class="field" id="o-os-f"><label for="o-os">Número O.S.</label><input class="in" id="o-os" inputmode="numeric" placeholder="Ex.: 12711360"></div>
       </div>
       <div class="field" id="o-prod-f"><label>Código / descrição do produto</label><div id="o-prod"></div></div>
-      <div class="field" id="o-qtd-f"><label for="o-qtd">Quantidade (unidades)</label><div class="stepper"><button type="button" data-oq="-1" aria-label="Diminuir">−</button><input class="in" id="o-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oq="1" aria-label="Aumentar">+</button></div></div>
-      <div class="money"><span>Valor<br><small id="o-calc"></small></span><b id="o-valor">R$ 0,00</b></div>
+      <div class="field" id="o-qtd-f"><label for="o-qtd">Quantidade pedida na O.S.</label><div class="stepper"><button type="button" data-oq="-1" aria-label="Diminuir">−</button><input class="in" id="o-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oq="1" aria-label="Aumentar">+</button></div></div>
+      <div class="field" id="o-enc-f"><label for="o-enc">Quantidade encontrada</label><div class="stepper"><button type="button" data-oe="-1" aria-label="Diminuir">−</button><input class="in" id="o-enc" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oe="1" aria-label="Aumentar">+</button></div>
+        <div class="ph-row" style="margin-top:8px"><button type="button" class="btn sm" id="o-tudo">Encontrei tudo</button><button type="button" class="btn sm" id="o-nada">Não encontrei nada</button></div></div>
+      <div class="money"><span>Pedido na O.S.<br><small id="o-calc"></small></span><b id="o-valor">R$ 0,00</b></div>
+      <div class="pro-res" id="o-res"></div>
     </div>
     <div class="block">
-      <div class="field" id="o-mot-f"><span class="lbl">Motivo</span>
-        <div class="mot" id="o-mot" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Produto encontrado">Produto encontrado</button><button type="button" role="radio" aria-checked="false" data-m="Produto não encontrado">Produto não encontrado</button></div></div>
+      <div class="field" id="o-mot-f"><span class="lbl">Motivo <small>(automático pela quantidade)</small></span><div id="o-st"></div></div>
       <div class="field" id="o-obs-f"><label for="o-obs">Observação</label><textarea class="in" id="o-obs" placeholder="Opcional"></textarea></div>
     </div>
     <button type="button" class="save" id="o-save">Salvar procura</button>
