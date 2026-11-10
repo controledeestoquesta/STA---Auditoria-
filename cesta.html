@@ -742,7 +742,7 @@ document.getElementById('file').addEventListener('change',async e=>{
       throw new Error('Não encontrei abas de cesta nem de itens nesse arquivo. Use abas “Cesta 10”, “Cesta 15”, “Produção Cesta 10”, “Produção Cesta 15” ou “Itens da Cesta Básica”.');
     alertBox.hidden=true;
     if(itens) salvarItens(itens,'planilha XLSX');
-    if(temCesta){ state.data=data; render(); }
+    if(temCesta){ state.data=data; try{localStorage.setItem('cesta-basica-dados-v1',JSON.stringify(data));}catch(x){} render(); }
   }catch(err){ alertBox.textContent=err.message; alertBox.hidden=false; }
   e.target.value='';
 });
@@ -963,6 +963,7 @@ renderItens();
 /* integração com o app de auditoria (quando aberto dentro da aba Cesta básica) */
 (function(){var emb=false;try{emb=window.self!==window.top;}catch(e){emb=true;}
   if(emb){document.documentElement.classList.add('embed');var s=document.createElement('style');s.textContent='.embed .side-import{display:none!important}.embed body{padding-right:0!important}';document.head.appendChild(s);}
+  try{var _d=JSON.parse(localStorage.getItem('cesta-basica-dados-v1')||'null');if(_d&&typeof _d==='object'&&Object.keys(_d).length){state.data=_d;render();}}catch(e){}
   window.cestaArquivo=function(f,tipo){var inp=document.getElementById(tipo==='foto'?'foto':'file');if(!inp||!f)return false;try{f=new File([f],f.name,{type:f.type,lastModified:f.lastModified});}catch(e){}var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true;};
 })();
 </script>

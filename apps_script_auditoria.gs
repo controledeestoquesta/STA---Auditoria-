@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 31)
+ * Auditoria STA – Santa Therezinha (versão 32)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -115,6 +115,15 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar') {
+    const okP = ['aud_adm', 'aud_com', 'aud_cha'].some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    if (!okP) return resposta({ ok: false, erro: 'Sem permissão de Controle de Estoque (aud_com ou aud_cha).' });
+    if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
+    const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
+    try { return resposta(painelSalvar(dados.painel, dados.dados, sessao)); }
+    catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+    finally { lkp.releaseLock(); }
+  }
   if (['com_ler', 'com_salvar', 'cha_ler', 'cha_salvar', 'cl_ler', 'cl_salvar', 'cl_excluir'].indexOf(dados.acao) >= 0) {
     const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
     const ehCom = dados.acao.indexOf('com_') === 0 || dados.acao.indexOf('cl_') === 0;
@@ -243,7 +252,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 31, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 32, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -663,6 +672,29 @@ function confirmarVale(id, status, sessao) {
   sh.getRange(lin, cab.indexOf('Vale_Confirmado_Por') + 1).setValue(por);
   sh.getRange(lin, cab.indexOf('Vale_Confirmado_Em') + 1).setNumberFormat('@').setValue(status === 'Pendente' ? '' : quando);
   return { ok: true, id: String(id), status: status, por: por, em: status === 'Pendente' ? '' : quando };
+}
+
+/* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
+const PASTA_PAINEIS = 'Auditoria_Paineis';
+function pastaPaineis() { const it = DriveApp.getFoldersByName(PASTA_PAINEIS); return it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_PAINEIS); }
+function arqPainel(nome, criar) {
+  if (!/^[a-z0-9_-]{2,30}$/.test(String(nome))) throw new Error('Painel inválido.');
+  const pasta = pastaPaineis(), it = pasta.getFilesByName('painel_' + nome + '.json');
+  if (it.hasNext()) return it.next();
+  return criar ? pasta.createFile('painel_' + nome + '.json', '{}', MimeType.PLAIN_TEXT) : null;
+}
+function painelLer(nome) {
+  const f = arqPainel(nome, false);
+  if (!f) return { ok: true, versao: 0, dados: null };
+  let o = {}; try { o = JSON.parse(f.getBlob().getDataAsString('UTF-8') || '{}'); } catch (e) { o = {}; }
+  return { ok: true, versao: o.versao || 0, por: o.por || '', em: o.em || '', dados: o.dados || null };
+}
+function painelSalvar(nome, dados, sessao) {
+  if (!dados || typeof dados !== 'object') throw new Error('Sem dados para salvar.');
+  const f = arqPainel(nome, true), versao = Date.now();
+  const em = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
+  f.setContent(JSON.stringify({ versao: versao, em: em, por: por, dados: dados }));
+  return { ok: true, versao: versao, em: em, por: por };
 }
 
 function obterPasta() {
