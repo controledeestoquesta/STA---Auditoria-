@@ -305,6 +305,21 @@
     <iframe id="dv-frame" class="emb-frame" title="Painel de devoluções" loading="lazy"></iframe>
   </section>
 
+  <section class="view" id="v-cnt" hidden>
+    <p class="note" style="margin:0 0 10px">Registre as ruas auditadas no dia (de uma rua inicial até uma rua final). A quantidade de endereços é calculada pela base de endereços por rua e aparece no <b>Mapa de ruas</b> e no fechamento do <b>Aéreo</b>.</p>
+    <div class="block">
+      <div class="cnt-g">
+        <div class="field" id="n-data-f"><label for="n-data">Data</label><input class="in" id="n-data" type="date"></div>
+        <div class="field" id="n-ini-f"><label for="n-ini">Rua inicial</label><input class="in" id="n-ini" inputmode="numeric" placeholder="Ex.: 22"></div>
+        <div class="field" id="n-fim-f"><label for="n-fim">Rua final</label><input class="in" id="n-fim" inputmode="numeric" placeholder="Ex.: 30"></div>
+      </div>
+      <div class="cnt-prev" id="n-prev"></div>
+      <div class="field" id="n-obs-f"><label for="n-obs">Observação <small>(opcional)</small></label><input class="in" id="n-obs" placeholder="Ex.: ruas do bloco B, turno da manhã"></div>
+      <button type="button" class="save" id="n-save">Registrar ruas auditadas</button>
+    </div>
+    <div id="n-list" style="margin-top:12px"></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -417,6 +432,7 @@
 <nav aria-label="Seções">
   <button type="button" data-v="ruas" aria-current="page">Ruas</button>
   <button type="button" data-v="retorno" hidden>Retorno</button>
+  <button type="button" data-v="cnt" hidden>Contagem</button>
   <button type="button" data-v="cargas" hidden>Cargas</button>
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>

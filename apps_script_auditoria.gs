@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 32)
+ * Auditoria STA – Santa Therezinha (versão 33)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -87,6 +87,12 @@ ABAS.adega = {
   texto: ['Data', 'DataHora', 'Cod_Cliente', 'Codigo_Produto', 'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Matricula_Registrou', 'ID_Auditoria']
 };
 const TIPOS_ADEGA = ['Falta', 'Sobra', 'Avaria'];
+ABAS.contagem = {
+  nome: 'Contagem_Ruas', perm: ['aud_ret', 'aud_aer', 'aud_rua'],
+  colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
+  texto: ['Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Matricula_Auditor', 'ID_Auditoria']
+};
+const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
 const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado'];
@@ -198,7 +204,7 @@ function doPost(e) {
       const cfg = ABAS[aba];
       let erro = '';
       if (!cfg) erro = 'Tipo de auditoria desconhecido: ' + aba + '. Atualize o Apps Script.';
-      else if (!ehAdm && sessao.permissoes.indexOf(cfg.perm) < 0) erro = 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + cfg.perm + ' na aba Permissionamento.';
+      else if (!ehAdm && ![].concat(cfg.perm).some(function (pp) { return sessao.permissoes.indexOf(pp) >= 0; })) erro = 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + [].concat(cfg.perm).join(' ou ') + ' na aba Permissionamento.';
       if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); } catch (e) { erro = String(e && e.message || e); } }
       if (erro) grupos[aba].forEach(function (r) { rejeitados.push({ id: r && r.ID_Auditoria, aba: aba, erro: erro }); });
     }
@@ -242,6 +248,7 @@ function doGet(e) {
         sac: !tem('aud_sac') ? vazio : lerAba(ss, ABAS.sac.nome, CAMPOS_SAC),
         procura: !tem('aud_pro') ? vazio : lerAba(ss, ABAS.procura.nome, CAMPOS_PRO),
         adega: !tem('aud_adg') ? vazio : lerAba(ss, ABAS.adega.nome, CAMPOS_ADG),
+        contagem: !(tem('aud_ret') || tem('aud_aer') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.contagem.nome, CAMPOS_CNT),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -252,7 +259,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 32, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 33, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
