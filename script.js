@@ -755,7 +755,7 @@ function fxCard(t,body,extra){return '<div class="fx-c"'+(extra?' style="'+extra
 function fxBars(items,opt){opt=opt||{};if(!items.length)return '<p class="fx-e">Sem dados no período.</p>';
   const max=opt.max||Math.max(...items.map(i=>Math.abs(i.v)),1),tot=items.reduce((s,i)=>s+Math.abs(i.v),0)||1;
   return '<div class="fx-bars">'+items.map((it,i)=>{const c=it.c||"#2563EB",w=Math.max(2,Math.round(Math.abs(it.v)/max*100));
-    return '<div class="fx-br"><span class="n'+(i<3?" top"+(i+1):"")+'">'+(i+1)+'</span><span class="l" title="'+esc(it.l)+'">'+esc(it.l)+'</span><span class="t"><i style="width:'+w+'%;background:linear-gradient(90deg,'+c+'CC,'+c+')"><em>'+(w>=18?Math.round(Math.abs(it.v)/tot*100)+'%':'')+'</em></i></span><b style="color:'+(it.tc||c)+'">'+it.txt+'</b></div>';}).join("")+'</div>';}
+    return '<div class="fx-br"><span class="n'+(i<3?" top"+(i+1):"")+'">'+(i+1)+'</span><span class="l" title="'+esc(it.l)+'">'+esc(it.l)+'</span><span class="t"><i style="width:'+w+'%;background:'+c+'"><em>'+(w>=18?Math.round(Math.abs(it.v)/tot*100)+'%':'')+'</em></i></span><b style="color:'+(it.tc||c)+'">'+it.txt+'</b></div>';}).join("")+'</div>';}
 function fxDonut(parts,centro){const tot=parts.reduce((a,p)=>a+p.v,0);if(!tot)return '<p class="fx-e">Sem dados no período.</p>';
   const R=42,C=2*Math.PI*R,vis=parts.filter(p=>p.v>0),gap=vis.length>1?1.6:0;let a=0;
   const segs=vis.map(p=>{const len=p.v/tot*C;const s='<circle r="'+R+'" cx="60" cy="60" fill="none" stroke="'+p.c+'" stroke-width="16" stroke-dasharray="'+Math.max(.5,len-gap).toFixed(2)+' '+(C-Math.max(.5,len-gap)).toFixed(2)+'" stroke-dashoffset="'+(-a).toFixed(2)+'" transform="rotate(-90 60 60)"/>';a+=len;return s;}).join("");
@@ -780,7 +780,7 @@ function fxLine(pts,cor,unid,HH){if(!pts.length)return '<p class="fx-e">Sem dado
       (p.v||pts.length<=20?'<text x="'+P[i][0].toFixed(1)+'" y="'+(P[i][1]-(mxp?10:7)).toFixed(1)+'" font-size="'+(mxp?10.5:9)+'" text-anchor="middle" fill="'+(mxp?cor:"#0F172A")+'" font-weight="800">'+(p.txt!=null?p.txt:p.v)+'</text>':'')+
       (i%passo===0||i===pts.length-1?'<text x="'+P[i][0].toFixed(1)+'" y="'+(H-8)+'" font-size="9" text-anchor="middle" fill="#64748B">'+esc(p.l)+'</text>':'');}).join("")+'</svg>';}
 function fxCols(items){if(!items.length)return '<p class="fx-e">Sem dados no período.</p>';const max=Math.max(...items.map(i=>Math.abs(i.v)),1);
-  return '<div class="fx-cols">'+items.map(it=>{const c=it.c||"#2563EB";return '<div><b>'+it.txt+'</b><i style="height:'+Math.max(3,Math.round(Math.abs(it.v)/max*100))+'%;background:linear-gradient(180deg,'+c+','+c+'B3)"></i><span>'+esc(it.l)+'</span></div>';}).join("")+'</div>';}
+  return '<div class="fx-cols">'+items.map(it=>{const c=it.c||"#2563EB";return '<div><b>'+it.txt+'</b><i style="height:'+Math.max(3,Math.round(Math.abs(it.v)/max*100))+'%;background:'+c+'"></i><span>'+esc(it.l)+'</span></div>';}).join("")+'</div>';}
 
 
 
@@ -1812,7 +1812,7 @@ async function sendWA(btn){const D=CUR;if(!D)return;
       try{await navigator.share({files:[file],title:D.title,text:D.short});toast("Escolha WhatsApp e o contato (61) 98617-0228.");return;}
       catch(e){if(e&&e.name==="AbortError")return;}}
     if(await saveBlob(blob,D.name))waFallback(D.name,D.text);
-  }catch(e){toast("Não foi possível gerar o PDF. Tente novamente.");}
+  }catch(e){console.error("PDF",e);toast("Não foi possível gerar o PDF: "+((e&&e.message)||e)+". Tente novamente.");}
   finally{btn.disabled=false;btn.textContent=old;}
 }
 function openDoc(D){CUR=D;const p=$("print");
@@ -1826,7 +1826,7 @@ function openDoc(D){CUR=D;const p=$("print");
   $("pv-p").onclick=()=>{try{if(D.land&&!D.multi)fitLand();else if(!D.multi)window.stFit(pd);window.print();}catch(e){toast("Impressão bloqueada aqui. Use Baixar PDF.");}};
   $("pv-dl").onclick=async()=>{const bt=$("pv-dl");bt.disabled=true;bt.textContent="Gerando PDF…";
     try{const blob=D.pdfDocs?await makePdfLista(D.pdfDocs):await makePdf(D.html,D.multi,D.land);if(await saveBlob(blob,D.name))toast("PDF salvo: "+D.name);}
-    catch(e){toast("Não foi possível gerar o PDF. Tente novamente.");}
+    catch(e){console.error("PDF",e);toast("Não foi possível gerar o PDF: "+((e&&e.message)||e)+". Tente novamente.");}
     finally{bt.disabled=false;bt.textContent="Baixar PDF";}};
   $("pv-wa").onclick=()=>sendWA($("pv-wa"));
 }
@@ -2590,16 +2590,16 @@ function fxAdega(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.adega).filter(r
 
 (function(){const s=document.createElement("style");s.textContent=`
 .fx-c{border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.05)}
-.fx-c h3{position:relative;padding-left:10px}.fx-c h3::before{content:"";position:absolute;left:0;top:1px;bottom:7px;width:3px;border-radius:3px;background:linear-gradient(180deg,#2563EB,#7C3AED);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.fx-c h3{position:relative;padding-left:10px}.fx-c h3::before{content:"";position:absolute;left:0;top:1px;bottom:7px;width:3px;border-radius:3px;background:#2563EB;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .fx-br .n{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;font-size:9px;font-weight:800;color:#64748B;background:#F1F5F9;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .fx-br .n.top1{background:#FDE68A;color:#92400E}.fx-br .n.top2{background:#E2E8F0;color:#334155}.fx-br .n.top3{background:#FED7AA;color:#9A3412}
 .fx-br .t{height:13px;background:#F1F5F9;border-radius:99px;box-shadow:inset 0 1px 2px rgba(15,23,42,.06)}
-.fx-br .t i{position:relative;box-shadow:0 1px 2px rgba(15,23,42,.15)}.fx-br .t i em{position:absolute;right:6px;top:0;line-height:13px;font-size:8.5px;font-style:normal;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+.fx-br .t i{position:relative;box-shadow:inset 0 -3px 0 rgba(0,0,0,.12)}.fx-br .t i em{position:absolute;right:6px;top:0;line-height:13px;font-size:8.5px;font-style:normal;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
 .fx-don{flex-wrap:wrap}.fx-don ul{flex:1;min-width:140px;gap:6px}.fx-don li{display:grid;grid-template-columns:1fr auto auto;gap:2px 8px;align-items:center}
 .fx-don li .dl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fx-don li .dbar{grid-column:1/-1;height:4px;background:#F1F5F9;border-radius:99px;overflow:hidden}.fx-don li .dbar i{display:block;height:100%;width:0;border-radius:99px;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .fx-dmax{flex-basis:100%;margin:2px 0 0;font-size:10px;color:#64748B}.rp-acc{display:flex;align-items:center;gap:6px}.rp-acc span{flex:1;height:9px;background:#F1F5F9;border-radius:99px;overflow:hidden}.rp-acc i{display:block;height:100%;border-radius:99px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-acc b{font-size:11px;min-width:42px;text-align:right}
 .fx-bars-m .fx-br .t i em,.fx-bars-s .fx-br .t i em{display:none}
-.fx-cols i{border-radius:6px 6px 2px 2px;box-shadow:0 1px 3px rgba(15,23,42,.15)}
+.fx-cols i{border-radius:6px 6px 2px 2px;box-shadow:inset -4px 0 0 rgba(0,0,0,.08)}
 .fx-k>div{box-shadow:0 1px 3px rgba(15,23,42,.06)}
 `;document.head.appendChild(s);})();
 
