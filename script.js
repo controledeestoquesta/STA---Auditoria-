@@ -339,7 +339,14 @@ function renderRecords(){if(typeof renderSess==="function")try{renderSess();}cat
   $("s-valor").textContent=BRL.format(ab.reduce((s,r)=>s+(+r.Valor_Divergencia||0),0)).replace(",00","");
   const list=filtered(),L=$("list");
   if(!list.length){L.innerHTML='<div class="empty">Nenhum registro com estes filtros.<br>Ajuste o período ou o tipo.</div>';return;}
-  const adm=temPerm("aud_adm");L.innerHTML=list.slice(0,200).map(r=>{let h=r._aba==="retorno"?cardRet(r):r._aba==="cargas"?cardCar(r):r._aba==="aero"?cardAer(r):r._aba==="pp"?cardPP(r):r._aba==="sac"?cardSAC(r):r._aba==="procura"?cardPRO(r):r._aba==="adega"?cardADG(r):card(r);if(adm)h=h.replace(/<\/details>$/,'<button type="button" class="btn full rdel" data-id="'+esc(r.ID_Auditoria)+'" data-aba="'+esc(r._aba||"ruas")+'" style="margin-top:8px;color:var(--alert);border-color:var(--alert)">Excluir registro</button></details>');return h;}).join("")+(list.length>200?'<p class="note">Mostrando 200 de '+list.length+'. O CSV inclui todos.</p>':"");
+  const adm=temPerm("aud_adm"),nNC=list.filter(ehNC).length;[...PSEL].forEach(id=>{if(!list.some(r=>r.ID_Auditoria===id))PSEL.delete(id);});
+  const bar='<div class="reg-bar"><b>'+list.length+' registro(s) · '+nNC+' NC · <span id="rs-n">'+PSEL.size+'</span> selecionada(s)</b><button type="button" class="btn sm" id="rs-all">Selecionar NCs do filtro</button><button type="button" class="btn sm" id="rs-none">Limpar</button><button type="button" class="save sm" id="rs-print" style="margin:0;width:auto;min-height:36px;padding:0 14px">Imprimir NCs</button></div>';
+  L.innerHTML=bar+list.slice(0,REG_LIM).map(r=>{let h=r._aba==="retorno"?cardRet(r):r._aba==="cargas"?cardCar(r):r._aba==="aero"?cardAer(r):r._aba==="pp"?cardPP(r):r._aba==="sac"?cardSAC(r):r._aba==="procura"?cardPRO(r):r._aba==="adega"?cardADG(r):card(r);if(adm)h=h.replace(/<\/details>$/,'<button type="button" class="btn full rdel" data-id="'+esc(r.ID_Auditoria)+'" data-aba="'+esc(r._aba||"ruas")+'" style="margin-top:8px;color:var(--alert);border-color:var(--alert)">Excluir registro</button></details>');
+    h=h.replace(/<img /g,'<img loading="lazy" decoding="async" ');if(ehNC(r)){const on=PSEL.has(r.ID_Auditoria);h='<div class="rwrap"><label class="rsel"><input type="checkbox" data-sel="'+esc(r.ID_Auditoria)+'"'+(on?" checked":"")+'> Selecionar para imprimir</label>'+(on?h.replace('<details class="rec','<details class="rec sel'):h)+'</div>';}return h;}).join("")+(list.length>REG_LIM?'<button type="button" class="btn full" id="rs-mais" style="margin-top:8px">Mostrar mais ('+(list.length-REG_LIM)+' restantes)</button>':"");
+  const upd=()=>{const n=$("rs-n");if(n)n.textContent=PSEL.size;};
+  L.querySelectorAll("[data-sel]").forEach(c=>c.onchange=()=>{if(c.checked)PSEL.add(c.dataset.sel);else PSEL.delete(c.dataset.sel);const d=c.closest(".rwrap").querySelector("details.rec");if(d)d.classList.toggle("sel",c.checked);upd();});
+  $("rs-all").onclick=()=>{list.filter(ehNC).forEach(r=>PSEL.add(r.ID_Auditoria));renderRecords();};$("rs-none").onclick=()=>{PSEL.clear();renderRecords();};$("rs-print").onclick=abrirCentral;
+  if($("rs-mais"))$("rs-mais").onclick=()=>{REG_LIM+=60;renderRecords();};
   L.querySelectorAll(".rdel").forEach(b=>b.onclick=()=>excluirRegistro(b.dataset.id,b.dataset.aba));
   L.querySelectorAll(".cgrel").forEach(b=>b.onclick=async()=>{const recs=regBase().filter(x=>x.ID_Sessao===b.dataset.s);if(recs.length){await carregarFotosPlanilha(recs);openCarDoc(recs[0].Sessao||sessaoDe(recs[0],recs),recs);}});
   L.querySelectorAll(".rtrel").forEach(b=>b.onclick=async()=>{const recs=regBase().filter(x=>x.ID_Sessao===b.dataset.s);if(recs.length){await carregarFotosPlanilha(recs);openRetDoc(recs[0].Sessao||sessaoDe(recs[0],recs),recs);}});
@@ -834,25 +841,24 @@ function fxRet(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.retorno).filter(r
   const aud={};rows.forEach(r=>{const k=r.Nome_Auditor||r.Matricula_Auditor||"—";aud[k]=(aud[k]||0)+1;});const audNomes=Object.keys(aud).map(curto).join(", ")||"—";
   const div=rows.filter(r=>r._du!==0).length,manual=rows.filter(r=>r._nc&&r._du===0&&!pbool(r.Prox_Vencimento)).length;
   const top=rows.filter(r=>r._vd).sort((a,b)=>Math.abs(b._vd)-Math.abs(a._vd)).slice(0,8);
-  const tabela=(function(){const H=[{t:"Rua"},{t:"O.S.",n:1},{t:"Retornos contados",n:1},{t:"% conferido",n:1}];
-    const L=Object.entries(porRua).filter(([k])=>k).sort((a,b)=>(+a[0])-(+b[0])).map(([k,x])=>{const p=x.os?Math.min(1,x.n/x.os):null;return ['<b>'+esc(k)+'</b>',x.os,x.n,p==null?'—':'<b style="color:'+FXC[fxCls(p)]+'">'+pc0(p)+'</b>'];});
-    if(!L.length)return '<p class="fx-e">Sem dados no período.</p>';const nb=L.length>27?4:L.length>12?3:1,n=Math.ceil(L.length/nb);
-    return '<div class="fx-cmp" style="display:grid;grid-template-columns:repeat('+nb+',1fr);gap:8px;align-items:start">'+Array.from({length:nb},(_,i)=>L.slice(i*n,(i+1)*n)).filter(x=>x.length).map(x=>fxTable(H,x)).join("")+'</div>'+
-      '<p class="fx-e" style="margin-top:6px">O.S. = retornos da rotina 8457 na rua (RUA_O). Retornos contados = itens auditados na rua. % conferido = retornos contados ÷ O.S. da rotina.</p>';})();
+  /* repositor de cada retorno: o informado na NC ou, se conforme, o do quadro da rua */
+  const repRua={};QUADRO.forEach(x=>(x.ruas||[]).forEach(r=>{if(!repRua[r])repRua[r]=x.mat;}));
+  const rp={};rows.forEach(r=>{const m=String(r.Matricula_Colaborador_NC||"").trim()||repRua[r._rua]||"";if(!m)return;const x=rp[m]=rp[m]||{m,n:0,e:0,vd:0};x.n++;if(r._nc){x.e++;x.vd+=r._vd;}});
+  const repL=Object.values(rp).map(x=>Object.assign(x,{acc:x.n?(x.n-x.e)/x.n:null})).sort((a,b)=>b.n-a.n||a.acc-b.acc);
+  const tabRep=repL.length?'<table class="fx-t"><thead><tr><th>Repositor</th><th class="n">Auditados</th><th class="n">Errados</th><th style="width:38%">Acuracidade</th></tr></thead><tbody>'+
+    repL.map(x=>'<tr><td><b>'+esc(curto(nomeC(x.m)))+'</b><br><small style="color:#64748B">'+esc(x.m)+'</small></td><td class="n">'+x.n+'</td><td class="n" style="color:'+(x.e?"#B91C1C":"#64748B")+';font-weight:700">'+x.e+'</td>'+
+      '<td><div class="rp-acc"><span><i style="width:'+Math.round((x.acc||0)*100)+'%;background:'+FXC[fxCls(x.acc)]+'"></i></span><b style="color:'+FXC[fxCls(x.acc)]+'">'+pc1(x.acc)+'</b></div></td></tr>').join("")+
+    '</tbody><tfoot><tr><td><b>Total</b></td><td class="n"><b>'+repL.reduce((s,x)=>s+x.n,0)+'</b></td><td class="n"><b>'+repL.reduce((s,x)=>s+x.e,0)+'</b></td><td></td></tr></tfoot></table><p class="fx-e" style="margin-top:4px">Acuracidade = (auditados − errados) ÷ auditados. Repositor: o da NC ou, nos conformes, o do quadro da rua.</p>':'<p class="fx-e">Sem dados no período.</p>';
   return fxHead(tit,rows.length).replace('Total de registros:','Auditores: <b>'+esc(audNomes)+'</b><br>Total de registros:')+
     fxKpis([{t:"Itens auditados",v:rows.length},{t:"Conformidade",v:pc1(q),c:q==null?"#64748B":FXC[fxCls(q)],s:conf+" conformes"},{t:"Não conformidades",v:rows.length-conf,c:"#DC2626",s:venc+" vencendo · "+div+" com divergência"},
-      
+      {t:"Repositores auditados",v:repL.length,c:"#0E7490",s:repL.filter(x=>x.acc!=null&&x.acc<.85).length+" abaixo de 85%"},
       {t:"Ruas com retorno",v:Object.values(porRua).filter(x=>x.n).length,c:"#0F172A",s:crit.length+" abaixo de 85%",sc:crit.length?"#DC2626":"#64748B"},
       {t:"Valor da divergência",v:BRL0(vd),c:vd<0?"#DC2626":vd>0?"#B45309":"#16A34A"}],true)+
-    '<div class="fx-g"><div class="fx-col">'+fxCard("Conformidade do retorno por bloco",fxMapa(qRua,"Percentual = itens conformes ÷ itens auditados na rua."))+'</div>'+
-    '<div class="fx-col">'+fxCard("Auditorias por auditor",fxCols(Object.entries(aud).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([n,v])=>({l:curto(n),v,txt:String(v),c:"#2563EB"}))).replace('height:140px','height:110px'))+
+    '<div class="fx-row" style="grid-template-columns:1.15fr 1fr">'+fxCard("Repositores — acuracidade do retorno",tabRep)+fxCard("Conformidade do retorno por bloco",fxMapa(qRua,"Percentual = itens conformes ÷ itens auditados na rua."))+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr 1fr 1fr">'+fxCard("Ocorrências",fxDonut([{l:"Divergência de quantidade",v:div,c:"#EF4444"},{l:"Próximo do vencimento",v:venc,c:"#EAB308"},{l:"Retorno não conforme",v:manual,c:"#6366F1"},{l:"Conforme",v:conf,c:"#16A34A"}]))+
       fxCard("Ruas críticas (&lt;85%)",fxChips(crit.map(([r,v])=>[r,v,blocoDe(r)])))+
-      fxCard("Repositores — acuracidade do retorno",fxBars(reps.map(o=>({l:o.x.mat+" - "+curto(nomeC(o.x.mat))+" ("+o.n+")",v:o.acc,txt:pc1(o.acc),c:FXC[fxCls(o.acc)]})),{max:1}))+'</div></div>'+
-    fxFull("Retornos por rua — O.S. da rotina × retornos contados",tabela)+
-    '<div class="fx-g2" style="margin-top:10px">'+fxCard("Ocorrências",fxDonut([{l:"Divergência de quantidade",v:div,c:"#EF4444"},{l:"Próximo do vencimento",v:venc,c:"#EAB308"},{l:"Retorno não conforme",v:manual,c:"#6366F1"},{l:"Conforme",v:conf,c:"#16A34A"}]))+
-      fxCard("Maiores divergências",fxTable([{t:"Rua"},{t:"Item"},{t:"Etiq.",n:1},{t:"Fís.",n:1},{t:"Valor",n:1}],top.map(r=>[esc(r._rua),esc(r.Produto+" – "+String(r.Descricao_Produto||"").slice(0,26)),r._qe,r._qf,'<b style="color:'+(r._vd<0?"#DC2626":"#B45309")+'">'+BRL0(r._vd)+'</b>'])))+'</div>'+fxFoot("Auditoria de Retorno");}
-
-/* ---- Cargas ---- */
+      fxCard("Auditorias por auditor",fxBars(Object.entries(aud).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([n,v])=>({l:curto(n),v,txt:String(v),c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-s"'))+'</div>'+
+    fxFull("Maiores divergências",fxTable([{t:"Rua"},{t:"Repositor"},{t:"Item"},{t:"Etiq.",n:1},{t:"Fís.",n:1},{t:"Dif.",n:1},{t:"Valor",n:1}],top.map(r=>[esc(r._rua),esc(curto(r.Nome_Colaborador_NC||nomeC(repRua[r._rua]||"")||"")),esc(r.Produto+" – "+String(r.Descricao_Produto||"").slice(0,34)),r._qe,r._qf,(r._du>0?"+":"")+r._du,'<b style="color:'+(r._vd<0?"#DC2626":"#B45309")+'">'+BRL0(r._vd)+'</b>'])))+fxFoot("Auditoria de Retorno");}
 function fxCar(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.cargas).map(r=>Object.assign(r,{_q:pnum(r.Quantidade),_v:pnum(r.Valor_Total)})),tit="Auditoria de Cargas — Fechamento";
   const todas=fxRows(FECH.dados&&FECH.dados.cargas);
   const MOT=[["Falta","#EF4444"],["Avaria","#F97316"],["Abastecimento","#6366F1"],["Sobras","#CA8A04"],["Produto trocado","#DB2777"],["Produto próximo ao vencimento","#0D9488"]];
@@ -1024,7 +1030,7 @@ async function excluirRegistro(id,aba){if(!temPerm("aud_adm"))return;if(!confirm
   if(REG.rows){["ruas","retorno","cargas"].forEach(k=>{const b=REG.rows[k];if(b&&b.registros){const i0=b.colunas.indexOf("ID_Auditoria");b.registros=b.registros.filter(x=>String(x[i0])!==id);}});}
   toast("Registro excluído.");renderRecords();}
 $("f-fonte").onchange=()=>{if(regFonte()==="planilha"&&!REG.rows)carregarReg();renderRecords();};
-$("x-pr").onclick=imprimirLista;
+$("x-pr").onclick=abrirCentral;
 
 // impressão dos documentos originais (como os auditores imprimem)
 function sessaoDe(r,L){if(r.Sessao)return r.Sessao;const f=L[0];
@@ -1273,11 +1279,17 @@ function openRetDoc(S,recs,onClose){const L=recs.filter(r=>pbool(r.Possui_NC)).s
 // fotos guardadas no Drive (lidas pela planilha)
 const FOTO_CACHE={};
 const idDrive=u=>{const m=String(u||"").match(/\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/);return m?(m[1]||m[2]):"";};
-async function carregarFotosPlanilha(recs){const precisa=recs.filter(r=>r._sheet&&!r._fotosOk);if(!precisa.length||DEMO||!SHEET_URL||!navigator.onLine)return;
+async function carregarFotosPlanilha(recs,prog){const precisa=recs.filter(r=>r._sheet&&!r._fotosOk);if(!precisa.length||DEMO||!SHEET_URL)return;
   const ids=new Set();precisa.forEach(r=>{String(r.Links_Fotos||"").split(/\s+/).concat([r.Foto_Retorno,r.Foto_Etiqueta]).forEach(u=>{const i=idDrive(u);if(i&&!FOTO_CACHE[i])ids.add(i);});});
-  const lista=[...ids];if(lista.length)toast("Carregando "+lista.length+" foto(s) da planilha…");
-  for(let i=0;i<lista.length;i+=12){try{const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({acao:"fotos",token:LOGIN.token,ids:lista.slice(i,i+12)}),redirect:"follow",cache:"no-store"});
-    const j=await r.json();if(j&&j.ok)Object.assign(FOTO_CACHE,j.fotos||{});}catch(e){}}
+  let lista=[...ids];
+  /* 1) fotos já guardadas no aparelho (instantâneo) */
+  await Promise.all(lista.map(i=>IDB.get("foto:"+i).then(v=>{if(v)FOTO_CACHE[i]=v;}).catch(()=>{})));lista=lista.filter(i=>!FOTO_CACHE[i]);
+  /* 2) o que falta: vários pedidos em paralelo, poucas fotos por pedido */
+  if(lista.length&&navigator.onLine){let feitas=0;const tot=lista.length,lotes=[];for(let i=0;i<lista.length;i+=4)lotes.push(lista.slice(i,i+4));
+    if(prog)prog(0,tot);else toast("Carregando "+tot+" foto(s)…");
+    const um=async ids=>{try{const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({acao:"fotos",token:LOGIN.token,ids}),redirect:"follow",cache:"no-store"});
+        const j=await r.json();if(j&&j.ok)Object.entries(j.fotos||{}).forEach(([k,v])=>{FOTO_CACHE[k]=v;IDB.set("foto:"+k,v).catch(()=>{});});}catch(e){}feitas+=ids.length;if(prog)prog(Math.min(feitas,tot),tot);};
+    let p=0;await Promise.all(Array.from({length:Math.min(5,lotes.length)},async()=>{while(p<lotes.length){const l=lotes[p++];await um(l);}}));}
   precisa.forEach(r=>{const links=String(r.Links_Fotos||"").split(/\s+/).map(idDrive).filter(Boolean).map(i=>FOTO_CACHE[i]).filter(Boolean);
     if(r._aba==="retorno"){r.foto_retorno=FOTO_CACHE[idDrive(r.Foto_Retorno)]||r.foto_retorno||links[0]||"";r.foto_etiqueta=FOTO_CACHE[idDrive(r.Foto_Etiqueta)]||r.foto_etiqueta||(idDrive(r.Foto_Retorno)?"":links[1])||"";}
     else r.fotos=links;r._fotosOk=true;});}
@@ -2585,10 +2597,85 @@ function fxAdega(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.adega).filter(r
 .fx-br .t i{position:relative;box-shadow:0 1px 2px rgba(15,23,42,.15)}.fx-br .t i em{position:absolute;right:6px;top:0;line-height:13px;font-size:8.5px;font-style:normal;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25)}
 .fx-don{flex-wrap:wrap}.fx-don ul{flex:1;min-width:140px;gap:6px}.fx-don li{display:grid;grid-template-columns:1fr auto auto;gap:2px 8px;align-items:center}
 .fx-don li .dl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fx-don li .dbar{grid-column:1/-1;height:4px;background:#F1F5F9;border-radius:99px;overflow:hidden}.fx-don li .dbar i{display:block;height:100%;width:0;border-radius:99px;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.fx-dmax{flex-basis:100%;margin:2px 0 0;font-size:10px;color:#64748B}
+.fx-dmax{flex-basis:100%;margin:2px 0 0;font-size:10px;color:#64748B}.rp-acc{display:flex;align-items:center;gap:6px}.rp-acc span{flex:1;height:9px;background:#F1F5F9;border-radius:99px;overflow:hidden}.rp-acc i{display:block;height:100%;border-radius:99px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-acc b{font-size:11px;min-width:42px;text-align:right}
 .fx-bars-m .fx-br .t i em,.fx-bars-s .fx-br .t i em{display:none}
 .fx-cols i{border-radius:6px 6px 2px 2px;box-shadow:0 1px 3px rgba(15,23,42,.15)}
 .fx-k>div{box-shadow:0 1px 3px rgba(15,23,42,.06)}
+`;document.head.appendChild(s);})();
+
+// ===== Central de impressão de não conformidades (Registros) =====
+const PSEL=new Set();let REG_LIM=60;
+const ABA_NOME={ruas:"Auditoria de ruas",retorno:"Auditoria de retorno",cargas:"Auditoria de cargas",aero:"Auditoria aéreo",pp:"Prevenção de Perdas",sac:"SAC",adega:"Ocorrências ADEGA",procura:"Procura"};
+const ABA_COR={ruas:"#16A34A",retorno:"#0E7490",cargas:"#0EA5E9",aero:"#DC2626",pp:"#B45309",sac:"#CA8A04",adega:"#7C3AED",procura:"#2563EB"};
+function ehNC(r){const a=r._aba||"ruas";if(a==="procura")return pnum(r.Qtd_Falta)>0||r.Motivo==="Produto não encontrado";if(["pp","sac","adega","aero"].includes(a))return true;if(a==="cargas")return true;return pbool(r.Possui_NC);}
+function ncResumo(r){const a=r._aba||"ruas",N=(...k)=>{for(const x of k)if(r[x]!=null&&String(r[x]).trim()!=="")return String(r[x]);return "";};
+  let oc="",local="";
+  try{if(a==="ruas"){oc=ocList(r).map(([k])=>OC_TXT[k][0]).join(" · ");local=fmtAddr(r.Endereco)||("Rua "+unz(r.Rua));}
+    else if(a==="retorno"){oc=retOcs(r).map(x=>x[0]).join(" · ");local="Rua "+unz(r.Rua)+(r.Numero_OS?" · O.S. "+r.Numero_OS:"");}
+    else if(a==="cargas"){oc=r.Motivo+(r.Causador?" (causador: "+r.Causador.toLowerCase()+")":"");local="O.S. "+N("Numero_OS")+(r.Box?" · Box "+r.Box:"");}
+    else if(a==="aero"){oc="Ocorrência operação aérea"+(r["Tipo de O.S"]?" · tipo O.S. "+r["Tipo de O.S"]:"");local="Rua "+N("Rua")+(r["O.S"]?" · O.S. "+r["O.S"]:"");}
+    else if(a==="pp"){oc=N("Motivo");local=ppEnd(r);}else if(a==="sac"){oc=N("Motivo");local="Carreg. "+N("Carregamento")+" · NF "+N("NF");}
+    else if(a==="adega"){oc=N("Tipo");local="Cliente "+N("Cod_Cliente")+(r.Nome_Cliente?" – "+r.Nome_Cliente:"");}
+    else if(a==="procura"){oc="Não encontrado: "+(pnum(r.Qtd_Falta)||pnum(r.Quantidade))+" un";local="Carreg. "+N("Carregamento")+" · O.S. "+N("Numero_OS");}}catch(e){}
+  const fotos=(r.fotos||[]).concat([r.foto_retorno,r.foto_etiqueta]).filter(x=>x&&/^data:|^blob:|^https?:/.test(x));
+  return {a,setor:ABA_NOME[a]||a,cor:ABA_COR[a]||"#334155",id:r.ID_Auditoria,data:String(r.DataHora||r.Data||"").slice(0,16),
+    nome:N("Nome_Colaborador_NC","Nome_Causador","Operador","Colaborador_Responsavel","Conferente"),mat:N("Matricula_Colaborador_NC","Matricula_Causador","Matricula_Operador","Matricula_Colaborador","Matricula_Conferente"),
+    cod:N("Produto","Codigo_Produto","Código"),desc:N("Descricao_Produto","Descricao","Descrição"),qtd:N("Qtd_Falta","Quantidade_Divergente","Quantidade","Divergencia_Un"),
+    valor:pnum(N("Valor_Falta","Valor_Divergencia","Valor_Total","Valor","Vlr. Total")),oc:oc||"Não conformidade",local,obs:N("Observacao"),aud:N("Nome_Auditor","Nome_Seguranca","Nome_Registrou"),fotos};}
+function ncFicha(r,comFoto){const x=ncResumo(r),row=(k,v)=>v?'<div><span>'+k+'</span><b>'+esc(v)+'</b></div>':'';
+  return '<div class="ncf" style="--c:'+x.cor+'"><div class="ncf-h"><img src="'+LOGO_BLUE+'" alt=""><div><b>Não conformidade</b><span>'+esc(x.setor)+'</span></div><div class="ncf-id">'+esc(x.data)+'<br><small>Nº '+esc(x.id)+'</small></div></div>'+
+    '<div class="ncf-oc">'+esc(x.oc)+'</div><div class="ncf-g">'+row("Colaborador",x.nome+(x.mat?" · "+x.mat:""))+row("Local / referência",x.local)+row("Item",(x.cod?x.cod+" – ":"")+x.desc)+row("Quantidade",x.qtd)+
+    '<div><span>Valor</span><b class="v">'+BRL.format(x.valor)+'</b></div>'+row("Auditor",x.aud)+'</div>'+(x.obs?'<div class="ncf-obs">'+esc(x.obs)+'</div>':'')+
+    (comFoto&&x.fotos.length?'<div class="ncf-ft">'+x.fotos.slice(0,3).map(s=>'<img src="'+s+'" alt="">').join("")+'</div>':'')+
+    '<p class="ncf-d">Declaro ciência da não conformidade acima, registrada pela auditoria.</p><div class="ncf-s"><div>Colaborador</div><div>Gestor / encarregado</div></div></div>';}
+function ncRelacao(L){const tot=L.reduce((s,r)=>s+ncResumo(r).valor,0);
+  return '<div class="pd fx"><div class="fx-h"><div><h1>Relação de não conformidades para assinatura</h1><p>'+L.length+' registros · '+BRL.format(tot)+'</p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b></div></div>'+
+    '<table class="fx-t ncr"><thead><tr><th>#</th><th>Data</th><th>Setor</th><th>Matrícula</th><th>Colaborador</th><th>Item</th><th>Ocorrência</th><th class="n">Valor</th><th style="width:150px">Assinatura</th></tr></thead><tbody>'+
+    L.map((r,i)=>{const x=ncResumo(r);return '<tr><td>'+(i+1)+'</td><td>'+esc(x.data.slice(0,10))+'</td><td><span class="ncr-s" style="--c:'+x.cor+'">'+esc(x.setor)+'</span></td><td>'+esc(x.mat)+'</td><td>'+esc(x.nome)+'</td><td>'+esc((x.cod?x.cod+" – ":"")+x.desc.slice(0,32))+'</td><td>'+esc(x.oc.slice(0,48))+'</td><td class="n">'+BRL.format(x.valor)+'</td><td></td></tr>';}).join("")+
+    '</tbody></table><div class="fx-f"><span>Relação de não conformidades</span><span>Santa Therezinha</span></div></div>';}
+function ncAlvo(qual){const base=filtered().filter(ehNC);return qual==="sel"?regBase().filter(r=>PSEL.has(r.ID_Auditoria)):base;}
+function abrirCentral(){const nF=filtered().filter(ehNC).length,nS=PSEL.size;let el=$("pc-sheet");
+  if(!el){el=document.createElement("div");el.id="pc-sheet";el.className="mn-sheet pc";document.body.appendChild(el);}
+  el.innerHTML='<div class="mn-bg"></div><div class="mn-box pc-box" role="dialog" aria-label="Central de impressão"><div class="mn-h"><b>Central de impressão</b><button type="button" class="mn-x" aria-label="Fechar">×</button></div>'+
+    '<p class="pc-l">1. O que imprimir</p><div class="pc-op" data-g="qual"><label><input type="radio" name="pcq" value="sel"'+(nS?" checked":" disabled")+'><span><b>Selecionadas</b><small>'+nS+' marcada(s) na lista</small></span></label><label><input type="radio" name="pcq" value="filtro"'+(nS?"":" checked")+'><span><b>Filtro atual</b><small>'+nF+' não conformidade(s)</small></span></label></div>'+
+    '<p class="pc-l">2. Formato</p><div class="pc-op"><label><input type="radio" name="pcf" value="ficha" checked><span><b>Fichas compactas</b><small>2 por folha · rápido · com assinatura</small></span></label><label><input type="radio" name="pcf" value="relacao"><span><b>Relação para assinatura</b><small>tabela única, paisagem</small></span></label><label><input type="radio" name="pcf" value="completo"><span><b>Documento completo</b><small>modelo original, 1 por folha</small></span></label></div>'+
+    '<p class="pc-l">3. Fotos</p><div class="pc-op"><label><input type="radio" name="pcfo" value="0" checked><span><b>Sem fotos</b><small>imprime na hora</small></span></label><label><input type="radio" name="pcfo" value="1"><span><b>Com fotos</b><small>usa as já baixadas e guarda no aparelho</small></span></label></div>'+
+    '<button type="button" class="save" id="pc-go">Gerar impressão</button><p class="note" id="pc-msg" style="margin:8px 0 0"></p></div>';
+  el.hidden=false;const fecha=()=>{el.hidden=true;};el.querySelector(".mn-bg").onclick=fecha;el.querySelector(".mn-x").onclick=fecha;
+  $("pc-go").onclick=async()=>{const q=el.querySelector('[name=pcq]:checked').value,f=el.querySelector('[name=pcf]:checked').value,foto=el.querySelector('[name=pcfo]:checked').value==="1";
+    const L=ncAlvo(q).sort((a,b)=>a.ts-b.ts);if(!L.length){toast("Nada para imprimir.");return;}
+    const msg=$("pc-msg");$("pc-go").disabled=true;
+    try{if((foto||f==="completo")&&regFonte()==="planilha"){msg.textContent="Buscando fotos…";await carregarFotosPlanilha(f==="completo"?regBase().filter(r=>L.includes(r)||(r.ID_Sessao&&L.some(x=>x.ID_Sessao===r.ID_Sessao))):L,(a,b)=>msg.textContent="Fotos "+a+" de "+b+"…");}
+      fecha();const per=regPeriodo();
+      if(f==="ficha"){const pages=[];for(let i=0;i<L.length;i+=2)pages.push({html:'<div class="ncpg">'+ncFicha(L[i],foto)+(L[i+1]?ncFicha(L[i+1],foto):'')+'</div>',multi:false});
+        openDoc({html:pages.map(p=>'<div class="docsep">'+p.html+'</div>').join(""),pdfDocs:pages,multi:true,name:"NC_fichas_"+todayISO()+".pdf",title:"Fichas de não conformidade ("+L.length+")",short:"Fichas de NC – "+L.length+" – "+per.lab,text:"*FICHAS DE NÃO CONFORMIDADE*\n"+L.length+" registros · "+per.lab});}
+      else if(f==="relacao")openDoc({html:ncRelacao(L),multi:false,land:true,name:"NC_relacao_"+todayISO()+".pdf",title:"Relação de NCs para assinatura",short:"Relação de NCs – "+L.length,text:"*RELAÇÃO DE NÃO CONFORMIDADES*\n"+L.length+" registros"});
+      else{const docs=docsOriginais(L,regBase());if(!docs.length){toast("Nenhum documento completo para estes registros.");return;}
+        openDoc({html:docs.map(d=>'<div class="docsep">'+d.html+'</div>').join(""),pdfDocs:docs,multi:true,name:"NC_documentos_"+todayISO()+".pdf",title:"Não conformidades – documentos",short:"Documentos de NC – "+docs.length,text:"*NÃO CONFORMIDADES – DOCUMENTOS*\n"+docs.length+" documentos"});}}
+    finally{$("pc-go")&&($("pc-go").disabled=false);}};}
+(function(){const s=document.createElement("style");s.textContent=`
+.mn-sheet{position:fixed;inset:0;z-index:60}.mn-sheet[hidden]{display:none}.mn-bg{position:absolute;inset:0;background:rgba(15,23,42,.45)}
+.mn-box{position:absolute;left:0;right:0;bottom:0;max-height:86vh;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom,0px))}
+.mn-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.mn-h b{font-size:1.1rem}.mn-x{border:0;background:var(--surface-2,#EEF2F7);width:36px;height:36px;border-radius:50%;font-size:1.3rem;cursor:pointer}
+html.desk #v-registros #list>.reg-bar{grid-column:1/-1}
+.pc-box{max-width:560px;margin:0 auto}.pc-l{font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 6px}
+.pc-op{display:grid;gap:6px}.pc-op label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}.pc-op label:has(input:checked){border-color:var(--brand);background:var(--surface-2,#EEF2F7)}
+.pc-op input{margin-top:3px}.pc-op b{display:block}.pc-op small{color:var(--muted)}.pc-op label:has(input:disabled){opacity:.5}
+html.desk .pc .mn-box{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);border-radius:16px;width:560px}
+.reg-bar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 10px;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+html.desk .reg-bar{top:64px}.reg-bar b{margin-right:auto}
+.rsel{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:700;color:var(--muted);margin:0 0 4px;cursor:pointer}.rsel input{width:18px;height:18px}
+details.rec.sel{outline:2px solid var(--brand);outline-offset:1px}
+.ncpg{display:grid;grid-template-rows:1fr 1fr;gap:10mm;height:272mm}
+.ncf{border:1.5px solid #CBD5E1;border-top:6px solid var(--c);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;font:11.5px/1.35 Arial,Helvetica,sans-serif;color:#0F172A;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ncf-h{display:flex;align-items:center;gap:10px;border-bottom:1px solid #E2E8F0;padding-bottom:6px}.ncf-h img{height:26px}.ncf-h b{display:block;font-size:14px}.ncf-h span{color:var(--c);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.ncf-id{margin-left:auto;text-align:right;font-weight:700}.ncf-id small{color:#64748B;font-weight:400}
+.ncf-oc{margin:8px 0 6px;padding:6px 10px;border-radius:6px;background:#FEF2F2;color:#991B1B;font-weight:800;font-size:12.5px}
+.ncf-g{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}.ncf-g span{display:block;font-size:9.5px;color:#64748B;text-transform:uppercase;letter-spacing:.04em}.ncf-g b{font-size:12px}.ncf-g .v{color:#B91C1C;font-size:14px}
+.ncf-obs{margin-top:6px;padding:6px 8px;border-left:3px solid #CBD5E1;background:#F8FAFC;font-size:11px}
+.ncf-ft{display:flex;gap:6px;margin-top:6px;min-height:0;flex:1}.ncf-ft img{height:100%;max-height:150px;max-width:32%;object-fit:cover;border-radius:4px;border:1px solid #E2E8F0}
+.ncf-d{margin:auto 0 0;padding-top:6px;font-size:10px;color:#475569}.ncf-s{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:22px}.ncf-s div{border-top:1px solid #0F172A;padding-top:3px;font-size:10px;font-weight:700}
+.ncr td{font-size:10px}.ncr td:last-child{border-bottom:1px solid #94A3B8}.ncr-s{display:inline-block;padding:1px 6px;border-radius:4px;background:var(--c);color:#fff;font-size:9px;font-weight:700;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 `;document.head.appendChild(s);})();
 
 // ===== Rascunho do lançamento: protege contra o celular recarregar a página ao abrir câmera/galeria =====
