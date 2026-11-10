@@ -268,6 +268,34 @@
     <iframe id="lb-frame" class="emb-frame" title="Liberação de mercadorias" loading="lazy"></iframe>
   </section>
 
+  <section class="view" id="v-adega" hidden>
+    <p class="note" style="margin:0 0 10px">Registrado por: <b id="d-reg"></b>. Cada ocorrência gera um termo de não conformidade para o conferente.</p>
+    <div class="block">
+      <h3 style="margin:0 0 10px">Dados da ocorrência</h3>
+      <div class="adg-g">
+        <div class="field" id="d-data-f"><label for="d-data">Data *</label><input class="in" id="d-data" type="date"></div>
+        <div class="field" id="d-cli-f"><label for="d-cli">Cód. cliente * <small>(só números)</small></label><input class="in" id="d-cli" inputmode="numeric" placeholder="Ex.: 108828"></div>
+        <div class="field" id="d-tipo-f"><span class="lbl">Tipo de ocorrência *</span><div class="mot" id="d-tipo" role="radiogroup" aria-label="Tipo"><button type="button" role="radio" aria-checked="false" data-m="Falta">Falta</button><button type="button" role="radio" aria-checked="false" data-m="Sobra">Sobra</button><button type="button" role="radio" aria-checked="false" data-m="Avaria" style="grid-column:1/-1">Avaria</button></div></div>
+        <div class="field span2" id="d-nome-f"><label for="d-nome">Nome do cliente <small>(automático pelo código quando a base de clientes for carregada)</small></label><input class="in" id="d-nome" placeholder="Nome do cliente"></div>
+        <div class="field" id="d-mun-f"><label for="d-mun">Município / CNPJ</label><input class="in" id="d-mun" placeholder="Ex.: BRASILIA · 07.738.069/0001-66"></div>
+        <div class="field span2" id="d-prod-f"><label>Cód. produto / descrição <small>(descrição e valor automáticos)</small></label><div id="d-prod"></div></div>
+        <div class="field" id="d-qtd-f"><label for="d-qtd">Quantidade <small>(unidades)</small></label><div class="stepper"><button type="button" data-dq="-1" aria-label="Diminuir">−</button><input class="in" id="d-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-dq="1" aria-label="Aumentar">+</button></div></div>
+        <div class="field" id="d-car-f"><label for="d-car">Nº carga <small>(só números)</small></label><input class="in" id="d-car" inputmode="numeric" placeholder="Ex.: 2716152"></div>
+        <div class="field" id="d-nf-f"><label for="d-nf">Nº nota <small>(só números)</small></label><input class="in" id="d-nf" inputmode="numeric" placeholder="Ex.: 896503"></div>
+        <div class="field" id="d-conf-f"><label>Conferente / colaborador *</label><div id="d-conf"></div></div>
+      </div>
+      <div class="money"><span>Valor da ocorrência<br><small id="d-calc"></small></span><b id="d-valor">R$ 0,00</b></div>
+    </div>
+    <div class="block">
+      <div class="field" id="d-obs-f"><label for="d-obs">Observação <small>(opcional)</small></label><textarea class="in" id="d-obs" placeholder="Detalhes da ocorrência"></textarea></div>
+      <div class="field" id="d-foto-f"><span class="lbl">Fotos <small>(opcional, até 3)</small></span>
+        <div class="photos" id="d-fotos"></div>
+        <div class="ph-row"><label class="filebtn" id="d-cam">Tirar foto<input type="file" accept="image/*" capture="environment" id="d-foto"></label><label class="filebtn" id="d-gal">Galeria<input type="file" accept="image/*" id="d-foto-g"></label></div></div>
+    </div>
+    <div class="ph-row" style="gap:10px"><button type="button" class="save" id="d-save" style="flex:1">Salvar registro</button><button type="button" class="btn" id="d-limpar">Limpar</button></div>
+    <div id="d-list" style="margin-top:12px"></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -384,6 +412,7 @@
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>
   <button type="button" data-v="sac" hidden>SAC</button>
+  <button type="button" data-v="adega" hidden>ADEGA</button>
   <button type="button" data-v="procura" hidden>Procura</button>
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
