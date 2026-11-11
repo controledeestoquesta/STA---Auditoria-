@@ -2494,16 +2494,13 @@ function fxProcura(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filt
   return '<div class="fxq-cmp no-print"><button type="button" id="fxp-exp"'+(S("f")?"":" disabled")+'>Exportar lista de bloqueio do período</button></div>'+fxHead(tit,rows.length)+
     fxKpis([{t:"Itens procurados",v:rows.length,c:"#0F172A",s:S("ped")+" un pedidas · "+BRL0(vP)},{t:"Encontrados",v:full.length,c:"#16A34A",s:"parciais: "+par.length+" · nada: "+nada.length+(cort.length?" · cortados: "+cort.length:"")},{t:"Unidades a bloquear",v:S("f"),c:"#DC2626",s:"de "+S("ped")+" pedidas"},
       {t:"Valor final do corte",v:BRL0(vF),c:"#B91C1C",s:"unidades não encontradas"},{t:"Valor evitado",v:BRL0(vE),c:"#15803D",s:S("enc")+" un encontradas"},{t:"% evitado",v:pf(pE),c:"#15803D",s:"do valor procurado"}],true)+
-    '<div class="fx-row" style="grid-template-columns:1fr 1.15fr 1.25fr">'+
-      fxCard("Situação das procuras",fxDonut([{l:"Encontrado",v:full.length,c:"#16A34A"},{l:"Parcial",v:par.length,c:"#CA8A04"},{l:"Não encontrado",v:nada.length,c:"#DC2626"},{l:"Cortado (avaria / qt inferior)",v:cort.length,c:"#7F1D1D"}]))+
-      fxCard("Valor evitado × valor do corte",(function(){const t=vE+vF,pe=t?vE/t*100:0;return '<div class="pv-split"><i class="e" style="width:'+pe+'%"></i><i class="c" style="width:'+(100-pe)+'%"></i></div>'+
-        '<div class="pv-leg"><div><span><i style="background:#16A34A"></i>Evitado</span><b style="color:#15803D">'+BRL0(vE)+'</b><small>'+pf(pE)+' · '+S("enc")+' un encontradas</small></div><div><span><i style="background:#DC2626"></i>Corte</span><b style="color:#B91C1C">'+BRL0(vF)+'</b><small>'+(t?(100-pe).toFixed(1).replace(".",",")+"%":"—")+' · '+S("f")+' un a bloquear</small></div></div>'+
-        '<p class="fx-e" style="margin-top:8px">Avaria e Qt inferior: a diferença é corte e o encontrado não conta como evitado.</p>';})())+
-      fxCard("Procuras por dia",fxCols(linha.slice(-14).map(x=>({l:x.l,v:x.v,txt:x.txt,c:"#2563EB"}))))+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr 1fr">'+
-      fxCard("Top itens não encontrados (bloqueio)",fxTable([{t:"Código"},{t:"Descrição"},{t:"Pedido",n:1},{t:"Encontrado",n:1},{t:"Bloquear",n:1},{t:"Corte",n:1}],Object.entries(itens).filter(([,x])=>x.f).sort((a,b)=>b[1].vF-a[1].vF).slice(0,10).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,24)),x.ped,x.enc,'<b style="color:#B91C1C">'+x.f+'</b>','<b style="color:#B91C1C">'+BRL0(x.vF)+'</b>'])))+
-      fxCard("Top itens encontrados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Procuras",n:1},{t:"Pedido",n:1},{t:"Encontrado",n:1},{t:"Evitado",n:1}],Object.entries(itens).filter(([,x])=>x.vE>0).sort((a,b)=>b[1].vE-a[1].vE||b[1].enc-a[1].enc).slice(0,10).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,24)),x.i,x.ped,x.enc,'<b style="color:#15803D">'+BRL0(x.vE)+'</b>'])))+'</div>'+
-    fxFoot("Auditoria de Procura");}
+    '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+
+      fxCard("Itens com maior corte",fxBars(Object.entries(itens).filter(([,x])=>x.vF>0).sort((a,b)=>b[1].vF-a[1].vF).slice(0,8).map(([k,x])=>({l:k+" · "+String(x.d||"").slice(0,22),v:x.vF,txt:x.f+" un · "+BRL0(x.vF),c:"#DC2626"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-w"'))+
+      fxCard("Situação das procuras",fxDonut([{l:"Encontrado",v:full.length,c:"#16A34A"},{l:"Parcial",v:par.length,c:"#CA8A04"},{l:"Não encontrado",v:nada.length,c:"#DC2626"},{l:"Cortado (avaria / qt inferior)",v:cort.length,c:"#7F1D1D"}]))+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+
+      fxCard("Itens procurados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Proc.",n:1},{t:"Pedido",n:1},{t:"Encontr.",n:1},{t:"Bloquear",n:1},{t:"Evitado",n:1},{t:"Corte",n:1}],Object.entries(itens).sort((a,b)=>(b[1].vF+b[1].vE)-(a[1].vF+a[1].vE)).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,24)),x.i,x.ped,x.enc,x.f?'<b style="color:#B91C1C">'+x.f+'</b>':"0",'<span style="color:#15803D">'+BRL0(x.vE)+'</span>','<span style="color:#B91C1C">'+BRL0(x.vF)+'</span>'])))+
+      fxCard("Valor evitado × corte",fxDonut([{l:"Evitado",v:Math.round(vE*100)/100,c:"#16A34A",txt:BRL0(vE)},{l:"Corte",v:Math.round(vF*100)/100,c:"#DC2626",txt:BRL0(vF)}],pf(pE)))+'</div>'+
+    fxFull("Procuras por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Auditoria de Procura");}
 document.addEventListener("click",e=>{if(e.target&&e.target.id==="fxp-exp"){const L=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filter(r=>r.Codigo_Produto);proExportar(L,fdISO(FECH.de)+" a "+fdISO(FECH.ate));}});
 /* ---- lista de bloqueio (PDF e Excel) ---- */
 function proBloq(L){const det=L.map(r=>Object.assign({r},proQ(r))).filter(x=>x.f>0).sort((a,b)=>(a.r.ts||0)-(b.r.ts||0)),it={};
