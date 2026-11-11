@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 36)
+ * Auditoria STA – Santa Therezinha (versão 37)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -268,7 +268,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 36, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 37, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -465,7 +465,7 @@ function gravar(ss, cfg, registros) {
   if (cfg === ABAS.cargas) validarMotivosCarga(sh);
   if (cfg === ABAS.pp) validarListasPP(sh, cab);
   if (cfg === ABAS.sac) validarListas(sh, cab, [['Motivo', MOTIVOS_SAC], ['Status_NC', STATUS_SAC]]);
-  if (cfg === ABAS.procura) validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA], ['Motivo_Procura', ['Avaria', 'Qt inferior', 'Validade', 'E-commerce']]]);
+  if (cfg === ABAS.procura) { validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA], ['Motivo_Procura', ['Avaria', 'Qt inferior', 'Validade', 'E-commerce', 'Encontrado', 'Não encontrado']]]); preencherMotivoProcura(sh, cab); }
   if (cfg === ABAS.adega) validarListas(sh, cab, [['Tipo', TIPOS_ADEGA]]);
   const colId = cab.indexOf('ID_Auditoria');
   const existentes = new Set(sh.getLastRow() > 1
@@ -640,6 +640,33 @@ function chaSalvar(data, registros, sessao) {
     else { sh.getRange(prox, 1, 1, cab.length).setValues(linha); ks.push(k); prox++; novos++; }
   });
   return { ok: true, novos: novos, atualizados: atual };
+}
+
+/** Procura: linhas sem Motivo_Procura recebem "Encontrado" ou "Não encontrado" conforme a coluna Motivo. */
+function preencherMotivoProcura(sh, cab) {
+  try {
+    const iM = cab.indexOf('Motivo'), iP = cab.indexOf('Motivo_Procura'), n = sh.getLastRow();
+    if (iM < 0 || iP < 0 || n < 2) return 0;
+    const m = sh.getRange(2, iM + 1, n - 1, 1).getValues(), pr = sh.getRange(2, iP + 1, n - 1, 1).getValues();
+    let k = 0;
+    const out = pr.map(function (l, i) {
+      if (String(l[0] || '').trim()) return [l[0]];
+      const mo = String(m[i][0] || '').trim();
+      if (mo === 'Produto não encontrado') { k++; return ['Não encontrado']; }
+      if (mo === 'Produto encontrado') { k++; return ['Encontrado']; }
+      return [l[0]];
+    });
+    if (k) sh.getRange(2, iP + 1, n - 1, 1).setValues(out);
+    return k;
+  } catch (e) { return 0; }
+}
+/** Rode uma vez no editor (menu Executar) para preencher as linhas antigas da aba de procura. */
+function corrigirMotivoProcura() {
+  const sh = abrirPlanilha().getSheetByName(ABAS.procura.nome);
+  if (!sh) return 'Aba ' + ABAS.procura.nome + ' não encontrada.';
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  if (cab.indexOf('Motivo_Procura') < 0) { sh.getRange(1, cab.length + 1).setValue('Motivo_Procura'); cab.push('Motivo_Procura'); }
+  return preencherMotivoProcura(sh, cab) + ' linha(s) preenchida(s).';
 }
 
 /** Listas suspensas genéricas (coluna, opções). */
