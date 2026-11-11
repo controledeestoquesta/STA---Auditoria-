@@ -2442,11 +2442,11 @@ const PRO_COLS=["Data","Carregamento","Box","Numero_OS","Codigo_Produto","Descri
 const PRO_ENC="Produto encontrado",PRO_NAO="Produto não encontrado",PRO_PAR="Encontrado parcialmente";
 /* normaliza registros antigos (só Quantidade + Motivo) e novos (pedido × encontrado) */
 function proQ(r){const v=pnum(r.Vl_Unitario)||(pnum(r.Quantidade)?pnum(r.Valor_Total)/pnum(r.Quantidade):0);let ped=pnum(r.Qtd_Pedida),enc=pnum(r.Qtd_Encontrada);
-  if(!ped&&!(r.Qtd_Encontrada!==""&&r.Qtd_Encontrada!=null&&r.Qtd_Pedida)){ped=pnum(r.Quantidade);enc=r.Motivo===PRO_ENC?ped:0;}if(PRO_CORTE.has(r.Motivo_Procura))return {ped,enc,f:ped,vu:v,vP:ped*v,vE:0,vF:ped*v,cortado:true};
+  if(!ped&&!(r.Qtd_Encontrada!==""&&r.Qtd_Encontrada!=null&&r.Qtd_Pedida)){ped=pnum(r.Quantidade);enc=r.Motivo===PRO_ENC?ped:0;}if(PRO_CORTE.has(r.Motivo_Procura)){const fc=Math.max(0,ped-enc);return {ped,enc,f:fc,vu:v,vP:ped*v,vE:0,vF:fc*v,cortado:true};}
   const f=Math.max(0,ped-enc);return {ped,enc,f,vu:v,vP:ped*v,vE:Math.min(enc,ped)*v,vF:f*v};}
 /* motivo da procura: linhas antigas sem motivo usam o resultado (Encontrado / Não encontrado) */
 const proMP=r=>{const m=String(r.Motivo_Procura||"").trim();if(m)return m;if(r.Motivo==="Produto não encontrado")return "Não encontrado";if(r.Motivo==="Produto encontrado")return "Encontrado";return "";};
-/* avaria e quantidade inferior não podem ser enviadas: o pedido inteiro é cortado */
+/* avaria e quantidade inferior: a diferença (pedido − encontrado) é o corte e não há valor evitado */
 const PRO_CORTE=new Set(["Avaria","Qt inferior"]),PRO_CORT="Produto cortado";
 const proMot=(ped,enc,mp)=>PRO_CORTE.has(mp)?PRO_CORT:enc>=ped?PRO_ENC:enc>0?PRO_PAR:PRO_NAO;
 const PO={prod:null,mot:null,mp:null};const PRO_MP=["Avaria","Qt inferior","Validade","E-commerce"];
@@ -2459,8 +2459,8 @@ $("o-tudo").addEventListener("click",()=>{$("o-enc").value=poQ()||"";paintPRO();
 const poE=()=>{const v=String($("o-enc").value).trim();return v===""?null:Math.max(0,parseInt(v,10)||0);};
 const poQ=()=>{const v=String($("o-qtd").value).trim();return v===""?0:Math.max(0,parseInt(v,10)||0);};
 function paintPRO(){if(!$("o-valor"))return;const vl=PO.prod!=null?P.vl[PO.prod]:0,q=poQ(),e=poE();$("o-valor").textContent=BRL.format(q*vl);$("o-calc").textContent=q+" un × "+BRL.format(vl)+" (Vl. ult. entrada 286)";
-  if(q>0&&e!=null&&e<=q){const cort=PRO_CORTE.has(PO.mp),f=cort?q:q-e;PO.mot=proMot(q,e,PO.mp);$("o-st").innerHTML='<span class="pro-b '+(cort?"nao":f?(e?"par":"nao"):"ok")+'">'+PO.mot+(cort?" ("+PO.mp.toLowerCase()+": pedido inteiro cortado)":"")+'</span>';
-    $("o-res").innerHTML='<div><span>Encontrado</span><b>'+e+' un</b><small>'+BRL.format(e*vl)+'</small></div><div class="'+(f?"bad":"")+'"><span>A bloquear (perda)</span><b>'+f+' un</b><small>'+BRL.format(f*vl)+'</small></div>';}
+  if(q>0&&e!=null&&e<=q){const cort=PRO_CORTE.has(PO.mp),f=q-e;PO.mot=proMot(q,e,PO.mp);$("o-st").innerHTML='<span class="pro-b '+(cort?"nao":f?(e?"par":"nao"):"ok")+'">'+PO.mot+(cort?" ("+PO.mp.toLowerCase()+": "+f+" un cortada(s), sem valor evitado)":"")+'</span>';
+    $("o-res").innerHTML='<div><span>Encontrado</span><b>'+e+' un</b><small>'+(cort?"não conta como evitado":BRL.format(e*vl))+'</small></div><div class="'+(f?"bad":"")+'"><span>A bloquear (perda)</span><b>'+f+' un</b><small>'+BRL.format(f*vl)+'</small></div>';}
   else{PO.mot=null;$("o-st").innerHTML='<span class="pro-b">Informe pedido e encontrado</span>';$("o-res").innerHTML=e!=null&&e>q&&q>0?'<p class="err">A quantidade encontrada não pode ser maior que a pedida.</p>':"";}
   $("o-data").textContent=fmtDT(new Date()).slice(0,10);$("o-aud").textContent=(nomeAud()||"—")+" · matrícula "+(auditor||"—");
   listaPRO();}
@@ -2478,7 +2478,7 @@ $("o-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login p
   if(errs.length){$(errs[0]).scrollIntoView({block:"center",behavior:"smooth"});toast("Revise os campos marcados.");return;}
   const now=new Date(),k=PO.prod,vl=P.vl[k];
   const rec={_aba:"procura",ID_Auditoria:newId("PRO"),Data:fmtDT(now).slice(0,10),DataHora:fmtDT(now),ts:now.getTime(),Carregamento:d("o-car"),Box:d("o-box"),Numero_OS:d("o-os"),Codigo_Produto:P.cod[k],Descricao_Produto:P.desc[k],
-    Quantidade:q,Vl_Unitario:vl,Valor_Total:Math.round(q*vl*100)/100,Motivo:proMot(q,e,PO.mp),Motivo_Procura:PO.mp,Qtd_Pedida:q,Qtd_Encontrada:e,Qtd_Falta:PRO_CORTE.has(PO.mp)?q:q-e,Valor_Encontrado:PRO_CORTE.has(PO.mp)?0:Math.round(e*vl*100)/100,Valor_Falta:Math.round((PRO_CORTE.has(PO.mp)?q:q-e)*vl*100)/100,Observacao:$("o-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:PRO_CORTE.has(PO.mp)||q-e>0};
+    Quantidade:q,Vl_Unitario:vl,Valor_Total:Math.round(q*vl*100)/100,Motivo:proMot(q,e,PO.mp),Motivo_Procura:PO.mp,Qtd_Pedida:q,Qtd_Encontrada:e,Qtd_Falta:q-e,Valor_Encontrado:PRO_CORTE.has(PO.mp)?0:Math.round(e*vl*100)/100,Valor_Falta:Math.round((q-e)*vl*100)/100,Observacao:$("o-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:PRO_CORTE.has(PO.mp)||q-e>0};
   $("o-save").disabled=true;const ok=await saveRec(rec);$("o-save").disabled=false;oProd.clear();PO.prod=null;PO.mot=null;PO.mp=null;document.querySelectorAll("#o-mp button").forEach(x=>x.setAttribute("aria-checked","false"));$("o-qtd").value="";$("o-enc").value="";$("o-obs").value="";paintPRO();setTimeout(()=>$("o-prod").scrollIntoView({block:"center"}),50);
   toast((ok||dbState==="off"?"Procura salva":"Salva neste aparelho, envio pendente")+" – "+rec.Motivo+(rec.Qtd_Falta?" · bloquear "+rec.Qtd_Falta+" un ("+BRL.format(rec.Valor_Falta)+")":"")+".");});
 function cardPRO(r){const x=proQ(r);return '<details class="rec '+(r.Motivo===PRO_ENC?"ok":"nc")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Procura</span><span>'+esc(r.Motivo||"")+'</span></div><div class="addr">Carreg. '+esc(r.Carregamento||"")+' · Box '+esc(r.Box||"-")+' · O.S. '+esc(r.Numero_OS||"-")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto)+'</div>'+
@@ -2486,7 +2486,7 @@ function cardPRO(r){const x=proQ(r);return '<details class="rec '+(r.Motivo===PR
 // fechamento
 FX_TAB.procura="Procura";FX_TIT.procura="Auditoria_Procura";
 function fxProcura(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.procura).filter(r=>r.Codigo_Produto).map(r=>Object.assign(r,{_x:proQ(r)})),tit="Auditoria de Procura — Fechamento";
-  const S=k=>rows.reduce((s,r)=>s+r._x[k],0),vP=S("vP"),vE=S("vE"),vF=S("vF"),pE=(vE+vF)?vE/(vE+vF):null,full=rows.filter(r=>!r._x.f),cort=rows.filter(r=>r._x.cortado),par=rows.filter(r=>r._x.f&&r._x.enc&&!r._x.cortado),nada=rows.filter(r=>r._x.f&&!r._x.enc&&!r._x.cortado);
+  const S=k=>rows.reduce((s,r)=>s+r._x[k],0),vP=S("vP"),vE=S("vE"),vF=S("vF"),pE=(vE+vF)?vE/(vE+vF):null,full=rows.filter(r=>!r._x.f&&!r._x.cortado),cort=rows.filter(r=>r._x.cortado),par=rows.filter(r=>r._x.f&&r._x.enc&&!r._x.cortado),nada=rows.filter(r=>r._x.f&&!r._x.enc&&!r._x.cortado);
   const itens={};rows.forEach(r=>{const x=itens[r.Codigo_Produto]=itens[r.Codigo_Produto]||{d:r.Descricao_Produto,i:0,ped:0,enc:0,f:0,vE:0,vF:0};x.i++;x.ped+=r._x.ped;x.enc+=r._x.enc;x.f+=r._x.f;x.vE+=r._x.vE;x.vF+=r._x.vF;});
   const aud={};rows.forEach(r=>{const k=r.Nome_Auditor||r.Matricula_Auditor||"—";const x=aud[k]=aud[k]||{n:0,f:0};x.n++;if(r._x.f)x.f++;});
   const porD={};rows.forEach(r=>{const k=fxDiaKey(r.ts);const x=porD[k]=porD[k]||{ts:r.ts,n:0};x.n++;});const linha=Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n)}));
