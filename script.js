@@ -2414,11 +2414,12 @@ $("cb-foto").addEventListener("change",e=>{const f=e.target.files[0];e.target.va
 // ===== Fechamento: Mapa de ruas (endereços por rua × erros, peso 8) =====
 const RUA_ENDS={"1": 132, "2": 262, "3": 258, "4": 263, "5": 265, "6": 267, "7": 260, "8": 266, "9": 266, "10": 260, "11": 266, "12": 265, "13": 248, "14": 84, "15": 139, "16": 295, "17": 327, "18": 348, "19": 258, "20": 107, "21": 12, "22": 455, "23": 307, "24": 318, "25": 334, "26": 333, "27": 338, "28": 337, "29": 335, "30": 365, "31": 453, "32": 337, "33": 364, "34": 360, "35": 363, "36": 364, "37": 358, "38": 362, "39": 362, "40": 303, "41": 359, "42": 361, "43": 361, "44": 370, "45": 361, "46": 336, "47": 497, "48": 442, "49": 408, "51": 82};
 const PESO_MAPA=8;
+const MAPA_FORA=new Set(["1","21","31","51"]);/* ruas fora dos mapas de calor */
 FX_TAB.mapa="Mapa de ruas";FX_TIT.mapa="Mapa_de_Ruas";
 function fxMapaRuas(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.aero),tit="Mapa de ruas — Qualidade do aéreo por endereços (erros × acertos)";
   const err={};rows.forEach(r=>{const k=String(r.Rua==null?"":r.Rua).replace(/\D/g,"").replace(/^0+/,"");if(k)err[k]=(err[k]||0)+1;});
   const CP=cntPeriodo(),temCnt=CP.dias>0;
-  const R=Object.keys(RUA_ENDS).map(r=>{const e=RUA_ENDS[r],n=err[r]||0,pts=n*PESO_MAPA,ac=Math.max(0,e-pts),aud=!temCnt||CP.porRua[r]||n;return {r,e,n,pts,ac,aud:!!aud,vezes:CP.porRua[r]||0,q:aud&&e?ac/e:null};});
+  const R=Object.keys(RUA_ENDS).filter(r=>!MAPA_FORA.has(r)).map(r=>{const e=RUA_ENDS[r],n=err[r]||0,pts=n*PESO_MAPA,ac=Math.max(0,e-pts),aud=!temCnt||CP.porRua[r]||n;return {r,e,n,pts,ac,aud:!!aud,vezes:CP.porRua[r]||0,q:aud&&e?ac/e:null};});
   const Q={};R.forEach(x=>Q[x.r]=x.q);const RA=R.filter(x=>x.aud),totE=RA.reduce((s,x)=>s+x.e,0),totN=R.reduce((s,x)=>s+x.n,0),totAc=RA.reduce((s,x)=>s+x.ac,0),qg=totE?totAc/totE:null;
   const crit=R.filter(x=>x.q!=null&&x.q<.85).sort((a,b)=>a.q-b.q),comErro=R.filter(x=>x.n);
   const mapa=fxLegenda()+BLOCOS.map(([nm,a,z])=>{const rs=R.filter(x=>+x.r>=a&&+x.r<=z);if(!rs.length)return "";
@@ -2823,7 +2824,7 @@ function fxSaldo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r
   const uni=new Set(rows.map(r=>String(r.Codigo_Produto))),conf=rows.filter(r=>r.Modo==="Conferência"),divU=new Set(conf.filter(r=>r.Situacao&&r.Situacao!=="OK").map(r=>String(r.Codigo_Produto))),ok=conf.filter(r=>r.Situacao==="OK"),so=conf.filter(r=>r.Situacao==="Sobra"),fa=conf.filter(r=>r.Situacao==="Falta");
   const un=L=>L.reduce((s,r)=>s+Math.abs(pnum(r.Diferenca)),0),vv=L=>L.reduce((s,r)=>s+Math.abs(pnum(r.Valor_Diferenca)),0);
   const IR=spkItensRua(),audRua={};rows.forEach(r=>{const c=String(r.Codigo_Produto);let rua=String(r.Rua||"");if(!rua)rua=spkEnd(c).rua;if(!rua)return;(audRua[rua]=audRua[rua]||new Set()).add(c);});
-  const ruas=Object.keys(RUA_ENDS),cel=r=>{const tot=IR[r]?IR[r].size:0,a=audRua[r]?[...audRua[r]].filter(c=>!IR[r]||IR[r].has(c)).length:0,p=tot?a/tot:null;return {r,tot,a,p};};
+  const ruas=Object.keys(RUA_ENDS).filter(r=>!MAPA_FORA.has(r)),cel=r=>{const tot=IR[r]?IR[r].size:0,a=audRua[r]?[...audRua[r]].filter(c=>!IR[r]||IR[r].has(c)).length:0,p=tot?a/tot:null;return {r,tot,a,p};};
   const C=ruas.map(cel),totI=C.reduce((s,x)=>s+x.tot,0),totA=C.reduce((s,x)=>s+x.a,0);
   const heat='<div class="hm-leg"><span>0%</span><i style="background:linear-gradient(90deg,'+spkCor(0)+','+spkCor(.25)+','+spkCor(.5)+','+spkCor(.75)+','+spkCor(1)+')"></i><span>100% dos itens da rua</span></div>'+
     BLOCOS.map(([nm,a,z])=>{const rs=C.filter(x=>+x.r>=a&&+x.r<=z);if(!rs.length)return "";const t=rs.reduce((s,x)=>s+x.tot,0),au=rs.reduce((s,x)=>s+x.a,0);
