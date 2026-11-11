@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 34)
+ * Auditoria STA – Santa Therezinha (versão 35)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -75,7 +75,7 @@ ABAS.sac = {
 const MOTIVOS_SAC = ['Falta', 'Sobra'];
 ABAS.procura = {
   nome: 'Auditoria_Procura', perm: 'aud_pro',
-  colunas: ['Data', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo',
+  colunas: ['Data', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Motivo_Procura',
     'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
   texto: ['Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Matricula_Auditor', 'ID_Auditoria']
 };
@@ -103,7 +103,7 @@ const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Fina
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
 const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado'];
-const CAMPOS_PRO = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
+const CAMPOS_PRO = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Motivo_Procura', 'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const STATUS_SAC = ['Aberta', 'Em tratativa', 'Encerrada'];
 const CAMPOS_SAC = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'NF', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Vl_Unitario', 'Valor', 'Motivo',
   'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Status_NC', 'Historico', 'Matricula_Registrou', 'Nome_Registrou', 'Origem', 'Links_Fotos', 'Recebido_Em'];
@@ -268,7 +268,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 34, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 35, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -465,7 +465,7 @@ function gravar(ss, cfg, registros) {
   if (cfg === ABAS.cargas) validarMotivosCarga(sh);
   if (cfg === ABAS.pp) validarListasPP(sh, cab);
   if (cfg === ABAS.sac) validarListas(sh, cab, [['Motivo', MOTIVOS_SAC], ['Status_NC', STATUS_SAC]]);
-  if (cfg === ABAS.procura) validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA]]);
+  if (cfg === ABAS.procura) validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA], ['Motivo_Procura', ['Avaria', 'Qt inferior', 'Validade', 'E-commerce']]]);
   if (cfg === ABAS.adega) validarListas(sh, cab, [['Tipo', TIPOS_ADEGA]]);
   const colId = cab.indexOf('ID_Auditoria');
   const existentes = new Set(sh.getLastRow() > 1
