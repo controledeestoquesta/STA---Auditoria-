@@ -79,7 +79,7 @@
       <div class="stat"><b id="s-valor">R$ 0</b><span>em NC abertas</span></div>
     </div>
     <div class="filters">
-      <select class="in" id="f-aba" aria-label="Tipo de auditoria"><option value="todas" selected>Todas as auditorias</option><option value="ruas">Auditoria de ruas</option><option value="retorno">Auditoria de retorno</option><option value="cargas">Auditoria de cargas</option><option value="aero">Auditoria aéreo</option></select>
+      <select class="in" id="f-aba" aria-label="Tipo de auditoria"><option value="todas" selected>Todas as auditorias</option><option value="ruas">Auditoria de ruas</option><option value="retorno">Auditoria de retorno</option><option value="cargas">Auditoria de cargas</option><option value="aero">Auditoria aéreo</option><option value="pp">Prevenção de Perdas</option><option value="sac">SAC</option><option value="adega">Ocorrências ADEGA</option><option value="procura">Procura</option><option value="saldo">Saldo de picking</option><option value="contagem">Contagem de ruas</option></select>
       <select class="in" id="f-fonte" aria-label="Fonte" hidden><option value="planilha">Planilha Google (todos)</option><option value="local">Este aparelho</option></select>
       <select class="in" id="f-periodo" aria-label="Período"><option value="1">Hoje</option><option value="7" selected>Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="0">Tudo</option><option value="d">Escolher data</option></select>
       <select class="in" id="f-tipo" aria-label="Tipo"><option value="todos">Todos os lançamentos</option><option value="nc" selected>Só não conformidades</option><option value="ok">Só conformes</option></select>
@@ -320,6 +320,25 @@
     <div id="n-list" style="margin-top:12px"></div>
   </section>
 
+  <section class="view" id="v-spk" hidden>
+    <div class="seg" role="group" aria-label="Modo" id="k-modo" style="margin-bottom:12px"><button type="button" data-km="cont" aria-pressed="true">Contagem de itens (só código)</button><button type="button" data-km="conf" aria-pressed="false">Sistema × auditado</button></div>
+    <div class="block" id="k-cont">
+      <h3 style="margin:0 0 4px">Itens auditados no saldo de picking</h3><p class="note" style="margin:0 0 10px">Digite ou bipe o código e tecle Enter. Cada código entra na contagem do dia (comissão) e no mapa de calor das ruas.</p>
+      <div class="field" id="k-cod-f"><div class="ph-row" style="gap:8px"><input class="in" id="k-cod" inputmode="numeric" placeholder="Código do item" autocomplete="off" style="flex:1"><button type="button" class="save" id="k-add" style="margin:0;width:auto;padding:0 22px">Adicionar</button></div><small class="note" id="k-cod-h" style="display:block;margin-top:4px"></small></div>
+    </div>
+    <div class="block" id="k-conf" hidden>
+      <h3 style="margin:0 0 10px">Conferência de saldo</h3>
+      <div class="field" id="k-prod-f"><label>Código / descrição</label><div id="k-prod"></div></div>
+      <div class="cnt-g">
+        <div class="field" id="k-sis-f"><label for="k-sis">Quantidade sistema</label><input class="in" id="k-sis" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+        <div class="field" id="k-aud-f"><label for="k-aud">Quantidade auditada</label><input class="in" id="k-aud" type="number" inputmode="numeric" min="0" placeholder="0"></div>
+        <div class="field"><span class="lbl">Resultado</span><div id="k-res" class="k-res">—</div></div>
+      </div>
+      <button type="button" class="save" id="k-save">Salvar conferência</button>
+    </div>
+    <div id="k-list" style="margin-top:12px"></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -433,6 +452,7 @@
   <button type="button" data-v="ruas" aria-current="page">Ruas</button>
   <button type="button" data-v="retorno" hidden>Retorno</button>
   <button type="button" data-v="cnt" hidden>Contagem</button>
+  <button type="button" data-v="spk" hidden>Saldo picking</button>
   <button type="button" data-v="cargas" hidden>Cargas</button>
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>

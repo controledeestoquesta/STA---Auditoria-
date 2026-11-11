@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 33)
+ * Auditoria STA – Santa Therezinha (versão 34)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -92,6 +92,13 @@ ABAS.contagem = {
   colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
   texto: ['Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Matricula_Auditor', 'ID_Auditoria']
 };
+ABAS.saldo = {
+  nome: 'Auditoria_Saldo_Picking', perm: 'aud_spk',
+  colunas: ['Data', 'Modo', 'Codigo_Produto', 'Descricao_Produto', 'Rua', 'Endereco', 'Qtd_Sistema', 'Qtd_Auditada', 'Diferenca', 'Situacao', 'Vl_Unitario', 'Valor_Diferenca',
+    'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
+  texto: ['Data', 'DataHora', 'Codigo_Produto', 'Rua', 'Endereco', 'Matricula_Auditor', 'ID_Auditoria']
+};
+const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto', 'Descricao_Produto', 'Rua', 'Endereco', 'Qtd_Sistema', 'Qtd_Auditada', 'Diferenca', 'Situacao', 'Vl_Unitario', 'Valor_Diferenca', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
@@ -122,8 +129,9 @@ function doPost(e) {
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar') {
-    const okP = ['aud_adm', 'aud_com', 'aud_cha'].some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
-    if (!okP) return resposta({ ok: false, erro: 'Sem permissão de Controle de Estoque (aud_com ou aud_cha).' });
+    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
     const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
     try { return resposta(painelSalvar(dados.painel, dados.dados, sessao)); }
@@ -230,7 +238,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -249,6 +257,7 @@ function doGet(e) {
         procura: !tem('aud_pro') ? vazio : lerAba(ss, ABAS.procura.nome, CAMPOS_PRO),
         adega: !tem('aud_adg') ? vazio : lerAba(ss, ABAS.adega.nome, CAMPOS_ADG),
         contagem: !(tem('aud_ret') || tem('aud_aer') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.contagem.nome, CAMPOS_CNT),
+        saldo: !tem('aud_spk') ? vazio : lerAba(ss, ABAS.saldo.nome, CAMPOS_SPK),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -259,7 +268,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 33, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 34, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -280,6 +289,11 @@ const PERMISSOES_CONHECIDAS = {
   aud_vale: 'Acesso a aba de emissao de vales (prevencao de perdas)',
   aud_sac: 'Acesso a aba do SAC (ocorrencias de falta e sobra)',
   aud_pro: 'Acesso a aba de auditoria de procura',
+  aud_spk: 'Acesso a auditoria de saldo de picking',
+  aud_ces: 'Acesso ao painel da cesta basica',
+  aud_fat: 'Acesso ao painel de faturamento',
+  aud_lib: 'Acesso a liberacao de mercadorias',
+  aud_dev: 'Acesso ao painel de devolucoes',
   aud_adg: 'Acesso a aba de ocorrencias ADEGA',
   aud_com: 'Acesso a comissao do controle de estoque (equipes, metas, valores)',
   aud_cha: 'Acesso a chamada (presenca) do controle de estoque',
@@ -611,6 +625,7 @@ function chaSalvar(data, registros, sessao) {
     try { sh.getRange(2, CAMPOS_CHAMADA.indexOf('Status') + 1, sh.getMaxRows() - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(STATUS_CHAMADA, true).setAllowInvalid(false).build()); } catch (e) { } }
   const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
   CAMPOS_CHAMADA.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  try { sh.getRange(1, cab.indexOf('Data') + 1, sh.getMaxRows(), 1).setNumberFormat('@'); } catch (e) { }
   const n = sh.getLastRow(), iK = cab.indexOf('Chave');
   const ks = n >= 2 ? sh.getRange(2, iK + 1, n - 1, 1).getValues().map(function (l) { return String(l[0]); }) : [];
   const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
