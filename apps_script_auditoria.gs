@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 35)
+ * Auditoria STA – Santa Therezinha (versão 36)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -102,7 +102,7 @@ const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto'
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
-const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado'];
+const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado', 'Produto cortado'];
 const CAMPOS_PRO = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Box', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor_Total', 'Motivo', 'Motivo_Procura', 'Qtd_Pedida', 'Qtd_Encontrada', 'Qtd_Falta', 'Valor_Encontrado', 'Valor_Falta', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const STATUS_SAC = ['Aberta', 'Em tratativa', 'Encerrada'];
 const CAMPOS_SAC = ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'NF', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Vl_Unitario', 'Valor', 'Motivo',
@@ -268,7 +268,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 35, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 36, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
