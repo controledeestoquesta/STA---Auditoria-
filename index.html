@@ -325,6 +325,9 @@
     <div class="block" id="k-cont">
       <h3 style="margin:0 0 4px">Itens auditados no saldo de picking</h3><p class="note" style="margin:0 0 10px">Digite ou bipe o código e tecle Enter. Cada código entra na contagem do dia (comissão) e no mapa de calor das ruas.</p>
       <div class="field" id="k-cod-f"><div class="ph-row" style="gap:8px"><input class="in" id="k-cod" inputmode="numeric" placeholder="Código do item" autocomplete="off" style="flex:1"><button type="button" class="save" id="k-add" style="margin:0;width:auto;padding:0 22px">Adicionar</button></div><small class="note" id="k-cod-h" style="display:block;margin-top:4px"></small></div>
+      <div class="k-lote"><div class="field" style="margin:0"><label for="k-lote">Vários códigos de uma vez <small>(cole uma lista: um por linha, ou separados por espaço, vírgula ou ponto e vírgula)</small> <b id="k-lote-n" style="color:var(--brand)"></b></label>
+        <textarea class="in" id="k-lote" placeholder="338&#10;306269&#10;5"></textarea></div>
+        <button type="button" class="save" id="k-lote-go" style="margin-top:8px">Lançar todos os códigos</button><small class="note" id="k-lote-h" style="display:block;margin-top:6px"></small></div>
     </div>
     <div class="block" id="k-conf" hidden>
       <h3 style="margin:0 0 10px">Conferência de saldo</h3>
