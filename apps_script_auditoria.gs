@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 38)
+ * Auditoria STA – Santa Therezinha (versão 40)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -99,6 +99,28 @@ ABAS.saldo = {
   texto: ['Data', 'DataHora', 'Codigo_Produto', 'Rua', 'Endereco', 'Matricula_Auditor', 'ID_Auditoria']
 };
 const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto', 'Descricao_Produto', 'Rua', 'Endereco', 'Qtd_Sistema', 'Qtd_Auditada', 'Diferenca', 'Situacao', 'Vl_Unitario', 'Valor_Diferenca', 'Matricula_Auditor', 'Nome_Auditor'];
+ABAS.solicit = {
+  nome: 'Solicitacao_Contagens', perm: 'aud_sol',
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
+    'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Recebido_Em'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Codigo_Produto', 'NF', 'Matricula_Solicitante', 'DataHora_Resposta']
+};
+const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+/** Responde uma solicitação de contagem: grava a resposta e o tempo (minutos) desde a solicitação. */
+function solResponder(id, qtd, resultado, sessao) {
+  const ss = abrirPlanilha(), sh = ss.getSheetByName(ABAS.solicit.nome);
+  if (!sh || sh.getLastRow() < 2) throw new Error('Solicitação não encontrada.');
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), ids = sh.getRange(2, cab.indexOf('ID_Auditoria') + 1, sh.getLastRow() - 1, 1).getDisplayValues();
+  let lin = -1; ids.forEach(function (l, i) { if (String(l[0]) === String(id)) lin = i + 2; });
+  if (lin < 0) throw new Error('Solicitação não encontrada.');
+  const dh = String(sh.getRange(lin, cab.indexOf('DataHora') + 1).getDisplayValue()), m = dh.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+  const agora = new Date(), ini = m ? new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +(m[6] || 0)) : agora, min = Math.max(0, Math.round((agora - ini) / 60000));
+  const em = Utilities.formatDate(agora, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  const set = function (c, v) { const i = cab.indexOf(c); if (i >= 0) sh.getRange(lin, i + 1).setNumberFormat('@').setValue(String(v)); };
+  set('Status', 'Respondida'); set('DataHora_Resposta', em); set('Qtd_Contada', qtd); set('Resultado', resultado || 'Respondida');
+  set('Respondido_Por', (sessao.nome || '') + ' (' + sessao.matricula + ')'); set('Tempo_Resposta_Min', min);
+  return { ok: true, em: em, min: min };
+}
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
@@ -128,6 +150,14 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (dados.acao === 'sol_ler' || dados.acao === 'sol_responder') {
+    if (sessao.permissoes.indexOf('aud_adm') < 0 && sessao.permissoes.indexOf('aud_sol') < 0) return resposta({ ok: false, erro: 'Sem permissão de solicitação de contagens (aud_sol).' });
+    try {
+      if (dados.acao === 'sol_ler') { const t = lerAba(abrirPlanilha(), ABAS.solicit.nome, CAMPOS_SOL); return resposta(Object.assign({ ok: true }, t)); }
+      const lks = LockService.getScriptLock(); lks.waitLock(30000);
+      try { return resposta(solResponder(dados.id, dados.qtd, dados.resultado, sessao)); } finally { lks.releaseLock(); }
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
   if (['rot_salvar', 'rot_ler', 'rot_status'].indexOf(dados.acao) >= 0) {
     const podeR = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
     if (dados.acao === 'rot_ler' && !podeR('aud_com')) return resposta({ ok: false, erro: 'Sem permissão de comissão (aud_com).' });
@@ -249,7 +279,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -269,6 +299,7 @@ function doGet(e) {
         adega: !tem('aud_adg') ? vazio : lerAba(ss, ABAS.adega.nome, CAMPOS_ADG),
         contagem: !(tem('aud_ret') || tem('aud_aer') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.contagem.nome, CAMPOS_CNT),
         saldo: !tem('aud_spk') ? vazio : lerAba(ss, ABAS.saldo.nome, CAMPOS_SPK),
+        solicit: !tem('aud_sol') ? vazio : lerAba(ss, ABAS.solicit.nome, CAMPOS_SOL),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -279,7 +310,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 38, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 40, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -302,6 +333,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_pro: 'Acesso a aba de auditoria de procura',
   aud_spk: 'Acesso a auditoria de saldo de picking',
   aud_rot: 'Acesso a importacao das rotinas (1707, 8597, 1350, cadastro, O.S. 51)',
+  aud_sol: 'Acesso a solicitacao de contagens',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
@@ -764,12 +796,21 @@ function rotSalvar(rotina, data, linhas, arquivo, sessao) {
     const todas = sh.getRange(2, 1, n - 1, cab.length).getValues(), fica = todas.filter(function (l) { return String(l[iD]) !== String(data); });
     if (fica.length !== todas.length) { sh.getRange(2, 1, n - 1, cab.length).clearContent(); if (fica.length) sh.getRange(2, 1, fica.length, cab.length).setValues(fica); }
   }
+  let repetidas = 0;
+  if (rotina === 'r1350') {
+    /* 1350: grava só as notas que ainda não estavam em importações anteriores */
+    const n2 = sh.getLastRow(), iN = cab.indexOf('Nota'), iF = cab.indexOf('Fornecedor'), ja = {};
+    if (n2 >= 2) sh.getRange(2, 1, n2 - 1, cab.length).getDisplayValues().forEach(function (l) { ja[String(l[iN]).trim() + '|' + String(l[iF]).trim()] = 1; });
+    const antes = linhas.length;
+    linhas = linhas.filter(function (o) { const k = String(o.Nota || '').trim() + '|' + String(o.Fornecedor || '').trim(); if (ja[k]) return false; ja[k] = 1; return true; });
+    repetidas = antes - linhas.length;
+  }
   const out = linhas.map(function (o) { o = Object.assign({}, o, { Data_Importacao: data, Importado_Por: por, ID_Import: id }); if (rotina === 'r8597') o.Importado_Em = em; return cab.map(function (c) { return o[c] == null ? '' : String(o[c]); }); });
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, cab.length).setNumberFormat('@').setValues(out);
   const L = abaRot(ABA_ROT_LOG, COLS_ROT_LOG);
-  const log = { Data_Importacao: data, Rotina: rotina, Arquivo: arquivo, Linhas: linhas.length, Matricula: sessao.matricula, Importado_Por: por, Importado_Em: em, ID_Import: id };
+  const log = { Data_Importacao: data, Rotina: rotina, Arquivo: arquivo + (rotina === 'r1350' ? ' (' + linhas.length + ' novas, ' + repetidas + ' já importadas)' : ''), Linhas: linhas.length, Matricula: sessao.matricula, Importado_Por: por, Importado_Em: em, ID_Import: id };
   L.sh.getRange(L.sh.getLastRow() + 1, 1, 1, L.cab.length).setNumberFormat('@').setValues([L.cab.map(function (c) { return log[c] == null ? '' : String(log[c]); })]);
-  return { ok: true, rotina: rotina, linhas: linhas.length, em: em, id: id };
+  return { ok: true, rotina: rotina, linhas: linhas.length, repetidas: repetidas, em: em, id: id };
 }
 function lerTab(nome, cols) { const A = abaRot(nome, cols), n = A.sh.getLastRow(); return { colunas: A.cab, registros: n >= 2 ? A.sh.getRange(2, 1, n - 1, A.cab.length).getDisplayValues() : [] }; }
 /** Para quem importa: só a última importação de cada rotina (sem descontos). */
@@ -785,7 +826,7 @@ function rotLer() {
   return o;
 }
 /** Rode uma vez no editor para criar todas as abas de histórico das rotinas. */
-function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); return 'Abas criadas.'; }
+function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); abaRot(ABAS.solicit.nome, ABAS.solicit.colunas); return 'Abas criadas.'; }
 
 /* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
 const PASTA_PAINEIS = 'Auditoria_Paineis';

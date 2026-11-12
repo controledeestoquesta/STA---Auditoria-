@@ -357,6 +357,26 @@
     </div>
   </section>
 
+  <section class="view" id="v-sol" hidden>
+    <div class="seg" role="group" aria-label="Solicitações" id="q-modo" style="margin-bottom:12px"><button type="button" data-qm="nova" aria-pressed="true">Nova solicitação</button><button type="button" data-qm="abertas" aria-pressed="false">Responder contagens</button></div>
+    <div id="q-nova">
+      <div class="block">
+        <div class="adg-g">
+          <div class="field" id="q-fil-f"><label for="q-fil">Filial *</label><input class="in" id="q-fil" list="d-lojas" placeholder="Ex.: SUPER ADEGA SIA"></div>
+          <div class="field" id="q-car-f"><label for="q-car">Carregamento *</label><input class="in" id="q-car" inputmode="numeric" placeholder="Ex.: 3479175"></div>
+          <div class="field" id="q-uf-f"><label for="q-uf">UF *</label><select class="in" id="q-uf"><option value="">Escolha</option><option>DF</option><option>GO</option><option>MG</option><option>BA</option><option>TO</option><option>MT</option><option>MS</option><option>SP</option><option>Outra</option></select></div>
+          <div class="field span2" id="q-mot-f2"><label for="q-mot">Motorista *</label><input class="in" id="q-mot" placeholder="Nome do motorista"></div>
+          <div class="field" id="q-nf-f"><label for="q-nf">Nº NF *</label><input class="in" id="q-nf" inputmode="numeric" placeholder="Ex.: 896503"></div>
+          <div class="field span2" id="q-prod-f"><label>Código do item *</label><div id="q-prod"></div></div>
+          <div class="field" id="q-qtd-f"><label for="q-qtd">Quantidade *</label><input class="in" id="q-qtd" type="number" inputmode="numeric" min="1" placeholder="0"></div>
+        </div>
+        <div class="field" id="q-mtv-f"><span class="lbl">Motivo *</span><div class="mot" id="q-mtv" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Mercadoria Invertida">Mercadoria Invertida</button><button type="button" role="radio" aria-checked="false" data-m="Falta de Mercadoria">Falta de Mercadoria</button><button type="button" role="radio" aria-checked="false" data-m="Mercadoria Avariada" style="grid-column:1/-1">Mercadoria Avariada</button></div></div>
+        <button type="button" class="save" id="q-save">Registrar solicitação de contagem</button>
+      </div>
+    </div>
+    <div id="q-abertas" hidden></div>
+  </section>
+
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
   <section class="view" id="v-fechamento" hidden><div id="fech"></div></section>
@@ -471,6 +491,7 @@
   <button type="button" data-v="retorno" hidden>Retorno</button>
   <button type="button" data-v="cnt" hidden>Contagem</button>
   <button type="button" data-v="spk" hidden>Saldo picking</button>
+  <button type="button" data-v="sol" hidden>Solicitações</button>
   <button type="button" data-v="cargas" hidden>Cargas</button>
   <button type="button" data-v="aero" hidden>Aéreo</button>
   <button type="button" data-v="pp" hidden>Prevenção</button>
