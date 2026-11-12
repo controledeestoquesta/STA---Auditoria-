@@ -92,6 +92,9 @@
     <p class="sync" id="sync-line" hidden></p>
     <div class="export" style="margin:0 0 12px">
       <button type="button" class="save" id="x-pr" style="margin:0 0 4px">Central de impressão de NCs</button>
+      <div class="rc-box"><b>Relatório consolidado em PDF: todos os fechamentos do dia + não conformidades do dia</b>
+        <label>Dia <input type="date" id="rc-data"></label><label class="ck"><input type="checkbox" id="rc-nc" checked> Incluir NCs do dia</label><label class="ck"><input type="checkbox" id="rc-vazios" checked> Pular setores sem registros</label>
+        <button type="button" class="save" id="rc-go">Gerar PDF consolidado</button></div>
       <button type="button" class="btn full" id="x-orig" hidden>Imprimir documentos originais das NCs</button>
       <p class="note" style="margin:-2px 0 6px">Escolha o que imprimir (marcadas na lista ou o filtro atual), o formato (fichas compactas, relação para assinatura ou documento completo) e se vai com fotos.</p>
       <button type="button" class="btn full" id="x-ruas">Baixar CSV</button>

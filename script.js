@@ -1056,14 +1056,17 @@ function docsOriginais(lista,base){const docs=[],feitos=new Set();const asc=list
     else if(aba==="cargas"){const k="c"+(r.ID_Sessao||r.Numero_OS);if(feitos.has(k))return;feitos.add(k);const L=base.filter(x=>x._aba==="cargas"&&(r.ID_Sessao?x.ID_Sessao===r.ID_Sessao:x.Numero_OS===r.Numero_OS)).sort((a,b)=>a.ts-b.ts);if(L.some(x=>x.Causador==="Conferente"))docs.push({html:carDocHTML(sessaoDe(r,L),L),multi:true});}});
   return docs;}
 async function makePdfLista(docs){if(!window.html2canvas)await loadScript(H2C);if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript(JSPDF);
-  const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait"});let primeira=true;
-  for(const d of docs){const host=document.createElement("div");host.style.cssText="position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:34px 45px;box-sizing:border-box";host.innerHTML=d.html;document.body.appendChild(host);
+  const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:docs[0]&&docs[0].land?"landscape":"portrait"});let primeira=true;
+  for(const d of docs){const host=document.createElement("div");host.style.cssText=d.land?"position:fixed;left:-10000px;top:0;width:1123px;background:#fff;padding:0;box-sizing:border-box":"position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:34px 45px;box-sizing:border-box";host.innerHTML=d.html;document.body.appendChild(host);
+    if(d.land){await Promise.all([...host.querySelectorAll("img")].map(i=>i.complete?0:new Promise(ok=>{i.onload=i.onerror=ok;})));
+      try{const cv=await window.html2canvas(host,{scale:1.7,backgroundColor:"#ffffff",logging:false,windowWidth:1200});if(!primeira)pdf.addPage("a4","landscape");
+        let w=297,h=cv.height*w/cv.width;if(h>210){h=210;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.88),"JPEG",(297-w)/2,0,w,h);primeira=false;}finally{host.remove();}continue;}
     await Promise.all([...host.querySelectorAll("img")].map(i=>i.complete?0:new Promise(ok=>{i.onload=i.onerror=ok;})));
     try{const cv=await window.html2canvas(host,{scale:1.6,backgroundColor:"#ffffff",logging:false});const pageH=Math.floor(cv.width*297/210);
-      if(!d.multi||cv.height<=pageH){if(!primeira)pdf.addPage();let w=210,h=cv.height*w/cv.width;if(h>297){h=297;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.85),"JPEG",(210-w)/2,0,w,h);primeira=false;}
+      if(!d.multi||cv.height<=pageH){if(!primeira)pdf.addPage("a4","portrait");let w=210,h=cv.height*w/cv.width;if(h>297){h=297;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.85),"JPEG",(210-w)/2,0,w,h);primeira=false;}
       else{const pc=document.createElement("canvas");pc.width=cv.width;const ctx=pc.getContext("2d");let y=0;
         while(y<cv.height){const h=Math.min(pageH,cv.height-y);pc.height=h;ctx.fillStyle="#fff";ctx.fillRect(0,0,pc.width,h);ctx.drawImage(cv,0,y,cv.width,h,0,0,cv.width,h);
-          if(!primeira)pdf.addPage();pdf.addImage(pc.toDataURL("image/jpeg",.85),"JPEG",0,0,210,h*210/cv.width);primeira=false;y+=pageH-60;}}}
+          if(!primeira)pdf.addPage("a4","portrait");pdf.addImage(pc.toDataURL("image/jpeg",.85),"JPEG",0,0,210,h*210/cv.width);primeira=false;y+=pageH-60;}}}
     finally{host.remove();}}
   return pdf.output("blob");}
 async function imprimirOriginais(){const L=filtered();if(!L.length){toast("Nada para imprimir com estes filtros.");return;}
@@ -2881,6 +2884,40 @@ async function spkExcel(L,periodo){try{if(!window.XLSX)await loadScript(XLSX_URL
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Bloqueio");XLSX.writeFile(wb,"Bloqueio_Saldo_Picking_"+todayISO()+".xlsx");toast("Excel da lista de bloqueio baixado.");}
   catch(e){toast("Não consegui gerar o Excel: "+(e.message||e));}}
 document.addEventListener("click",e=>{if(e.target&&e.target.id==="fxk-exp"){spkExportar(fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r=>r.Codigo_Produto),fdISO(FECH.de)+" a "+fdISO(FECH.ate));}});
+
+// ===== Relatório consolidado: todos os fechamentos do dia + NCs do dia em um PDF =====
+const RC_TIPOS=[["ruas","ruas"],["mapa","aero"],["retorno","retorno"],["cargas","cargas"],["aero","aero"],["procura","procura"],["spk","saldo"],["prev","pp"],["sac","sac"],["adega","adega"],["qual",null],["setores",null]];
+const ontemISO=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+function rcPode(k){return (k==="setores"||k==="qual")?ehAdm():k==="mapa"?(podeVer("ruas")||podeVer("aero")):podeVer(k);}
+async function relConsolidado(){const dia=($("rc-data")&&$("rc-data").value)||ontemISO(),pular=!$("rc-vazios")||$("rc-vazios").checked,comNC=!$("rc-nc")||$("rc-nc").checked;
+  const bt=$("rc-go");if(bt){bt.disabled=true;bt.textContent="Montando relatório…";}
+  try{if(!FECH.dados||FECH._rcDia!==dia){toast("Buscando os dados da planilha…");await carregarFech(true);FECH._rcDia=dia;}
+    if(!FECH.dados){toast("Não consegui ler a planilha: "+(FECH.info||"sem resposta"));return;}
+    const salvo={tipo:FECH.tipo,de:FECH.de,ate:FECH.ate},docs=[],indice=[];const mes=dia.slice(0,8)+"01";
+    const dKey=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+    try{for(const [k,ds] of RC_TIPOS){if(!rcPode(k)||!FX_TAB[k])continue;FECH.tipo=k;FECH.de=k==="setores"?mes:dia;FECH.ate=dia;
+        if(pular&&ds){const n=fxRows(FECH.dados[ds]).filter(r=>dKey(r.ts)===dia).length;if(!n)continue;}
+        let html="";try{html=fxRelatorio();}catch(e){console.error(k,e);continue;}
+        html=html.replace(/<div class="fxq-cmp no-print">[\s\S]*?<\/div>/,"");docs.push({html:'<div class="pd fx">'+html+'</div>',land:true});indice.push([FX_TAB[k],k==="setores"?"acumulado de "+fdISO(mes)+" a "+fdISO(dia):fdISO(dia),"Fechamento"]);}}
+    finally{Object.assign(FECH,salvo);}
+    let ncs=[];if(comNC){ncs=sheetRecs0(FECH.dados).filter(r=>ehNC(r)&&dKey(r.ts)===dia).sort((a,b)=>(a._aba||"").localeCompare(b._aba||"")||a.ts-b.ts);
+      for(let i=0;i<ncs.length;i+=2)docs.push({html:'<div class="ncpg">'+ncFicha(ncs[i],false)+(ncs[i+1]?ncFicha(ncs[i+1],false):'')+'</div>',multi:false});
+      if(ncs.length)indice.push(["Não conformidades do dia",ncs.length+" NC · "+Math.ceil(ncs.length/2)+" folha(s)","Fichas"]);}
+    if(!docs.length){toast("Nada para "+fdISO(dia)+": nenhum fechamento com registros nem NC.");return;}
+    const porSetor={};ncs.forEach(r=>{const x=ncResumo(r);const o=porSetor[x.setor]=porSetor[x.setor]||{n:0,v:0,c:x.cor};o.n++;o.v+=x.valor;});
+    const capa='<div class="pd rc-capa"><div class="pd-h"><img src="'+LOGO_BLUE+'" alt="Santa Therezinha"><div class="r"><h1>Relatório consolidado de auditoria</h1><p>Dia <b>'+fdISO(dia)+'</b> · gerado em '+fmtDT(new Date())+'</p></div></div>'+
+      '<h2>Conteúdo</h2><table class="lt"><thead><tr><th>#</th><th>Relatório</th><th>Período</th><th>Tipo</th></tr></thead><tbody>'+indice.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(x[0])+'</b></td><td>'+esc(x[1])+'</td><td>'+esc(x[2])+'</td></tr>').join("")+'</tbody></table>'+
+      (ncs.length?'<h2>Não conformidades de '+fdISO(dia)+'</h2><table class="lt"><thead><tr><th>Setor</th><th class="n">NCs</th><th class="n">Valor</th></tr></thead><tbody>'+Object.entries(porSetor).map(([s,o])=>'<tr><td><b style="color:'+o.c+'">'+esc(s)+'</b></td><td class="n">'+o.n+'</td><td class="n">'+BRL.format(o.v)+'</td></tr>').join("")+
+        '<tr><td><b>Total</b></td><td class="n"><b>'+ncs.length+'</b></td><td class="n"><b>'+BRL.format(ncs.reduce((s,r)=>s+ncResumo(r).valor,0))+'</b></td></tr></tbody></table>':'<p class="decl">Nenhuma não conformidade registrada em '+fdISO(dia)+'.</p>')+
+      '<p class="decl" style="margin-top:14px">Os fechamentos mostram somente o dia selecionado. O fechamento de Setores mostra o acumulado do mês até o dia.</p></div>';
+    docs.unshift({html:capa,multi:false});
+    openDoc({html:docs.map(d=>'<div class="docsep'+(d.land?" land":"")+'">'+d.html+'</div>').join(""),pdfDocs:docs,multi:true,name:"Relatorio_consolidado_"+dia+".pdf",title:"Relatório consolidado – "+fdISO(dia),
+      short:"Relatório consolidado de auditoria – "+fdISO(dia)+" – "+(indice.length)+" relatórios",text:"*RELATÓRIO CONSOLIDADO DE AUDITORIA*\n"+fdISO(dia)+"\n"+indice.map(x=>"• "+x[0]+" ("+x[1]+")").join("\n")});}
+  catch(e){toast("Não consegui montar o relatório: "+(e.message||e));}
+  finally{if(bt){bt.disabled=false;bt.textContent="Gerar PDF consolidado";}}}
+if($("rc-data")){$("rc-data").value=ontemISO();$("rc-go").onclick=relConsolidado;}
+(function(){const s=document.createElement("style");s.textContent=".rc-box{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);margin:8px 0}.rc-box b{flex:1 1 100%}.rc-box label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:700;color:var(--muted)}.rc-box input[type=date]{min-height:40px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit}.rc-box .ck{flex-direction:row;align-items:center;gap:6px;font-weight:600}.rc-box .save{margin:0;width:auto;padding:0 18px;min-height:40px}"+
+  "@page land{size:A4 landscape;margin:0}@media print{#print .docsep.land{page:land}#print .docsep.land .pd.fx{width:1123px!important;zoom:.95}}";document.head.appendChild(s);})();
 
 // ===== Rascunho do lançamento: protege contra o celular recarregar a página ao abrir câmera/galeria =====
 const DRAFT_K="audcd_draft";let draftRestoring=false;
