@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 40)
+ * Auditoria STA – Santa Therezinha (versão 41)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -101,11 +101,21 @@ ABAS.saldo = {
 const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto', 'Descricao_Produto', 'Rua', 'Endereco', 'Qtd_Sistema', 'Qtd_Auditada', 'Diferenca', 'Situacao', 'Vl_Unitario', 'Valor_Diferenca', 'Matricula_Auditor', 'Nome_Auditor'];
 ABAS.solicit = {
   nome: 'Solicitacao_Contagens', perm: 'aud_sol',
-  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
     'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Recebido_Em'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Codigo_Produto', 'NF', 'Matricula_Solicitante', 'DataHora_Resposta']
 };
-const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+/* ===================== Auditoria de validade (planilha externa) ===================== */
+const VALIDADE_ID = '13E2__GTbIbFcG_p-B6INblDQuILurRPnyFb_S7I7DrI';
+const VALIDADE_ABAS = ['AUDITORIA_AE', 'AUDITORIA_AP'];
+function valLer() {
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), abas = {};
+  VALIDADE_ABAS.forEach(function (n) { const sh = ss.getSheetByName(n); abas[n] = sh ? { valores: sh.getDataRange().getDisplayValues() } : { valores: [], erro: 'Aba ' + n + ' não encontrada' }; });
+  return { ok: true, abas: abas };
+}
+/** Rode uma vez no editor para autorizar o acesso à planilha de validade. */
+function testarValidade() { const r = valLer(); return Object.keys(r.abas).map(function (k) { return k + ': ' + r.abas[k].valores.length + ' linhas'; }).join(' | '); }
 /** Responde uma solicitação de contagem: grava a resposta e o tempo (minutos) desde a solicitação. */
 function solResponder(id, qtd, resultado, sessao) {
   const ss = abrirPlanilha(), sh = ss.getSheetByName(ABAS.solicit.nome);
@@ -150,6 +160,10 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (dados.acao === 'val_ler') {
+    if (['aud_adm', 'aud_com'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para a auditoria de validade.' });
+    try { return resposta(valLer()); } catch (err) { return resposta({ ok: false, erro: 'Não consegui abrir a planilha de validade: ' + String(err.message || err) + ' (a conta dona do Apps Script precisa ter acesso a ela).' }); }
+  }
   if (dados.acao === 'sol_ler' || dados.acao === 'sol_responder') {
     if (sessao.permissoes.indexOf('aud_adm') < 0 && sessao.permissoes.indexOf('aud_sol') < 0) return resposta({ ok: false, erro: 'Sem permissão de solicitação de contagens (aud_sol).' });
     try {
@@ -310,7 +324,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 40, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 41, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
