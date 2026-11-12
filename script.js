@@ -2166,8 +2166,9 @@ const CE_GRP={conf:["conf_carga","sac_falta","sac_sobra"],rep:["rep_rua","rep_re
 function ceBonus(de,ate){const a=new Date(de+"T00:00:00").getTime(),b=new Date(ate+"T23:59:59").getTime(),noP=L=>fxRows(L).filter(r=>r.ts>=a&&r.ts<=b),D=FECH.dados||{},V=CE.cfg.valores,P=CE.cfg.repasses||CE_REP0,B={};
   const dar=(mats,v,tipo)=>{if(!mats||!mats.length||!v)return;const p=v/mats.length;mats.forEach(m=>{const x=B[m]=B[m]||{v:0,conf:0,rep:0,oper:0};x.v+=p;x[tipo]+=p;});};
   /* conferentes: o auditor recebe o VALOR da ocorrência causada pelo conferente (ex.: R$ 38,16) */
-  noP(D.cargas).filter(r=>r.Causador!=="Separador").forEach(r=>{const au=String(r.Matricula_Auditor||"").trim();dar(P.conf.includes(au)?[au]:P.conf,pnum(r.Valor_Total),"conf");});
-  noP(D.sac).filter(sacValida).forEach(r=>dar(P.conf,pnum(r.Valor),"conf"));
+  { /* conferentes: o auditor que identificou recebe o valor de possível perda do item (só NC causada por conferente, só no mês) */
+    const mi=new Date(ate.slice(0,8)+"01T00:00:00").getTime(),a2=Math.max(a,mi);
+    fxRows(D.cargas).filter(r=>r.ts>=a2&&r.ts<=b&&String(r.Causador||"")==="Conferente").forEach(r=>{const au=String(r.Matricula_Auditor||"").trim();if(P.conf.includes(au))dar([au],pnum(r.Valor_Total),"conf");});}
   noP(D.ruas).filter(r=>pbool(r.Possui_NC)).forEach(r=>{dar(P.rep,+V.rep_rua||0,"rep");});
   noP(D.retorno).filter(r=>pbool(r.Possui_NC)).forEach(()=>dar(P.rep,+V.rep_ret||0,"rep"));
   noP(D.aero).forEach(()=>dar(P.oper,+V.oper_aero||0,"oper"));return B;}
@@ -3079,7 +3080,7 @@ html.desk nav button[data-v]:not([aria-current="page"]):hover::before{opacity:1;
 
 // ===== Solicitação de contagens (com tempo de resposta) =====
 const SOL_COLS=["ID_Auditoria","Data","DataHora","Tipo_Contagem","Filial","Carregamento","Motorista","UF","Codigo_Produto","Descricao_Produto","Quantidade","NF","Motivo","Matricula_Solicitante","Nome_Solicitante","Status","DataHora_Resposta","Qtd_Contada","Resultado","Respondido_Por","Tempo_Resposta_Min"];
-const SOL_META=60;/* minutos: prazo de resposta da contagem */
+const SOL_META=1440;/* minutos: prazo de resposta da contagem (24h) */
 const SQ={prod:null,mtv:null,modo:"nova",rows:null,busy:false,tipo:null};
 document.querySelectorAll("#q-tipo button").forEach(b=>b.addEventListener("click",()=>{SQ.tipo=b.dataset.t;document.querySelectorAll("#q-tipo button").forEach(x=>x.setAttribute("aria-checked",String(x===b)));const ad=SQ.tipo==="ADEGA",f=$("q-fil");
   $("q-form").hidden=false;f.value="";if(ad){f.setAttribute("list","d-lojas");f.removeAttribute("inputmode");f.placeholder="Escolha a loja Super Adega";$("q-fil-l").textContent="Filial (Super Adega) *";}else{f.removeAttribute("list");f.setAttribute("inputmode","numeric");f.placeholder="Número da filial do cliente";$("q-fil-l").textContent="Nº da filial do cliente *";}setErr("q-tipo-f","");}));
@@ -3087,7 +3088,7 @@ const qProd=picker($("q-prod"),{ph:"Código ou descrição do item",search:searc
 document.querySelectorAll("#q-mtv button").forEach(b=>b.addEventListener("click",()=>{SQ.mtv=b.dataset.m;setErr("q-mtv-f","");document.querySelectorAll("#q-mtv button").forEach(x=>x.setAttribute("aria-checked",String(x===b)));}));
 document.querySelectorAll("#q-modo button").forEach(b=>b.addEventListener("click",()=>{SQ.modo=b.dataset.qm;paintSOL();if(SQ.modo==="abertas")solCarregar();}));
 const solMin=(a,b)=>{const x=rotDt(a),y=b?rotDt(b):new Date();return x&&y?Math.max(0,Math.round((y-x)/6e4)):null;};
-const solTempo=m=>m==null?"—":m<60?m+" min":Math.floor(m/60)+"h"+String(m%60).padStart(2,"0");
+const solTempo=m=>m==null?"—":m<60?m+" min":m<1440?Math.floor(m/60)+"h"+String(m%60).padStart(2,"0"):Math.floor(m/1440)+"d "+Math.floor((m%1440)/60)+"h";
 function paintSOL(){if(!$("q-nova"))return;document.querySelectorAll("#q-modo button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.qm===SQ.modo)));$("q-nova").hidden=SQ.modo!=="nova";$("q-abertas").hidden=SQ.modo!=="abertas";if(SQ.modo==="abertas")solLista();}
 $("q-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login primeiro.");return;}const errs=[],chk=(c,f,m)=>{setErr(f,c?m:"");if(c)errs.push(f);},v=id=>$(id).value.trim(),q=parseInt($("q-qtd").value,10)||0;
   chk(!SQ.tipo,"q-tipo-f","Escolha se a contagem é para CLIENTE ou ADEGA.");chk(!v("q-fil"),"q-fil-f",SQ.tipo==="CLIENTE"?"Informe o número da filial.":"Escolha a filial.");
@@ -3097,19 +3098,18 @@ $("q-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login p
   const now=new Date(),k=SQ.prod;const rec={_aba:"solicit",ID_Auditoria:newId("SOL"),Data:fmtDT(now).slice(0,10),DataHora:fmtDT(now),ts:now.getTime(),Tipo_Contagem:SQ.tipo,Filial:SQ.tipo==="CLIENTE"?"Filial "+v("q-fil").replace(/\D/g,""):v("q-fil"),Carregamento:v("q-car").replace(/\D/g,""),Motorista:v("q-mot").toUpperCase(),UF:v("q-uf"),
     Codigo_Produto:P.cod[k],Descricao_Produto:P.desc[k],Quantidade:q,NF:v("q-nf").replace(/\D/g,""),Motivo:SQ.mtv,Matricula_Solicitante:auditor,Nome_Solicitante:nomeAud(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Status:"Aberta",DataHora_Resposta:"",Qtd_Contada:"",Resultado:"",Respondido_Por:"",Tempo_Resposta_Min:""};
   $("q-save").disabled=true;const ok=await saveRec(rec);$("q-save").disabled=false;qProd.clear();SQ.tipo=null;document.querySelectorAll("#q-tipo button").forEach(x=>x.setAttribute("aria-checked","false"));$("q-form").hidden=true;["q-fil","q-car","q-mot","q-nf"].forEach(i=>$(i).value="");$("q-uf").value="";SQ.prod=null;SQ.mtv=null;$("q-qtd").value="";document.querySelectorAll("#q-mtv button").forEach(x=>x.setAttribute("aria-checked","false"));
-  toast((ok||dbState==="off"?"Solicitação registrada":"Salva neste aparelho, envio pendente")+" – prazo de resposta: "+SOL_META+" min.");});
+  toast((ok||dbState==="off"?"Solicitação registrada":"Salva neste aparelho, envio pendente")+" – prazo de resposta: 24 horas.");});
 async function solCarregar(){if(SQ.busy||DEMO||!SHEET_URL)return;SQ.busy=true;solLista();try{const j=await ppPost({acao:"sol_ler"});SQ.rows=ceRows(j).filter(r=>r.ID_Auditoria);}catch(e){toast(e.message);}SQ.busy=false;solLista();}
 function solLista(){const box=$("q-abertas");if(!box)return;const loc=allRecs().filter(r=>r._aba==="solicit"&&!r._sheet),ids=new Set((SQ.rows||[]).map(r=>r.ID_Auditoria));
   const L=(SQ.rows||[]).concat(loc.filter(r=>!ids.has(r.ID_Auditoria))).filter(r=>(r.Status||"Aberta")==="Aberta").sort((a,b)=>(rotDt(a.DataHora)||0)-(rotDt(b.DataHora)||0));
-  box.innerHTML='<div class="block"><div class="ce-th"><h3>Contagens aguardando resposta <small>'+L.length+'</small></h3><button type="button" class="btn sm" id="q-upd"'+(SQ.busy?" disabled":"")+'>'+(SQ.busy?"Carregando…":"Atualizar da planilha")+'</button></div><p class="note" style="margin:0">Prazo de resposta: <b>'+SOL_META+' minutos</b> desde a solicitação.</p></div>'+
+  box.innerHTML='<div class="block"><div class="ce-th"><h3>Contagens aguardando resposta <small>'+L.length+'</small></h3><button type="button" class="btn sm" id="q-upd"'+(SQ.busy?" disabled":"")+'>'+(SQ.busy?"Carregando…":"Atualizar da planilha")+'</button></div><p class="note" style="margin:0">Prazo de resposta: <b>24 horas</b> desde a solicitação.</p></div>'+
     (L.map(r=>{const m=solMin(r.DataHora),atr=m!=null&&m>SOL_META;return '<div class="block vl-it"><div class="top"><span>'+esc(r.DataHora)+' · '+esc(r.Filial)+' · '+esc(r.UF)+'</span><span class="'+(atr?"ro-no":"ro-ok")+'">'+solTempo(m)+(atr?" (atrasada)":"")+'</span></div>'+
       '<div class="addr">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto||"")+' · '+esc(r.Quantidade)+' un</div><div class="tags"><span class="tag nc">'+esc(r.Motivo)+'</span>'+(r.Tipo_Contagem?'<span class="tag">'+esc(r.Tipo_Contagem)+'</span>':'')+'<span class="tag">Carreg. '+esc(r.Carregamento)+'</span><span class="tag">NF '+esc(r.NF)+'</span><span class="tag">'+esc(r.Motorista)+'</span><span class="tag">por '+esc(curto(r.Nome_Solicitante||""))+'</span></div>'+
-      '<div class="vl-b" style="grid-template-columns:1fr"><button type="button" class="save" data-qr="'+esc(r.ID_Auditoria)+'">Responder contagem</button></div></div>';}).join("")||(SQ.rows?'<p class="note">Nenhuma contagem aguardando resposta.</p>':''));
+      '<div class="vl-b"><button type="button" class="ok" data-qr="'+esc(r.ID_Auditoria)+'" data-qs="Contagem autorizada">CONTAGEM AUTORIZADA</button><button type="button" class="no" data-qr="'+esc(r.ID_Auditoria)+'" data-qs="Contagem não autorizada">CONTAGEM NÃO AUTORIZADA</button></div></div>';}).join("")||(SQ.rows?'<p class="note">Nenhuma contagem aguardando resposta.</p>':''));
   $("q-upd").onclick=solCarregar;
   box.querySelectorAll("[data-qr]").forEach(b=>b.onclick=async()=>{const r=L.find(x=>x.ID_Auditoria===b.dataset.qr);if(!r)return;
-    const q=prompt("Quantidade contada para "+r.Codigo_Produto+" – "+(r.Descricao_Produto||"")+" (solicitado: "+r.Quantidade+"):","");if(q==null||q.trim()==="")return;
-    const res=prompt("Resultado da contagem (ex.: Confirmado, Divergente, Encontrado no estoque):",+q===+r.Quantidade?"Confirmado":"Divergente");if(res==null)return;
-    try{const j=await ppPost({acao:"sol_responder",id:r.ID_Auditoria,qtd:ceParse(q),resultado:res.trim()||"Respondida"});Object.assign(r,{Status:"Respondida",DataHora_Resposta:j.em,Tempo_Resposta_Min:j.min});toast("Respondida em "+solTempo(j.min)+(j.min>SOL_META?" – fora do prazo.":" – dentro do prazo."));
+    const res=b.dataset.qs;if(!confirm(res.toUpperCase()+"?\n\n"+r.Codigo_Produto+" – "+(r.Descricao_Produto||"")+" · "+r.Quantidade+" un · "+r.Filial))return;
+    try{const j=await ppPost({acao:"sol_responder",id:r.ID_Auditoria,qtd:"",resultado:res});Object.assign(r,{Status:"Respondida",Resultado:res,DataHora_Resposta:j.em,Tempo_Resposta_Min:j.min});toast(res+" em "+solTempo(j.min)+(j.min>SOL_META?" – fora do prazo de 24h.":" – dentro do prazo."));
       if(SQ.rows){const x=SQ.rows.find(y=>y.ID_Auditoria===r.ID_Auditoria);if(x)Object.assign(x,r);}solLista();}catch(e){toast(e.message+(/não encontrada/i.test(e.message)?" (a solicitação ainda está sendo enviada; tente em instantes)":""));}});}
 function cardSOL(r){return '<details class="rec '+(r.Status==="Respondida"?"ok":"nc")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Solicitação de contagem</span><span>'+esc(r.Status||"Aberta")+'</span></div><div class="addr">'+esc(r.Filial||"")+' · Carreg. '+esc(r.Carregamento||"")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto||"")+'</div><div class="tags"><span class="tag nc">'+esc(r.Motivo||"")+'</span><span class="tag">'+esc(r.Quantidade)+' un</span></div></summary></details>';}
 // fechamento
@@ -3122,14 +3122,14 @@ function fxSol(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.solicit).filter(r
   const porD={};resp.forEach(r=>{const k=fxDiaKey(r.ts);const x=porD[k]=porD[k]||{ts:r.ts,t:0,n:0};x.t+=r._m||0;x.n++;});const linha=Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:Math.round(porD[k].t/porD[k].n),txt:solTempo(Math.round(porD[k].t/porD[k].n))}));
   const itens={};rows.forEach(r=>{const x=itens[r.Codigo_Produto]=itens[r.Codigo_Produto]||{d:r.Descricao_Produto,n:0,q:0};x.n++;x.q+=ceParse(r.Quantidade);});
   return fxHead(tit,rows.length)+
-    fxKpis([{t:"Solicitações",v:rows.length,c:"#0F172A",s:"Cliente "+(tipoN.CLIENTE||0)+" · Adega "+(tipoN.ADEGA||0)},{t:"Respondidas",v:resp.length,c:"#16A34A",s:rows.length?Math.round(resp.length/rows.length*100)+"% do total":""},
+    fxKpis([{t:"Solicitações",v:rows.length,c:"#0F172A",s:"Cliente "+(tipoN.CLIENTE||0)+" · Adega "+(tipoN.ADEGA||0)},{t:"Autorizadas × não autorizadas",v:resp.filter(r=>/^Contagem autorizada/i.test(r.Resultado||"")).length+' <em style="font-style:normal;color:#94A3B8;font-size:.7em">×</em> <em style="font-style:normal;color:#DC2626">'+resp.filter(r=>/não autorizada/i.test(r.Resultado||"")).length+'</em>',c:"#16A34A",s:resp.length+" respondida(s)"},
       {t:"Aguardando resposta",v:ab.length,c:"#CA8A04",s:abAtr+" fora do prazo",sc:abAtr?"#B91C1C":"#64748B"},{t:"Tempo médio de resposta",v:solTempo(tm==null?null:Math.round(tm)),c:"#2563EB",s:"mediana "+solTempo(med)},
-      {t:"Dentro do prazo",v:resp.length?Math.round(noPrazo/resp.length*100)+"%":"—",c:"#15803D",s:"meta: até "+SOL_META+" min"},{t:"Maior tempo",v:solTempo(resp.length?Math.max(...resp.map(r=>r._m||0)):null),c:"#B91C1C"}],true)+
+      {t:"Dentro do prazo",v:resp.length?Math.round(noPrazo/resp.length*100)+"%":"—",c:"#15803D",s:"meta: resposta em até 24h"},{t:"Maior tempo",v:solTempo(resp.length?Math.max(...resp.map(r=>r._m||0)):null),c:"#B91C1C"}],true)+
     '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+fxCard("Filiais — solicitações e tempo médio",fxBars(Object.entries(fil).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,x])=>({l:k,v:x.n,txt:x.n+" · "+(x.c?solTempo(Math.round(x.t/x.c)):"—"),c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-w"'))+
       fxCard("Motivos",fxDonut(Object.entries(mot).map(([k,v])=>({l:k,v,c:MC[k]||"#334155"}))))+'</div>'+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+fxCard("Itens mais solicitados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Solicitações",n:1},{t:"Quantidade",n:1}],Object.entries(itens).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.n,x.q])))+
-      fxCard("Prazo das respostas",fxDonut([{l:"Até "+SOL_META+" min",v:noPrazo,c:"#16A34A"},{l:"Acima do prazo",v:resp.length-noPrazo,c:"#DC2626"},{l:"Aguardando",v:ab.length,c:"#CA8A04"}]))+'</div>'+
-    fxFull("Tempo médio de resposta por dia (minutos)",fxLine(linha,"#2563EB",null,130))+fxFoot("Solicitação de contagens");}
+      fxCard("Prazo das respostas",fxDonut([{l:"Até 24h",v:noPrazo,c:"#16A34A"},{l:"Acima do prazo",v:resp.length-noPrazo,c:"#DC2626"},{l:"Aguardando",v:ab.length,c:"#CA8A04"}]))+'</div>'+
+    fxFull("Tempo médio de resposta por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Solicitação de contagens");}
 
 // ===== Comissão automática lançada todos os dias (saldo de picking, aéreo, Validação BOX e 1350) =====
 const BOX_AUD=["10003033","10002517"];
@@ -3174,7 +3174,7 @@ setTimeout(alVerificar,6000);setInterval(alVerificar,60000);document.addEventLis
 (function(){const s=document.createElement("style");s.textContent=".al-box{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px;animation:alf .2s}@keyframes alf{from{opacity:0}}"+
  ".al-in{background:var(--surface,#fff);border-radius:16px;max-width:420px;width:100%;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center;animation:alp .25s}@keyframes alp{from{transform:scale(.9)}}"+
  ".al-ic{width:48px;height:48px;border-radius:50%;background:#FEF3C7;color:#B45309;font-weight:900;font-size:26px;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;animation:alpu 1.2s infinite}@keyframes alpu{50%{box-shadow:0 0 0 10px rgba(245,158,11,.15)}}"+
- ".al-in h3{margin:4px 0 6px}.al-in p{margin:0 0 14px;color:var(--muted)}.al-in p small{display:block;margin-top:8px;text-align:left;color:var(--ink)}.al-b{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.al-b .save{margin:0}";document.head.appendChild(s);})();
+ "#q-abertas .vl-b{grid-template-columns:1fr 1fr}#q-abertas .vl-b button{min-height:46px;border-radius:10px;border:0;font-weight:800;font-size:.9rem;color:#fff;cursor:pointer;letter-spacing:.02em}#q-abertas .vl-b .ok{background:#16A34A}#q-abertas .vl-b .no{background:#DC2626}#q-abertas .vl-b button:hover{filter:brightness(1.08)}.al-in h3{margin:4px 0 6px}.al-in p{margin:0 0 14px;color:var(--muted)}.al-in p small{display:block;margin-top:8px;text-align:left;color:var(--ink)}.al-b{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.al-b .save{margin:0}";document.head.appendChild(s);})();
 // ===== Auditoria de validade (planilha externa: AUDITORIA_AE e AUDITORIA_AP) =====
 const VAL={dados:null,busy:false,msg:""};const VAL_MAT="10003583";
 function valTab(v){const A=(v&&v.valores)||[];const hi=A.findIndex(r=>r.filter(c=>String(c).trim()&&!/^\d+([.,]\d+)?$/.test(String(c).trim())).length>=3);if(hi<0)return {H:[],rows:[]};
