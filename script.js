@@ -2193,12 +2193,12 @@ function ceBoard(d){const list=ceLista(),r=ceRegs(d),c=ceStats(r,list),aus=CE_AU
     (reg.map(f=>'<tr><td class="n">'+esc(f.nome)+'</td><td>'+esc(f.mat)+'</td><td>'+esc(f.subsetor||"—")+'</td><td>'+ceTL(f.turno)+'</td><td>'+stl(f)+'</td><td>'+ceBr(d)+'</td></tr>').join("")||'<tr><td colspan="6" style="text-align:center;padding:18px">Ninguém neste filtro.</td></tr>')+'</tbody></table></div>'+
     '<div class="ce-dbf"><span>'+CE_SETOR+' | Painel de gestão | Taxa de presença '+cePct(c.taxa)+'</span><span>Gerado em '+fmtDT(new Date())+'</span></div></div>';}
 
-async function ceExportImg(fmt){try{toast("Gerando imagem da chamada…");if(!window.html2canvas)await loadScript("lib/html2canvas.min.js");
+async function ceExportImg(fmt){const jpgEsc=3;try{toast("Gerando imagem da chamada…");if(!window.html2canvas)await loadScript("lib/html2canvas.min.js");
     const box=document.createElement("div");box.style.cssText="position:fixed;left:-12000px;top:0;width:1120px;background:#F4F7FC;z-index:-1";box.innerHTML=ceBoard(CE.d);document.body.appendChild(box);
     await new Promise(r=>setTimeout(r,80));const el=box.firstElementChild;el.style.minWidth="0";el.style.width="1120px";
-    const cv=await window.html2canvas(el,{scale:2,backgroundColor:"#F4F7FC",useCORS:true,logging:false});box.remove();
+    const cv=await window.html2canvas(el,{scale:jpgEsc,backgroundColor:"#F4F7FC",useCORS:true,logging:false,imageTimeout:0});box.remove();
     const jpg=fmt==="jpg",mime=jpg?"image/jpeg":"image/png",nome="Chamada_"+CE.d+(CE.fSub?"_"+CE.fSub.replace(/\W+/g,"_"):"")+(CE.fTurno?"_"+CE.fTurno.replace(":","h"):"")+(jpg?".jpg":".png");
-    const blob=await new Promise(r=>cv.toBlob(r,mime,.92));const file=new File([blob],nome,{type:mime});
+    const blob=await new Promise(r=>cv.toBlob(r,mime,jpg?.97:undefined));const file=new File([blob],nome,{type:mime});
     if(document.documentElement.classList.contains("mob")&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Chamada "+ceBr(CE.d)});return;}catch(e){if(e&&e.name==="AbortError")return;}}
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);toast("Imagem salva: "+nome);}
   catch(e){toast("Não consegui gerar a imagem: "+(e.message||e));}}
