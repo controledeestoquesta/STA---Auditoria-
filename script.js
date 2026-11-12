@@ -2910,7 +2910,6 @@ async function relConsolidado(){const dia=($("rc-data")&&$("rc-data").value)||on
       (ncs.length?'<h2>Não conformidades de '+fdISO(dia)+'</h2><table class="lt"><thead><tr><th>Setor</th><th class="n">NCs</th><th class="n">Valor</th></tr></thead><tbody>'+Object.entries(porSetor).map(([s,o])=>'<tr><td><b style="color:'+o.c+'">'+esc(s)+'</b></td><td class="n">'+o.n+'</td><td class="n">'+BRL.format(o.v)+'</td></tr>').join("")+
         '<tr><td><b>Total</b></td><td class="n"><b>'+ncs.length+'</b></td><td class="n"><b>'+BRL.format(ncs.reduce((s,r)=>s+ncResumo(r).valor,0))+'</b></td></tr></tbody></table>':'<p class="decl">Nenhuma não conformidade registrada em '+fdISO(dia)+'.</p>')+
       '<p class="decl" style="margin-top:14px">Os fechamentos mostram somente o dia selecionado. O fechamento de Setores mostra o acumulado do mês até o dia.</p></div>';
-    docs.unshift({html:capa,multi:false});
     openDoc({html:docs.map(d=>'<div class="docsep'+(d.land?" land":"")+'">'+d.html+'</div>').join(""),pdfDocs:docs,multi:true,name:"Relatorio_consolidado_"+dia+".pdf",title:"Relatório consolidado – "+fdISO(dia),
       short:"Relatório consolidado de auditoria – "+fdISO(dia)+" – "+(indice.length)+" relatórios",text:"*RELATÓRIO CONSOLIDADO DE AUDITORIA*\n"+fdISO(dia)+"\n"+indice.map(x=>"• "+x[0]+" ("+x[1]+")").join("\n")});}
   catch(e){toast("Não consegui montar o relatório: "+(e.message||e));}
