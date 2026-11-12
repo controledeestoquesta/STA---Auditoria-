@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 37)
+ * Auditoria STA – Santa Therezinha (versão 38)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -128,6 +128,17 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (['rot_salvar', 'rot_ler', 'rot_status'].indexOf(dados.acao) >= 0) {
+    const podeR = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
+    if (dados.acao === 'rot_ler' && !podeR('aud_com')) return resposta({ ok: false, erro: 'Sem permissão de comissão (aud_com).' });
+    if (dados.acao !== 'rot_ler' && !podeR('aud_rot') && !podeR('aud_com')) return resposta({ ok: false, erro: 'Sem permissão de rotinas (aud_rot).' });
+    try {
+      if (dados.acao === 'rot_status') return resposta(rotStatus());
+      if (dados.acao === 'rot_ler') return resposta(rotLer());
+      const lkr = LockService.getScriptLock(); lkr.waitLock(30000);
+      try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar') {
     const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev' }[dados.painel] || 'aud_com';
     const okP = ['aud_adm', 'aud_com', permP].some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
@@ -268,7 +279,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 37, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 38, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -290,6 +301,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_sac: 'Acesso a aba do SAC (ocorrencias de falta e sobra)',
   aud_pro: 'Acesso a aba de auditoria de procura',
   aud_spk: 'Acesso a auditoria de saldo de picking',
+  aud_rot: 'Acesso a importacao das rotinas (1707, 8597, 1350, cadastro, O.S. 51)',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
@@ -722,6 +734,58 @@ function confirmarVale(id, status, sessao) {
   sh.getRange(lin, cab.indexOf('Vale_Confirmado_Em') + 1).setNumberFormat('@').setValue(status === 'Pendente' ? '' : quando);
   return { ok: true, id: String(id), status: status, por: por, em: status === 'Pendente' ? '' : quando };
 }
+
+/* ===================== Rotinas diárias (1707, 8597, 1350, cadastro preventivo, O.S. 51) ===================== */
+const ROTINAS = {
+  r1707: { aba: 'Rotina_1707_Historico', cols: ['Data_Importacao', 'Chave', 'Endereco', 'Rua', 'Tipo', 'Codigo', 'Descricao', 'Quantidade', 'Importado_Por', 'ID_Import'] },
+  r8597: { aba: 'Rotina_8597_Historico', cols: ['Data_Importacao', 'Num_Bonus', 'Data_Bonus', 'Data_Montagem', 'Data_Fechamento', 'Fornecedor', 'Notas', 'Valor', 'Conferente', 'Finalizado', 'Importado_Em', 'Importado_Por', 'ID_Import'] },
+  r1350: { aba: 'Rotina_1350_Historico', cols: ['Data_Importacao', 'Nota', 'Data_Emissao', 'Fornecedor', 'Valor', 'Motivo', 'Importado_Por', 'ID_Import'] },
+  cad: { aba: 'Cadastro_Validacao', cols: ['Data_Importacao', 'Codigo', 'Descricao', 'Na_8022', 'Endereco', 'Importado_Por', 'ID_Import'] },
+  os51: { aba: 'OS51_Pendentes', cols: ['Data_Importacao', 'Quantidade', 'Observacao', 'Importado_Por', 'ID_Import'] }
+};
+const ABA_ROT_LOG = 'Rotinas_Importacoes';
+const COLS_ROT_LOG = ['Data_Importacao', 'Rotina', 'Arquivo', 'Linhas', 'Matricula', 'Importado_Por', 'Importado_Em', 'ID_Import'];
+function abaRot(nome, cols) {
+  const ss = abrirPlanilha(); let sh = ss.getSheetByName(nome);
+  if (!sh) { sh = ss.insertSheet(nome); sh.appendRow(cols); sh.setFrozenRows(1); sh.getRange(1, 1, sh.getMaxRows(), cols.length).setNumberFormat('@'); }
+  const cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
+  cols.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  return { sh: sh, cab: cab };
+}
+/** Grava a importação do dia (substitui a importação anterior do mesmo dia) e registra no log. */
+function rotSalvar(rotina, data, linhas, arquivo, sessao) {
+  const cfg = ROTINAS[rotina]; if (!cfg) throw new Error('Rotina desconhecida: ' + rotina);
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(String(data))) throw new Error('Data inválida.');
+  const A = abaRot(cfg.aba, cfg.cols), sh = A.sh, cab = A.cab;
+  const por = (sessao.nome || '') + ' (' + sessao.matricula + ')', em = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  const id = rotina + '-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyMMddHHmmss');
+  const n = sh.getLastRow(), iD = cab.indexOf('Data_Importacao');
+  if (n >= 2) {
+    const todas = sh.getRange(2, 1, n - 1, cab.length).getValues(), fica = todas.filter(function (l) { return String(l[iD]) !== String(data); });
+    if (fica.length !== todas.length) { sh.getRange(2, 1, n - 1, cab.length).clearContent(); if (fica.length) sh.getRange(2, 1, fica.length, cab.length).setValues(fica); }
+  }
+  const out = linhas.map(function (o) { o = Object.assign({}, o, { Data_Importacao: data, Importado_Por: por, ID_Import: id }); if (rotina === 'r8597') o.Importado_Em = em; return cab.map(function (c) { return o[c] == null ? '' : String(o[c]); }); });
+  if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, cab.length).setNumberFormat('@').setValues(out);
+  const L = abaRot(ABA_ROT_LOG, COLS_ROT_LOG);
+  const log = { Data_Importacao: data, Rotina: rotina, Arquivo: arquivo, Linhas: linhas.length, Matricula: sessao.matricula, Importado_Por: por, Importado_Em: em, ID_Import: id };
+  L.sh.getRange(L.sh.getLastRow() + 1, 1, 1, L.cab.length).setNumberFormat('@').setValues([L.cab.map(function (c) { return log[c] == null ? '' : String(log[c]); })]);
+  return { ok: true, rotina: rotina, linhas: linhas.length, em: em, id: id };
+}
+function lerTab(nome, cols) { const A = abaRot(nome, cols), n = A.sh.getLastRow(); return { colunas: A.cab, registros: n >= 2 ? A.sh.getRange(2, 1, n - 1, A.cab.length).getDisplayValues() : [] }; }
+/** Para quem importa: só a última importação de cada rotina (sem descontos). */
+function rotStatus() {
+  const L = lerTab(ABA_ROT_LOG, COLS_ROT_LOG), iR = L.colunas.indexOf('Rotina'), ult = {};
+  L.registros.forEach(function (l) { ult[l[iR]] = L.colunas.reduce(function (o, c, i) { o[c] = l[i]; return o; }, {}); });
+  return { ok: true, ultimas: ult };
+}
+/** Para o gestor (comissão): históricos completos. */
+function rotLer() {
+  const o = { ok: true, log: lerTab(ABA_ROT_LOG, COLS_ROT_LOG) };
+  Object.keys(ROTINAS).forEach(function (k) { o[k] = lerTab(ROTINAS[k].aba, ROTINAS[k].cols); });
+  return o;
+}
+/** Rode uma vez no editor para criar todas as abas de histórico das rotinas. */
+function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); return 'Abas criadas.'; }
 
 /* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
 const PASTA_PAINEIS = 'Auditoria_Paineis';

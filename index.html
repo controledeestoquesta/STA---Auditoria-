@@ -240,7 +240,7 @@
         <div class="field" id="o-os-f"><label for="o-os">Número O.S.</label><input class="in" id="o-os" inputmode="numeric" placeholder="Ex.: 12711360"></div>
       </div>
       <div class="field" id="o-prod-f"><label>Código / descrição do produto</label><div id="o-prod"></div></div>
-      <div class="field" id="o-qtd-f"><label for="o-qtd">Quantidade pedida na O.S.</label><div class="stepper"><button type="button" data-oq="-1" aria-label="Diminuir">−</button><input class="in" id="o-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oq="1" aria-label="Aumentar">+</button></div></div>
+      <div class="field" id="o-qtd-f"><label for="o-qtd">Quantidade Procura</label><div class="stepper"><button type="button" data-oq="-1" aria-label="Diminuir">−</button><input class="in" id="o-qtd" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oq="1" aria-label="Aumentar">+</button></div></div>
       <div class="field" id="o-enc-f"><label for="o-enc">Quantidade encontrada</label><div class="stepper"><button type="button" data-oe="-1" aria-label="Diminuir">−</button><input class="in" id="o-enc" type="number" inputmode="numeric" min="0" step="1" placeholder="0"><button type="button" data-oe="1" aria-label="Aumentar">+</button></div>
         <div class="ph-row" style="margin-top:8px"><button type="button" class="btn sm" id="o-tudo">Encontrei tudo</button><button type="button" class="btn sm" id="o-nada">Não encontrei nada</button></div></div>
       <div class="money"><span>Pedido na O.S.<br><small id="o-calc"></small></span><b id="o-valor">R$ 0,00</b></div>
@@ -256,14 +256,6 @@
     <div id="o-list" style="margin-top:12px"></div>
   </section>
 
-  <section class="view" id="v-fat" hidden>
-    <div class="block cb-bar">
-      <div class="cb-txt"><b>Atualizar o dashboard de faturamento</b><small id="pinfo-fat">Planilha XLSX com as abas de faturamento por cliente e/ou Super Adega. A atualização fica disponível para todos que têm acesso.</small></div>
-      <label class="btn cb-btn">Importar XLSX<input type="file" id="ft-xlsx" accept=".xlsx,.xls" hidden></label>
-      <a class="btn cb-btn" href="faturamento.html" target="_blank" rel="noopener">Abrir em tela cheia</a>
-    </div>
-    <iframe id="ft-frame" class="emb-frame" title="Dashboard de faturamento" loading="lazy"></iframe>
-  </section>
 
   <section class="view" id="v-lib" hidden>
     <div class="block cb-bar">
@@ -345,6 +337,24 @@
       <button type="button" class="save" id="k-save">Salvar conferência</button>
     </div>
     <div id="k-list" style="margin-top:12px"></div>
+  </section>
+
+  <section class="view" id="v-rot" hidden>
+    <p class="note" style="margin:0 0 10px">Importe as rotinas do dia. Cada importação fica registrada com data, arquivo e quem importou. Se importar de novo no mesmo dia, a anterior é substituída.</p>
+    <div class="ro-grid">
+      <div class="block ro-c" data-rot="r1707"><h3>Rotina 1707 <small>endereços 83 (avaria) e 99 (falta)</small></h3><p class="ro-st" id="rs-r1707">—</p>
+        <div class="ro-f"><label>Dia <input type="date" class="in" data-rd="r1707"></label><label class="btn ro-up">Escolher arquivo XLSX<input type="file" accept=".xlsx,.xls" data-rf="r1707" hidden></label></div><p class="note ro-pv" id="rp-r1707"></p><button type="button" class="save" data-rs="r1707" disabled>Enviar importação</button></div>
+      <div class="block ro-c" data-rot="r8597"><h3>Rotina 8597 <small>bônus</small></h3><p class="ro-st" id="rs-r8597">—</p>
+        <div class="ro-f"><label>Dia <input type="date" class="in" data-rd="r8597"></label><label class="btn ro-up">Escolher arquivo XLSX<input type="file" accept=".xlsx,.xls" data-rf="r8597" hidden></label></div><p class="note ro-pv" id="rp-r8597"></p><button type="button" class="save" data-rs="r8597" disabled>Enviar importação</button></div>
+      <div class="block ro-c" data-rot="r1350"><h3>Rotina 1350 <small>notas emitidas</small></h3><p class="ro-st" id="rs-r1350">—</p>
+        <div class="ro-f"><label>Dia <input type="date" class="in" data-rd="r1350"></label><label class="btn ro-up">Escolher arquivo XLSX<input type="file" accept=".xlsx,.xls" data-rf="r1350" hidden></label></div><p class="note ro-pv" id="rp-r1350"></p><button type="button" class="save" data-rs="r1350" disabled>Enviar importação</button></div>
+      <div class="block ro-c" data-rot="cad"><h3>Cadastro <small>itens validados preventivamente × 8022</small></h3><p class="ro-st" id="rs-cad">—</p>
+        <div class="ro-f"><label>Dia <input type="date" class="in" data-rd="cad"></label><label class="btn ro-up">Arquivo (XLSX/CSV)<input type="file" accept=".xlsx,.xls,.csv,.txt" data-rf="cad" hidden></label></div>
+        <textarea class="in" id="ro-cad-txt" placeholder="Ou cole os códigos (um por linha, ou separados por espaço/vírgula)" style="min-height:80px;margin-top:8px"></textarea><p class="note ro-pv" id="rp-cad"></p><button type="button" class="save" data-rs="cad" disabled>Enviar códigos</button></div>
+      <div class="block ro-c" data-rot="os51" id="ro-os51"><h3>O.S. tipo 51 pendentes <small>em aberto há mais de 48h</small></h3><p class="ro-st" id="rs-os51">—</p>
+        <div class="ro-f"><label>Dia <input type="date" class="in" data-rd="os51"></label><label>Quantidade de O.S. <input type="number" class="in" id="ro-os51-q" min="0" inputmode="numeric" placeholder="0"></label></div>
+        <input class="in" id="ro-os51-o" placeholder="Observação (opcional)" style="margin-top:8px"><button type="button" class="save" data-rs="os51">Lançar</button></div>
+    </div>
   </section>
 
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
@@ -469,8 +479,8 @@
   <button type="button" data-v="procura" hidden>Procura</button>
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
+  <button type="button" data-v="rot" hidden>Rotinas</button>
   <button type="button" data-v="cesta" hidden>Cesta básica</button>
-  <button type="button" data-v="fat" hidden>Faturamento</button>
   <button type="button" data-v="lib" hidden>Liberação</button>
   <button type="button" data-v="dev" hidden>Devoluções</button>
   <button type="button" data-v="vales" hidden>Vales</button>
