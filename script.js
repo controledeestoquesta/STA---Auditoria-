@@ -3134,7 +3134,7 @@ function fxSol(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.solicit).filter(r
 // ===== Comissão automática lançada todos os dias (saldo de picking, aéreo, Validação BOX e 1350) =====
 const BOX_AUD=["10003033","10002517"];
 async function ceAutoSync(){if(!ceCom()||!CE.cfg||!CE.lanc||!FECH.dados)return;const C=rotCfg();
-  if(!rotAtiv("Validação BOX")){CE.cfg.atividades.push({id:ceUid(),nome:"Validação BOX",valor:1,desc:"Inconformidades de conferentes lançadas na auditoria de cargas pelo auditor",ativo:true,ordem:CE.cfg.atividades.length});await ceSalvarCfg("Atividade “Validação BOX” criada (R$ 1,00 por ocorrência).");}
+  if(!rotAtiv("Validação BOX")){CE.cfg.atividades.push({id:ceUid(),nome:"Validação BOX",valor:1,desc:"Cada linha da auditoria de cargas lançada pelo auditor (R$ 1,00 por registro)",ativo:true,ordem:CE.cfg.atividades.length});await ceSalvarCfg("Atividade “Validação BOX” criada (R$ 1,00 por ocorrência).");}
   const hoje=todayISO(),ini=hoje.slice(0,8)+"01",a0=new Date(ini+"T00:00:00").getTime(),b0=new Date(hoje+"T23:59:59").getTime(),D=FECH.dados,want={};
   const put=(tipo,mat,dia,atv,qtd)=>{const a=rotAtiv(atv);if(!mat||!a)return;dia=String(dia);if(/^\d{8}$/.test(dia))dia=dia.slice(0,4)+"-"+dia.slice(4,6)+"-"+dia.slice(6);const id="AUTO-"+tipo+"-"+mat+"-"+dia.replace(/-/g,"");want[id]={a,mat,dia,qtd};};
   const dias=(L,fn)=>{const o={};fxRows(L).filter(r=>r.ts>=a0&&r.ts<=b0).forEach(r=>{const k=fxDiaKey(r.ts);fn(r,k,o);});return o;};
@@ -3143,7 +3143,7 @@ async function ceAutoSync(){if(!ceCom()||!CE.cfg||!CE.lanc||!FECH.dados)return;c
   // aéreo: endereços das ruas contadas por dia (rua única no dia)
   Object.entries(dias(D.contagem,(r,k,o)=>{const s=o[k]=o[k]||new Set();String(r.Ruas||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>s.add(x));})).forEach(([k,s])=>put("AERO",C.autoAero,k,"Auditoria de Aero",cntEnd([...s])));
   // Validação BOX: ocorrências lançadas na auditoria de cargas por auditor
-  Object.entries(dias(D.cargas,(r,k,o)=>{const m=String(r.Matricula_Auditor||"").trim();if(!BOX_AUD.includes(m)||String(r.Causador||"")!=="Conferente")return;const x=o[k+"|"+m]=o[k+"|"+m]||0;o[k+"|"+m]=x+1;})).forEach(([km,n])=>{const [k,m]=km.split("|");put("BOX",m,k,"Validação BOX",n);});
+  Object.entries(dias(D.cargas,(r,k,o)=>{const m=String(r.Matricula_Auditor||"").trim();if(!BOX_AUD.includes(m))return;const x=o[k+"|"+m]=o[k+"|"+m]||0;o[k+"|"+m]=x+1;})).forEach(([km,n])=>{const [k,m]=km.split("|");put("BOX",m,k,"Validação BOX",n);});
   // 1350: notas emitidas por dia × Recebimento
   if(C.resp1350){const o={};rotTab("r1350").forEach(r=>{const d=ceIso(r.Data_Emissao);if(d>=ini&&d<=hoje)(o[d]=o[d]||new Set()).add(r.Nota+"|"+(r.Fornecedor||""));});Object.entries(o).forEach(([k,s])=>put("1350",C.resp1350,k,"Recebimento",s.size));}
   // Validade (planilha externa): auditorias por dia para o 10003583
