@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 42)
+ * Auditoria STA – Santa Therezinha (versão 43)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -368,7 +368,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 42, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 43, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -832,7 +832,10 @@ const ROTINAS = {
   r8597: { aba: 'Rotina_8597_Historico', cols: ['Data_Importacao', 'Num_Bonus', 'Data_Bonus', 'Data_Montagem', 'Data_Fechamento', 'Fornecedor', 'Notas', 'Valor', 'Conferente', 'Finalizado', 'Importado_Em', 'Importado_Por', 'ID_Import'] },
   r1350: { aba: 'Rotina_1350_Historico', cols: ['Data_Importacao', 'Nota', 'Data_Emissao', 'Fornecedor', 'Valor', 'Motivo', 'Importado_Por', 'ID_Import'] },
   cad: { aba: 'Cadastro_Validacao', cols: ['Data_Importacao', 'Codigo', 'Descricao', 'Na_8022', 'Endereco', 'Importado_Por', 'ID_Import'] },
-  os51: { aba: 'OS51_Pendentes', cols: ['Data_Importacao', 'Quantidade', 'Observacao', 'Importado_Por', 'ID_Import'] }
+  os51: { aba: 'OS51_Pendentes', cols: ['Data_Importacao', 'Quantidade', 'Observacao', 'Importado_Por', 'ID_Import'] },
+  r8066: { aba: 'Rotina_8066_Historico', cols: ['Data_Importacao', 'Codigo', 'Descricao', 'Ultimo_Inventario', 'Dt_Ultima_Atualizacao', 'Importado_Por', 'ID_Import'] },
+  r8173: { aba: 'Rotina_8173_Historico', cols: ['Data_Importacao', 'Matricula', 'Nome', 'Pontos', 'Valor', 'Funcao', 'Periodo', 'Importado_Por', 'ID_Import'] },
+  cped: { aba: 'Central_Pedidos_Historico', cols: ['Data_Importacao', 'Pedido', 'Qtd_Itens', 'Data_Pedido', 'Observacao', 'Importado_Por', 'ID_Import'] }
 };
 const ABA_ROT_LOG = 'Rotinas_Importacoes';
 const COLS_ROT_LOG = ['Data_Importacao', 'Rotina', 'Arquivo', 'Linhas', 'Matricula', 'Importado_Por', 'Importado_Em', 'ID_Import'];
@@ -856,6 +859,12 @@ function rotSalvar(rotina, data, linhas, arquivo, sessao) {
     if (fica.length !== todas.length) { sh.getRange(2, 1, n - 1, cab.length).clearContent(); if (fica.length) sh.getRange(2, 1, fica.length, cab.length).setValues(fica); }
   }
   let repetidas = 0;
+  if (rotina === 'cped') {
+    /* Central de Pedidos: grava só os pedidos que ainda não estavam em importações anteriores */
+    const n3 = sh.getLastRow(), iP = cab.indexOf('Pedido'), jaP = {};
+    if (n3 >= 2) sh.getRange(2, 1, n3 - 1, cab.length).getDisplayValues().forEach(function (l) { jaP[String(l[iP]).trim()] = 1; });
+    const antes2 = linhas.length; linhas = linhas.filter(function (o) { const k = String(o.Pedido || '').trim(); if (!k || jaP[k]) return false; jaP[k] = 1; return true; }); repetidas = antes2 - linhas.length;
+  }
   if (rotina === 'r1350') {
     /* 1350: grava só as notas que ainda não estavam em importações anteriores */
     const n2 = sh.getLastRow(), iN = cab.indexOf('Nota'), iF = cab.indexOf('Fornecedor'), ja = {};
@@ -867,7 +876,7 @@ function rotSalvar(rotina, data, linhas, arquivo, sessao) {
   const out = linhas.map(function (o) { o = Object.assign({}, o, { Data_Importacao: data, Importado_Por: por, ID_Import: id }); if (rotina === 'r8597') o.Importado_Em = em; return cab.map(function (c) { return o[c] == null ? '' : String(o[c]); }); });
   if (out.length) sh.getRange(sh.getLastRow() + 1, 1, out.length, cab.length).setNumberFormat('@').setValues(out);
   const L = abaRot(ABA_ROT_LOG, COLS_ROT_LOG);
-  const log = { Data_Importacao: data, Rotina: rotina, Arquivo: arquivo + (rotina === 'r1350' ? ' (' + linhas.length + ' novas, ' + repetidas + ' já importadas)' : ''), Linhas: linhas.length, Matricula: sessao.matricula, Importado_Por: por, Importado_Em: em, ID_Import: id };
+  const log = { Data_Importacao: data, Rotina: rotina, Arquivo: arquivo + ((rotina === 'r1350' || rotina === 'cped') ? ' (' + linhas.length + ' novos, ' + repetidas + ' já importados)' : ''), Linhas: linhas.length, Matricula: sessao.matricula, Importado_Por: por, Importado_Em: em, ID_Import: id };
   L.sh.getRange(L.sh.getLastRow() + 1, 1, 1, L.cab.length).setNumberFormat('@').setValues([L.cab.map(function (c) { return log[c] == null ? '' : String(log[c]); })]);
   return { ok: true, rotina: rotina, linhas: linhas.length, repetidas: repetidas, em: em, id: id };
 }
@@ -882,6 +891,10 @@ function rotStatus() {
 function rotLer() {
   const o = { ok: true, log: lerTab(ABA_ROT_LOG, COLS_ROT_LOG) };
   Object.keys(ROTINAS).forEach(function (k) { o[k] = lerTab(ROTINAS[k].aba, ROTINAS[k].cols); });
+  /* 8066: só a última importação de cada mês (o arquivo é grande) */
+  const t = o.r8066, iD = t.colunas.indexOf('Data_Importacao'), ult = {};
+  t.registros.forEach(function (l) { const d = String(l[iD]), m = d.slice(3); const k = d.slice(6) + d.slice(3, 5) + d.slice(0, 2); if (!ult[m] || k > ult[m].k) ult[m] = { k: k, d: d }; });
+  t.registros = t.registros.filter(function (l) { const d = String(l[iD]); return ult[d.slice(3)] && ult[d.slice(3)].d === d; });
   return o;
 }
 /** Rode uma vez no editor para criar todas as abas de histórico das rotinas. */
