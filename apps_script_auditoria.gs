@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 46)
+ * Auditoria STA – Santa Therezinha (versão 47)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -178,10 +178,16 @@ function vlcRegistrar(sessao, p) {
   const base = { ID_REGISTRO: id, ID_OPERACAO: it.ID_OPERACAO, ID_ITEM: it.ID_ITEM, CHAVE_AE: it.CHAVE_AE, CHAVE_SEC: it.CHAVE_SEC, RUA: it.RUA, PREDIO: it.PREDIO, NIVEL: it.NIVEL, APTO: it.APTO,
     CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: agora,
     ID_CLIENTE: p.idCliente || id, STATUS: 'CONCLUIDA', ORIGEM: 'APP STA' };
-  const reg = tipo === 'AE' ? Object.assign(base, { VALIDADE_FISICA: val }) : Object.assign(base, { ID_LINHA: id + '-1', LOTE_SEQ: 1, VALIDADE_ENCONTRADA: val, QTDE_ENCONTRADA: qtd });
+  /* várias validades no mesmo endereço: AP grava uma linha por validade (LOTE_SEQ); AE grava a menor e anota as demais na observação */
+  const lotes = (Array.isArray(p.lotes) && p.lotes.length ? p.lotes : [{ validade: val, qtd: qtd }]).filter(function (l) { return l && l.validade; });
+  if (tipo === 'AE' && lotes.length > 1) base.OBS = (base.OBS + ' | outras validades: ' + lotes.slice(1).map(function (l) { return l.validade + (l.qtd ? ' x ' + l.qtd : ''); }).join(', ')).slice(0, 500);
+  if (lotes.length > 1 && dtv && lotes.some(function (l) { return l.validade !== dtv; }) && div.indexOf('VALIDADE') < 0) div = 'VALIDADE' + (div ? '; ' + div : '');
+  base.DIVERGENCIA = div;
+  const regs = tipo === 'AE' ? [Object.assign({}, base, { VALIDADE_FISICA: lotes[0] ? lotes[0].validade : val })] :
+    lotes.map(function (l, n) { return Object.assign({}, base, { ID_LINHA: id + '-' + (n + 1), LOTE_SEQ: n + 1, VALIDADE_ENCONTRADA: l.validade, QTDE_ENCONTRADA: l.qtd || '' }); });
   const A = vlcTab(ss, tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP');
   if (!A.sh) throw new Error('Aba ' + (tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP') + ' não encontrada na planilha de validade.');
-  A.sh.getRange(A.sh.getLastRow() + 1, 1, 1, A.cab.length).setValues([A.cab.map(function (k) { return reg[k] == null ? '' : reg[k]; })]);
+  A.sh.getRange(A.sh.getLastRow() + 1, 1, regs.length, A.cab.length).setValues(regs.map(function (reg) { return A.cab.map(function (k) { return reg[k] == null ? '' : reg[k]; }); }));
   const upd = { STATUS_ITEM: 'AUDITADO', AUDITOR: login, DATA_STATUS: agora, ID_REGISTRO: id, DIVERGENCIA: div, RESERVADO_POR: '', RESERVADO_ATE: '', VERSAO: Number(it.VERSAO || 1) + 1 };
   Object.keys(upd).forEach(function (k) { const j = I.cab.indexOf(k); if (j >= 0) I.sh.getRange(it._linha, j + 1).setValue(upd[k]); });
   try { CacheService.getScriptCache().remove('painel_' + it.ID_OPERACAO); } catch (e) { }
@@ -206,11 +212,11 @@ function solResponder(id, qtd, resultado, sessao) {
 }
 ABAS.validade = {
   nome: 'Auditoria_Validade_App', perm: 'aud_vld',
-  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
     'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Numero_OS', 'Codigo_Produto', 'Endereco', 'Rua', 'Validade', 'Matricula_Colaborador_NC', 'Matricula_Auditor']
 };
-const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
+const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
   'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos'];
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
@@ -435,7 +441,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 46, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 47, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }

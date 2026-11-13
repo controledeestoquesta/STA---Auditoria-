@@ -399,15 +399,16 @@
 
   <section class="view" id="v-vla" hidden>
     <div id="v-conv"></div>
-    <div class="block">
+    <div class="block" id="v-form">
+      <div id="v-card"></div>
       <div class="field" id="v-tipo-f"><span class="lbl">Auditoria *</span><div class="mot" id="v-tipo" role="radiogroup" aria-label="Tipo"><button type="button" role="radio" aria-checked="false" data-t="AE">AUDITORIA_AE</button><button type="button" role="radio" aria-checked="false" data-t="AP">AUDITORIA_AP</button></div></div>
-      <div class="adg-g">
+      <div class="adg-g" id="v-ident">
         <div class="field" id="v-os-f"><label for="v-os">Nº da O.S. *</label><input class="in" id="v-os" inputmode="numeric" placeholder="Ex.: 555123"></div>
         <div class="field span2" id="v-prod-f"><label>Código do item *</label><div id="v-prod"></div></div>
         <div class="field" id="v-end-f"><label for="v-end">Endereço</label><input class="in" id="v-end" placeholder="Rua-prédio-nível-apto"></div>
-        <div class="field" id="v-val-f"><label for="v-val">Validade auditada *</label><input class="in" id="v-val" type="date"></div>
-        <div class="field" id="v-qtd-f"><label for="v-qtd">Quantidade</label><input class="in" id="v-qtd" type="number" inputmode="numeric" min="0" placeholder="0"></div>
       </div>
+      <div class="field" id="v-lotes-f"><span class="lbl">Validades e quantidades encontradas *</span><div id="v-lotes"></div>
+        <button type="button" class="btn sm" id="v-addlote" style="margin-top:6px">+ Adicionar validade</button><small class="note" id="v-soma" style="display:block;margin-top:6px"></small></div>
       <div id="v-dias" class="vla-dias"></div>
       <div class="field" id="v-oc-f"><span class="lbl">Resultado *</span><div class="mot" id="v-oc" role="radiogroup" aria-label="Resultado"><button type="button" role="radio" aria-checked="false" data-o="Conforme">Conforme</button><button type="button" role="radio" aria-checked="false" data-o="Vencido">Vencido (peso 8)</button><button type="button" role="radio" aria-checked="false" data-o="FIFO">FIFO (peso 5)</button><button type="button" role="radio" aria-checked="false" data-o="≤20 dias">≤ 20 dias (peso 3)</button></div></div>
       <div id="v-nc" hidden>
@@ -417,10 +418,11 @@
         <div class="photos" id="v-fotos"></div>
         <div class="ph-row"><label class="filebtn" id="v-cam">Tirar foto<input type="file" accept="image/*" capture="environment" id="v-foto"></label><label class="filebtn" id="v-gal">Galeria<input type="file" accept="image/*" id="v-foto-g"></label></div></div>
       <div class="field" id="v-obs-f"><label for="v-obs">Observação <small>(opcional)</small></label><input class="in" id="v-obs" placeholder="Detalhes"></div>
-      <button type="button" class="save" id="v-save">Salvar auditoria de validade</button>
+      <div class="vla-acts"><button type="button" class="btn" id="v-pular" hidden>Pular</button><button type="button" class="save" id="v-save">Salvar auditoria de validade</button></div>
     </div>
     <div id="v-list" style="margin-top:12px"></div>
   </section>
+
 
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
 
