@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 43)
+ * Auditoria STA – Santa Therezinha (versão 44)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -154,6 +154,14 @@ function solResponder(id, qtd, resultado, sessao) {
   set('Respondido_Por', (sessao.nome || '') + ' (' + sessao.matricula + ')'); set('Tempo_Resposta_Min', min);
   return { ok: true, em: em, min: min };
 }
+ABAS.validade = {
+  nome: 'Auditoria_Validade_App', perm: 'aud_vld',
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
+    'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Numero_OS', 'Codigo_Produto', 'Endereco', 'Rua', 'Validade', 'Matricula_Colaborador_NC', 'Matricula_Auditor']
+};
+const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
+  'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos'];
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
@@ -336,7 +344,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp') && !tem('aud_vld')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -357,6 +365,7 @@ function doGet(e) {
         contagem: !(tem('aud_ret') || tem('aud_aer') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.contagem.nome, CAMPOS_CNT),
         saldo: !tem('aud_spk') ? vazio : lerAba(ss, ABAS.saldo.nome, CAMPOS_SPK),
         solicit: !tem('aud_sol') ? vazio : lerAba(ss, ABAS.solicit.nome, CAMPOS_SOL),
+        validade: !(tem('aud_vld') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.validade.nome, CAMPOS_VLA),
         chep: !(tem('aud_chp') || tem('aud_com')) ? vazio : lerTab(ABA_CHEP, COLS_CHEP),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
@@ -368,7 +377,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 43, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 44, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -393,6 +402,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_rot: 'Acesso a importacao das rotinas (1707, 8597, 1350, cadastro, O.S. 51)',
   aud_sol: 'Acesso a solicitacao de contagens',
   aud_chp: 'Acesso ao setor Chep (notas e ajustes de inventario de paletes)',
+  aud_vld: 'Acesso a auditoria de validade (AE/AP) no app',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
@@ -898,7 +908,7 @@ function rotLer() {
   return o;
 }
 /** Rode uma vez no editor para criar todas as abas de histórico das rotinas. */
-function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); abaRot(ABAS.solicit.nome, ABAS.solicit.colunas); abaRot(ABA_CHEP, COLS_CHEP); abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']); return 'Abas criadas.'; }
+function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); abaRot(ABAS.solicit.nome, ABAS.solicit.colunas); abaRot(ABA_CHEP, COLS_CHEP); abaRot(ABAS.validade.nome, ABAS.validade.colunas); abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']); return 'Abas criadas.'; }
 
 /* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
 const PASTA_PAINEIS = 'Auditoria_Paineis';
