@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 45)
+ * Auditoria STA – Santa Therezinha (versão 46)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -137,6 +137,56 @@ function valLer() {
   VALIDADE_ABAS.forEach(function (n) { const sh = ss.getSheetByName(n); abas[n] = sh ? { valores: sh.getDataRange().getDisplayValues() } : { valores: [], erro: 'Aba ' + n + ' não encontrada' }; });
   return { ok: true, abas: abas };
 }
+/* ---- Convocação ativa: endereços atribuídos ao auditor nas operações abertas (sistema AE/AP) ---- */
+function vlcTab(ss, nome) {
+  const sh = ss.getSheetByName(nome); if (!sh || sh.getLastRow() < 2) return { sh: sh, cab: sh ? sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getDisplayValues()[0].map(String) : [], linhas: [] };
+  const v = sh.getDataRange().getDisplayValues(), cab = v[0].map(String);
+  return { sh: sh, cab: cab, linhas: v.slice(1).map(function (l, i) { const o = { _linha: i + 2 }; cab.forEach(function (k, j) { o[k] = l[j]; }); return o; }) };
+}
+const vlcNorm = function (s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim(); };
+function vlcLogin(ss, sessao) {
+  const U = vlcTab(ss, 'USUARIOS').linhas, m = String(sessao.matricula), n = vlcNorm(sessao.nome);
+  const u = U.find(function (x) { return String(x.LOGIN).trim() === m; }) || U.find(function (x) { return vlcNorm(x.NOME) === n; }) ||
+    U.find(function (x) { const a = vlcNorm(x.NOME).split(' '), b = n.split(' '); return a.length > 1 && a[0] === b[0] && a[a.length - 1] === b[b.length - 1]; });
+  return u ? String(u.LOGIN).trim().toLowerCase() : '';
+}
+function vlcMinhas(sessao, todos) {
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), login = vlcLogin(ss, sessao), adm = sessao.permissoes.indexOf('aud_adm') >= 0;
+  const ops = vlcTab(ss, 'OPERACOES').linhas.filter(function (o) { return String(o.STATUS).toUpperCase() === 'ABERTA'; }), opN = {};
+  ops.forEach(function (o) { opN[o.ID_OPERACAO] = o.NOME; });
+  const itens = vlcTab(ss, 'OPERACAO_ITENS').linhas.filter(function (i) {
+    if (!opN[i.ID_OPERACAO] || String(i.STATUS_ITEM).toUpperCase() !== 'PENDENTE') return false;
+    const atr = String(i.ATRIBUIDO_A || '').trim().toLowerCase();
+    return (todos && adm) || (login && atr === login);
+  }).map(function (i) { return { id: i.ID_ITEM, op: i.ID_OPERACAO, opNome: opN[i.ID_OPERACAO], rua: i.RUA, predio: i.PREDIO, nivel: i.NIVEL, apto: i.APTO, cod: i.CODPRODUTO, desc: i.DESCRICAO, tipo: i.TIPO, dtval: i.DTVAL, qtde: i.QTDE, atr: i.ATRIBUIDO_A }; });
+  const num = function (x) { return parseInt(String(x).replace(/\D/g, ''), 10) || 0; };
+  itens.sort(function (a, b) { return num(a.rua) - num(b.rua) || num(a.predio) - num(b.predio) || num(a.nivel) - num(b.nivel) || num(a.apto) - num(b.apto); });
+  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 600) };
+}
+/** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
+function vlcRegistrar(sessao, p) {
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), tz = Session.getScriptTimeZone(), agora = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd'T'HH:mm:ss");
+  const login = vlcLogin(ss, sessao) || String(sessao.matricula), I = vlcTab(ss, 'OPERACAO_ITENS'), it = I.linhas.find(function (x) { return String(x.ID_ITEM) === String(p.idItem); });
+  if (!it) throw new Error('Endereço convocado não encontrado (' + p.idItem + ').');
+  if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO') throw new Error('Este endereço já foi auditado por ' + it.AUDITOR + '.');
+  const tipo = String(it.TIPO).toUpperCase() === 'AP' ? 'AP' : 'AE', val = String(p.validade || ''), qtd = String(p.qtd || '');
+  const id = (tipo === 'AE' ? 'AE-' : 'AP-') + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
+  const dtv = (function (s) { s = String(s || '').trim(); const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : s.slice(0, 10); })(it.DTVAL);
+  let div = !it.DTVAL ? 'SEM VALIDADE NO SISTEMA' : (val && val !== dtv ? 'VALIDADE' : '');
+  if (tipo === 'AP' && qtd && it.QTDE && Number(qtd) !== Number(it.QTDE)) div = (div ? div + '; ' : '') + 'QTDE (' + qtd + ' x ' + it.QTDE + ')';
+  const obs = ('[App STA] ' + (p.resultado || '') + (p.obs ? ' — ' + p.obs : '')).slice(0, 500);
+  const base = { ID_REGISTRO: id, ID_OPERACAO: it.ID_OPERACAO, ID_ITEM: it.ID_ITEM, CHAVE_AE: it.CHAVE_AE, CHAVE_SEC: it.CHAVE_SEC, RUA: it.RUA, PREDIO: it.PREDIO, NIVEL: it.NIVEL, APTO: it.APTO,
+    CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: agora,
+    ID_CLIENTE: p.idCliente || id, STATUS: 'CONCLUIDA', ORIGEM: 'APP STA' };
+  const reg = tipo === 'AE' ? Object.assign(base, { VALIDADE_FISICA: val }) : Object.assign(base, { ID_LINHA: id + '-1', LOTE_SEQ: 1, VALIDADE_ENCONTRADA: val, QTDE_ENCONTRADA: qtd });
+  const A = vlcTab(ss, tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP');
+  if (!A.sh) throw new Error('Aba ' + (tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP') + ' não encontrada na planilha de validade.');
+  A.sh.getRange(A.sh.getLastRow() + 1, 1, 1, A.cab.length).setValues([A.cab.map(function (k) { return reg[k] == null ? '' : reg[k]; })]);
+  const upd = { STATUS_ITEM: 'AUDITADO', AUDITOR: login, DATA_STATUS: agora, ID_REGISTRO: id, DIVERGENCIA: div, RESERVADO_POR: '', RESERVADO_ATE: '', VERSAO: Number(it.VERSAO || 1) + 1 };
+  Object.keys(upd).forEach(function (k) { const j = I.cab.indexOf(k); if (j >= 0) I.sh.getRange(it._linha, j + 1).setValue(upd[k]); });
+  try { CacheService.getScriptCache().remove('painel_' + it.ID_OPERACAO); } catch (e) { }
+  return { ok: true, idRegistro: id, divergencia: div, tipo: tipo };
+}
 /** Rode uma vez no editor para autorizar o acesso à planilha de validade. */
 function testarValidade() { const r = valLer(); return Object.keys(r.abas).map(function (k) { return k + ': ' + r.abas[k].valores.length + ' linhas'; }).join(' | '); }
 /** Responde uma solicitação de contagem: grava a resposta e o tempo (minutos) desde a solicitação. */
@@ -209,6 +259,14 @@ function doPost(e) {
       if (dados.acao === 'chep_ler') return resposta(Object.assign({ ok: true }, lerTab(ABA_CHEP, COLS_CHEP)));
       const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
       try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
+  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar') {
+    if (['aud_adm', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de auditoria de validade (aud_vld).' });
+    try {
+      if (dados.acao === 'vlc_minhas') return resposta(vlcMinhas(sessao, !!dados.todos));
+      const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
+      try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'val_ler') {
@@ -377,7 +435,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 45, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 46, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
