@@ -367,7 +367,7 @@
           <div class="field" id="q-fil-f"><label for="q-fil" id="q-fil-l">Filial *</label><input class="in" id="q-fil" list="d-lojas" placeholder="Ex.: SUPER ADEGA SIA"></div>
           <div class="field" id="q-car-f"><label for="q-car">Carregamento *</label><input class="in" id="q-car" inputmode="numeric" placeholder="Ex.: 3479175"></div>
           <div class="field" id="q-uf-f"><label for="q-uf">UF *</label><select class="in" id="q-uf"><option value="">Escolha</option><option>DF</option><option>GO</option><option>MG</option><option>BA</option><option>TO</option><option>MT</option><option>MS</option><option>SP</option><option>Outra</option></select></div>
-          <div class="field span2" id="q-mot-f2"><label for="q-mot">Motorista *</label><input class="in" id="q-mot" placeholder="Nome do motorista"></div>
+          <div class="field span2" id="q-mot-f2"><label>Código do motorista *</label><div id="q-mot"></div><small class="note" id="q-mot-h" style="display:block;margin-top:4px;font-weight:700;color:var(--brand)"></small><button type="button" class="link" id="q-mot-novo" style="margin-top:4px">＋ Cadastrar novo motorista</button></div>
           <div class="field" id="q-nf-f"><label for="q-nf">Nº NF *</label><input class="in" id="q-nf" inputmode="numeric" placeholder="Ex.: 896503"></div>
           <div class="field span2" id="q-prod-f"><label>Código do item *</label><div id="q-prod"></div></div>
           <div class="field" id="q-qtd-f"><label for="q-qtd">Quantidade *</label><input class="in" id="q-qtd" type="number" inputmode="numeric" min="1" placeholder="0"></div>
@@ -378,6 +378,17 @@
       </div>
     </div>
     <div id="q-abertas" hidden></div>
+  </section>
+
+  <section class="view" id="v-chep" hidden>
+    <div class="block">
+      <h3 style="margin:0 0 6px">Importar documentos Chep (PDF)</h3>
+      <div class="field" id="h-tipo-f"><span class="lbl">Tipo do documento *</span><div class="mot" id="h-tipo" role="radiogroup" aria-label="Tipo"><button type="button" role="radio" aria-checked="false" data-t="Nota">NOTA EMITIDA <small>(coleta / transferência para lojas Adega)</small></button><button type="button" role="radio" aria-checked="false" data-t="Inventário">AJUSTE DE INVENTÁRIO</button></div></div>
+      <label class="btn ro-up" id="h-up" style="display:inline-flex;margin-top:4px">Escolher PDF(s)<input type="file" id="h-pdf" accept="application/pdf,.pdf" multiple hidden></label>
+      <p class="note" id="h-msg" style="margin:8px 0 0">Escolha o tipo e os arquivos. O app lê o PDF e preenche número, data, destino e quantidade de paletes; confira antes de enviar.</p>
+      <div id="h-prev"></div>
+    </div>
+    <div id="h-hist" style="margin-top:12px"></div>
   </section>
 
   <section class="view" id="v-admin" hidden><div id="adm"></div></section>
@@ -504,6 +515,7 @@
   <button type="button" data-v="cha" hidden>Chamada</button>
   <button type="button" data-v="com" hidden>Comissão</button>
   <button type="button" data-v="rot" hidden>Rotinas</button>
+  <button type="button" data-v="chep" hidden>Chep</button>
   <button type="button" data-v="cesta" hidden>Cesta básica</button>
   <button type="button" data-v="lib" hidden>Liberação</button>
   <button type="button" data-v="dev" hidden>Devoluções</button>

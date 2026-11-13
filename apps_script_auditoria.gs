@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 41)
+ * Auditoria STA – Santa Therezinha (versão 42)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -101,11 +101,34 @@ ABAS.saldo = {
 const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto', 'Descricao_Produto', 'Rua', 'Endereco', 'Qtd_Sistema', 'Qtd_Auditada', 'Diferenca', 'Situacao', 'Vl_Unitario', 'Valor_Diferenca', 'Matricula_Auditor', 'Nome_Auditor'];
 ABAS.solicit = {
   nome: 'Solicitacao_Contagens', perm: 'aud_sol',
-  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
     'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Recebido_Em'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Codigo_Produto', 'NF', 'Matricula_Solicitante', 'DataHora_Resposta']
 };
-const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+/* ===================== Setor Chep: PDFs de notas de paletes e ajustes de inventário ===================== */
+const ABA_CHEP = 'Chep_Documentos', PASTA_CHEP = 'Auditoria_Chep';
+const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em'];
+function chepSalvar(doc, b64, sessao) {
+  const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, tipo = doc.Tipo === 'Inventário' ? 'Inventário' : 'Nota', num = String(doc.Numero_Documento || '').trim();
+  if (num && sh.getLastRow() >= 2) {
+    const iT = cab.indexOf('Tipo'), iN = cab.indexOf('Numero_Documento');
+    const dup = sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getDisplayValues().some(function (l) { return l[iT] === tipo && String(l[iN]).trim() === num; });
+    if (dup) return { ok: true, duplicado: true };
+  }
+  let link = '';
+  if (b64) {
+    const it = DriveApp.getFoldersByName(PASTA_CHEP), pasta = it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_CHEP);
+    const nome = tipo + '_' + (num || 'sem-numero') + '_' + String(doc.Arquivo || 'documento.pdf').replace(/[^\w.\-]+/g, '_');
+    link = pasta.createFile(Utilities.newBlob(Utilities.base64Decode(b64), 'application/pdf', nome)).getUrl();
+  }
+  const agora = new Date(), tz = Session.getScriptTimeZone();
+  const o = Object.assign({}, doc, { ID: 'CHEP-' + Utilities.formatDate(agora, tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000), Data_Importacao: Utilities.formatDate(agora, tz, 'dd/MM/yyyy'), Tipo: tipo, Numero_Documento: num,
+    Link_Arquivo: link, Matricula: sessao.matricula, Importado_Por: (sessao.nome || '') + ' (' + sessao.matricula + ')', Importado_Em: Utilities.formatDate(agora, tz, 'dd/MM/yyyy HH:mm:ss') });
+  sh.getRange(sh.getLastRow() + 1, 1, 1, cab.length).setNumberFormat('@').setValues([cab.map(function (k) { return o[k] == null ? '' : String(o[k]); })]);
+  return { ok: true, duplicado: false, link: link };
+}
+
 /* ===================== Auditoria de validade (planilha externa) ===================== */
 const VALIDADE_ID = '13E2__GTbIbFcG_p-B6INblDQuILurRPnyFb_S7I7DrI';
 const VALIDADE_ABAS = ['AUDITORIA_AE', 'AUDITORIA_AP'];
@@ -160,6 +183,26 @@ function doPost(e) {
   if (!sessao.ok) return resposta({ ok: false, erro: sessao.erro, login: true });
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
+  if (['mot_ler', 'mot_salvar'].indexOf(dados.acao) >= 0) {
+    if (['aud_adm', 'aud_sol', 'aud_lib'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
+    try {
+      const M = abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']);
+      if (dados.acao === 'mot_ler') return resposta(Object.assign({ ok: true }, lerTab('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em'])));
+      const m = String(dados.matricula || '').replace(/\D/g, ''), n = String(dados.nome || '').trim().toUpperCase();
+      if (!m || !n) return resposta({ ok: false, erro: 'Informe código e nome.' });
+      const o = { Matricula: m, Nome: n, Tipo: String(dados.tipo || ''), Cadastrado_Por: (sessao.nome || '') + ' (' + sessao.matricula + ')', Cadastrado_Em: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss') };
+      M.sh.getRange(M.sh.getLastRow() + 1, 1, 1, M.cab.length).setNumberFormat('@').setValues([M.cab.map(function (k) { return o[k] == null ? '' : String(o[k]); })]);
+      return resposta({ ok: true });
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
+  if (['chep_salvar', 'chep_ler'].indexOf(dados.acao) >= 0) {
+    if (['aud_adm', 'aud_chp', 'aud_com'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão do setor Chep (aud_chp).' });
+    try {
+      if (dados.acao === 'chep_ler') return resposta(Object.assign({ ok: true }, lerTab(ABA_CHEP, COLS_CHEP)));
+      const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
+      try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
+    } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
   if (dados.acao === 'val_ler') {
     if (['aud_adm', 'aud_com'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para a auditoria de validade.' });
     try { return resposta(valLer()); } catch (err) { return resposta({ ok: false, erro: 'Não consegui abrir a planilha de validade: ' + String(err.message || err) + ' (a conta dona do Apps Script precisa ter acesso a ela).' }); }
@@ -293,7 +336,7 @@ function doGet(e) {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
-      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
+      if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
         ok: true,
@@ -314,6 +357,7 @@ function doGet(e) {
         contagem: !(tem('aud_ret') || tem('aud_aer') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.contagem.nome, CAMPOS_CNT),
         saldo: !tem('aud_spk') ? vazio : lerAba(ss, ABAS.saldo.nome, CAMPOS_SPK),
         solicit: !tem('aud_sol') ? vazio : lerAba(ss, ABAS.solicit.nome, CAMPOS_SOL),
+        chep: !(tem('aud_chp') || tem('aud_com')) ? vazio : lerTab(ABA_CHEP, COLS_CHEP),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         quadro: lerQuadro(ss)
       };
@@ -324,7 +368,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 41, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 42, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -348,6 +392,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_spk: 'Acesso a auditoria de saldo de picking',
   aud_rot: 'Acesso a importacao das rotinas (1707, 8597, 1350, cadastro, O.S. 51)',
   aud_sol: 'Acesso a solicitacao de contagens',
+  aud_chp: 'Acesso ao setor Chep (notas e ajustes de inventario de paletes)',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
@@ -840,7 +885,7 @@ function rotLer() {
   return o;
 }
 /** Rode uma vez no editor para criar todas as abas de histórico das rotinas. */
-function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); abaRot(ABAS.solicit.nome, ABAS.solicit.colunas); return 'Abas criadas.'; }
+function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot(ROTINAS[k].aba, ROTINAS[k].cols); }); abaRot(ABA_ROT_LOG, COLS_ROT_LOG); abaRot(ABAS.solicit.nome, ABAS.solicit.colunas); abaRot(ABA_CHEP, COLS_CHEP); abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']); return 'Abas criadas.'; }
 
 /* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
 const PASTA_PAINEIS = 'Auditoria_Paineis';
