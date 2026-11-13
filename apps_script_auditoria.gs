@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 44)
+ * Auditoria STA – Santa Therezinha (versão 45)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -377,7 +377,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 44, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 45, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1194,4 +1194,29 @@ function testeGravacao() {
   gravar(ss, ABAS.cargas, [{ ID_Auditoria: 'TESTE-CAR-' + agora, DataHora: new Date().toLocaleString('pt-BR'), Nome_Auditor: 'TESTE', Box: '1', Numero_OS: '0', Codigo_Produto: '338', Quantidade: 1, Motivo: 'Falta', Valor_Total: 3.02 }]);
   gravar(ss, ABAS.retorno, [{ ID_Auditoria: 'TESTE-RET-' + agora, DataHora: new Date().toLocaleString('pt-BR'), Nome_Auditor: 'TESTE', Produto: '338', Rua: '44', Observacao: 'Teste – pode apagar', Status_NC: 'Conforme' }]);
   Logger.log('Linhas de teste gravadas em Auditoria_Ruas e Auditoria_Retorno.');
+}
+
+/* ===================== Diagnóstico: exportar o código de validade do mesmo projeto ===================== */
+/**
+ * Rode no editor (menu Executar) para gerar um arquivo no seu Drive com todo o código
+ * de OUTROS arquivos deste projeto (ex.: o aplicativo de validade / convocação ativa),
+ * incluindo as telas HTML que ele usa. Depois baixe o arquivo e envie no chat.
+ */
+function exportarCodigoValidade() {
+  const nossas = ["abaComCabecalho", "abaComissao", "abaLanc", "abaRot", "abaSobras", "abrirPlanilha", "adminExcluir", "adminListar", "adminSalvar", "arqPainel", "assinar", "autorizar", "chaSalvar", "chaveSobra", "chepSalvar", "comLer", "comSalvar", "confirmarVale", "corrigirMotivoProcura", "criarAbasRotinas", "doGet", "doPost", "gerarToken", "gravar", "lancExcluir", "lancSalvar", "lerAba", "lerFotos", "lerPermissoes", "lerQuadro", "lerRotina", "lerSobras", "lerTab", "lerTabelaSimples", "listarRegistros", "login", "nomeDaMatricula", "normalizar", "obterPasta", "painelLer", "painelSalvar", "pastaPaineis", "preencherMotivoProcura", "prepararAbaCargas", "removerDuplicatasSobras", "resposta", "revogarTodosOsLogins", "rotLer", "rotSalvar", "rotStatus", "salvarColaboradores", "salvarFoto", "salvarRotina", "salvarSobras", "segredo", "solResponder", "statusSac", "tabelaPermissoes", "testarValidade", "testeGravacao", "testeLogin", "valLer", "validarListas", "validarListasPP", "validarMotivosCarga", "validarToken"];
+  const g = (function () { return this; })(), fns = [], htmls = {};
+  Object.keys(g).forEach(function (k) {
+    try { if (typeof g[k] === 'function' && nossas.indexOf(k) < 0 && k !== 'exportarCodigoValidade') fns.push('// ===== função ' + k + ' =====\n' + g[k].toString()); } catch (e) { }
+  });
+  const todo = fns.join('\n\n');
+  (todo.match(/create(?:HtmlOutput|Template)FromFile\(\s*['"]([^'"]+)['"]/g) || []).forEach(function (m) { htmls[m.replace(/.*\(\s*['"]|['"]$/g, '')] = 1; });
+  (todo.match(/include\(\s*['"]([^'"]+)['"]/g) || []).forEach(function (m) { htmls[m.replace(/.*\(\s*['"]|['"]$/g, '')] = 1; });
+  ['Index', 'index', 'Validade', 'validade', 'Convocacao', 'convocacao', 'App', 'app', 'Auditoria', 'Pagina', 'pagina'].forEach(function (n) { htmls[n] = htmls[n] || 0; });
+  const partes = ['PROJETO EXPORTADO EM ' + new Date(), 'Funções de outros arquivos: ' + fns.length, '', todo];
+  Object.keys(htmls).forEach(function (n) {
+    try { partes.push('\n\n// ===== HTML: ' + n + ' =====\n' + HtmlService.createTemplateFromFile(n).getRawContent()); } catch (e) { if (htmls[n]) partes.push('\n// (HTML ' + n + ' não encontrado)'); }
+  });
+  const f = DriveApp.createFile('Projeto_Validade_Exportado.txt', partes.join('\n'), MimeType.PLAIN_TEXT);
+  Logger.log('Arquivo criado: ' + f.getUrl());
+  return f.getUrl();
 }
