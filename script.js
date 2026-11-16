@@ -3978,13 +3978,33 @@ function msgDia(){const d=new Date(),i=Math.floor((d-new Date(d.getFullYear(),0,
 // ===== Notícias e entretenimento (fontes confiáveis, lidas pela planilha) =====
 const NWS={cat:{noticias:"logistica",entret:"entretenimento"},dados:{},busy:{},abas:{noticias:[["logistica","Logística"],["gdf","GDF e Brasília"],["empresas","Economia e empresas"]],entret:[["entretenimento","Entretenimento"]]}};
 function nwsQuando(t){const d=Date.now()-t;if(!t||isNaN(d))return "";const m=Math.round(d/6e4);return m<60?"há "+Math.max(1,m)+" min":m<1440?"há "+Math.round(m/60)+" h":"há "+Math.round(m/1440)+" d";}
-async function nwsCarregar(cat,forca){if(NWS.busy[cat])return;NWS.busy[cat]=true;nwsPaint();try{const j=await ppPost({acao:"noticias",cat,forca:!!forca});if(!Array.isArray(j.itens))throw new Error("desconhecida");NWS.dados[cat]={itens:j.itens,em:Date.now(),erro:j.itens.length?"":"As fontes não devolveram notícias agora. "+(j.diag?"Situação: "+j.diag.join(" · "):""),diag:j.diag||[]};}catch(e){NWS.dados[cat]={itens:(NWS.dados[cat]||{}).itens||[],erro:/desconhecida|inválida/i.test(e.message)?"O Apps Script publicado ainda não tem as notícias. Implante a versão 57 (Implantar → Gerenciar implantações → lápis → Nova versão) e rode a função testeNoticias uma vez no editor para autorizar o acesso aos sites.":e.message};}NWS.busy[cat]=false;nwsPaint();}
+/* leitura direta pelo navegador (quando o Apps Script não pode acessar sites): RSS → JSON pelo rss2json */
+const gnU=q=>"https://news.google.com/rss/search?q="+encodeURIComponent(q+" when:7d")+"&hl=pt-BR&gl=BR&ceid=BR:pt-419";
+const NWS_RSS={logistica:[gnU("logística (site:g1.globo.com OR site:valor.globo.com OR site:exame.com OR site:cnnbrasil.com.br OR site:estadao.com.br OR site:agenciabrasil.ebc.com.br OR site:mundologistica.com.br OR site:logweb.com.br OR site:tecnologistica.com.br)"),"https://www.mundologistica.com.br/feed","https://www.logweb.com.br/feed/"],
+  gdf:[gnU('GDF OR "Governo do Distrito Federal" (site:agenciabrasilia.df.gov.br OR site:agenciabrasil.ebc.com.br OR site:g1.globo.com OR site:correiobraziliense.com.br OR site:metropoles.com)'),"https://www.agenciabrasilia.df.gov.br/feed/"],
+  empresas:["https://g1.globo.com/rss/g1/economia/","https://agenciabrasil.ebc.com.br/rss/economia/feed.xml"],
+  entretenimento:["https://g1.globo.com/rss/g1/pop-arte/","https://agenciabrasil.ebc.com.br/rss/cultura/feed.xml"]};
+const nwsLimpa=s=>{const d=document.createElement("div");d.innerHTML=String(s||"");return (d.textContent||"").replace(/\s+/g," ").trim();};
+async function nwsDireto(cat){const urls=NWS_RSS[cat]||[],diag=[];let itens=[];
+  await Promise.all(urls.map(async u=>{const host=u.replace(/^https?:\/\/(www\.)?/,"").split("/")[0];try{const r=await fetch("https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(u),{cache:"no-store"});const j=await r.json();
+      if(j.status!=="ok"){diag.push(host+": "+(j.message||"sem resposta").slice(0,60));return;}const canal=String((j.feed&&j.feed.title)||host).replace(/\s*[-–|>].*$/,"");
+      const L=(j.items||[]).map(it=>{let t=nwsLimpa(it.title),f=canal;if(/news\.google/.test(u)){const m=t.match(/^(.*)\s+-\s+([^-]{2,60})$/);if(m){t=m[1];f=m[2];}}
+        const res=/news\.google/.test(u)?"":nwsLimpa(it.description).slice(0,240),img=it.thumbnail||(it.enclosure&&/image/.test(it.enclosure.type||"image")&&it.enclosure.link)||((String(it.description||"").match(/<img[^>]+src=["']([^"']+)/i)||[])[1])||"";
+        return {titulo:t,link:it.link,fonte:f,ts:Date.parse(String(it.pubDate||"").replace(" ","T")+"Z")||0,img,resumo:res&&res.indexOf(t)!==0?res:""};}).filter(x=>x.titulo&&x.link);
+      itens=itens.concat(L);diag.push(host+": "+L.length+" notícia(s)");}catch(e){diag.push(host+": sem conexão");}}));
+  const vis={};itens=itens.filter(x=>{const k=x.titulo.toLowerCase().replace(/[^a-z0-9à-ú]/g,"").slice(0,60);if(vis[k])return false;vis[k]=1;return true;}).sort((a,b)=>b.ts-a.ts).slice(0,36);
+  return {itens,diag};}
+async function nwsCarregar(cat,forca){if(NWS.busy[cat])return;NWS.busy[cat]=true;nwsPaint();let itens=[],diag=[],erro="";
+  try{const j=await ppPost({acao:"noticias",cat,forca:!!forca});if(Array.isArray(j.itens)){itens=j.itens;diag=j.diag||[];}}catch(e){erro=e.message||"";}
+  if(!itens.length){try{const d=await nwsDireto(cat);itens=d.itens;diag=d.diag;}catch(e){}}
+  NWS.dados[cat]={itens,em:Date.now(),diag,erro:itens.length?"":"As fontes não devolveram notícias agora."+(diag.length?" Situação: "+diag.join(" · "):"")+(navigator.onLine?"":" Sem internet.")};
+  NWS.busy[cat]=false;nwsPaint();}
 function nwsPaint(){["noticias","entret"].forEach(v=>{const box=$("nw-"+v);if(!box||$("v-"+v).hidden)return;const cat=NWS.cat[v],D=NWS.dados[cat];if(!D&&!NWS.busy[cat]){nwsCarregar(cat);return;}
   const tabs=NWS.abas[v].length>1?'<div class="seg nw-tabs" role="group">'+NWS.abas[v].map(([k,n])=>'<button type="button" data-nwc="'+k+'" aria-pressed="'+(k===cat)+'">'+n+'</button>').join("")+'</div>':'';
   const L=(D&&D.itens)||[];
   box.innerHTML=tabs+'<div class="nw-bar"><span>'+(NWS.busy[cat]?"Atualizando…":D&&D.em?"Atualizado "+nwsQuando(D.em).replace("há ","há "):"")+'</span><button type="button" class="btn sm" data-nwr="'+cat+'"'+(NWS.busy[cat]?" disabled":"")+'>Atualizar</button></div>'+
     (D&&D.erro?'<p class="note" style="color:#B45309">'+esc(D.erro)+'</p>':'')+
-    (L.length?'<div class="nw-grid">'+L.map((n,i)=>'<a class="nw-card'+(i===0?" nw-dest":"")+'" href="'+esc(n.link)+'" target="_blank" rel="noopener noreferrer">'+(n.img?'<div class="nw-img" style="background-image:url(\''+esc(n.img).replace(/'/g,"%27")+'\')"></div>':'')+
+    (L.length?'<div class="nw-grid">'+L.map((n,i)=>'<a class="nw-card'+(i===0?" nw-dest":"")+'" href="'+esc(n.link)+'" target="_blank" rel="noopener noreferrer">'+(n.img?'<img class="nw-img" src="'+esc(n.img)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'')+
       '<div class="nw-tx"><div class="nw-src"><b>'+esc(n.fonte||"")+'</b><span>'+nwsQuando(n.ts)+'</span></div><h3>'+esc(n.titulo)+'</h3>'+(n.resumo?'<p>'+esc(n.resumo)+'</p>':'')+'<span class="nw-ler">Ler na fonte ↗</span></div></a>').join("")+'</div>':(NWS.busy[cat]?'<p class="note">Buscando notícias…</p>':(D&&D.erro?'':'<p class="note">Nenhuma notícia encontrada agora.</p>')))+
     '<p class="nw-fontes">Fontes: '+esc(NWS_FONTES[cat]||"")+'. As notícias abrem no site de origem.</p>';
   box.querySelectorAll("[data-nwc]").forEach(b=>b.onclick=()=>{NWS.cat[v]=b.dataset.nwc;nwsPaint();});box.querySelectorAll("[data-nwr]").forEach(b=>b.onclick=()=>nwsCarregar(b.dataset.nwr,true));});}
@@ -3996,9 +4016,9 @@ const NWS_FONTES={logistica:"g1, Valor Econômico, Exame, CNN Brasil, Estadão, 
 html.desk .lg-side .lg-msgd{max-width:560px;margin:22px 0}html.desk .lg-msgd blockquote{font-size:1.15rem}
 .nw-tabs{margin-bottom:10px;grid-template-columns:repeat(3,1fr)!important}.nw-bar{display:flex;justify-content:space-between;align-items:center;margin:0 0 10px;color:var(--muted);font-size:.85rem}
 .nw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.nw-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:var(--ink);text-decoration:none;transition:transform .15s,box-shadow .15s}
-.nw-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,23,42,.12)}.nw-img{height:150px;background:#E2E8F0 center/cover no-repeat}.nw-tx{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.nw-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(15,23,42,.12)}.nw-img{display:block;width:100%;height:150px;object-fit:cover;background:#E2E8F0}.nw-tx{padding:12px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
 .nw-src{display:flex;justify-content:space-between;gap:8px;font-size:.75rem;color:var(--muted)}.nw-src b{color:var(--brand);text-transform:uppercase;letter-spacing:.04em}.nw-card h3{margin:0;font-size:1rem;line-height:1.3}.nw-card p{margin:0;font-size:.86rem;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.nw-ler{margin-top:auto;font-size:.8rem;font-weight:700;color:var(--brand)}html.desk .nw-dest{grid-column:span 2;flex-direction:row}html.desk .nw-dest .nw-img{height:auto;min-height:220px;flex:1.2}html.desk .nw-dest .nw-tx{flex:1}html.desk .nw-dest h3{font-size:1.3rem}
+.nw-ler{margin-top:auto;font-size:.8rem;font-weight:700;color:var(--brand)}html.desk .nw-dest{grid-column:span 2;flex-direction:row}html.desk .nw-dest .nw-img{height:auto;min-height:220px;width:55%;flex:none}html.desk .nw-dest .nw-tx{flex:1}html.desk .nw-dest h3{font-size:1.3rem}
 .nw-fontes{font-size:.78rem;color:var(--muted);margin-top:12px}`;document.head.appendChild(s);})();
 
 if(S){setMode("end");reset();}renderSess();paintFotos();paintConn();paintPend();aplicarPerms();renderRecords();
