@@ -755,12 +755,12 @@ const fxDiaKey=ts=>{const d=new Date(ts);return d.getFullYear()+pad(d.getMonth()
 /* ---- componentes ---- */
 function fxHead(tit,n){return '<div class="fx-h"><div><h1>'+esc(tit)+'</h1><p>Período: <b>'+fdISO(FECH.de)+' a '+fdISO(FECH.ate)+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b><br>Total de registros: <b>'+n+'</b></div></div>';}
 function fxKpis(list,big){if(list.length>6){const h=Math.ceil(list.length/2);return fxKpis(list.slice(0,h),big).replace('class="fx-k','class="fx-k fx-k1')+fxKpis(list.slice(h),big).replace('class="fx-k','class="fx-k fx-k2');}
-  return '<div class="fx-k'+(big?' big':'')+'" style="grid-template-columns:repeat('+list.length+',minmax(0,1fr))">'+list.map(k=>'<div style="border-top-color:'+(k.c||"#1E40AF")+'"><span>'+k.t+'</span><b style="color:'+(k.c||"#1E40AF")+'">'+k.v+'</b>'+(k.s?'<small style="color:'+(k.sc||"#64748B")+'">'+k.s+'</small>':'')+'</div>').join("")+'</div>';}
+  return '<div class="fx-k'+(big?' big':'')+'" style="grid-template-columns:repeat('+list.length+',minmax(0,1fr))">'+list.map(k=>{const n=String(k.v).replace(/<[^>]+>/g,"").length,fs=n>14?15:n>11?18:n>8?21:0;return '<div style="border-top-color:'+(k.c||"#1E40AF")+'"><span>'+k.t+'</span><b style="color:'+(k.c||"#1E40AF")+(fs?';font-size:'+fs+'px':'')+'" title="'+esc(String(k.v).replace(/<[^>]+>/g,""))+'">'+k.v+'</b>'+(k.s?'<small style="color:'+(k.sc||"#64748B")+'">'+k.s+'</small>':'')+'</div>';}).join("")+'</div>';}
 function fxCard(t,body,extra){return '<div class="fx-c"'+(extra?' style="'+extra+'"':'')+'><h3>'+t+'</h3>'+body+'</div>';}
 function fxBars(items,opt){opt=opt||{};if(!items.length)return '<p class="fx-e">Sem dados no período.</p>';
   const max=opt.max||Math.max(...items.map(i=>Math.abs(i.v)),1),tot=items.reduce((s,i)=>s+Math.abs(i.v),0)||1;
   return '<div class="fx-bars">'+items.map((it,i)=>{const c=it.c||"#2563EB",w=Math.max(2,Math.round(Math.abs(it.v)/max*100));
-    return '<div class="fx-br"><span class="n'+(i<3?" top"+(i+1):"")+'">'+(i+1)+'</span><span class="l" title="'+esc(it.l)+'">'+esc(it.l)+'</span><span class="t"><i style="width:'+w+'%;background:'+c+'"><em>'+(w>=18?Math.round(Math.abs(it.v)/tot*100)+'%':'')+'</em></i></span><b style="color:'+(it.tc||c)+'">'+it.txt+'</b></div>';}).join("")+'</div>';}
+    return '<div class="fx-br"><span class="n'+(i<3?" top"+(i+1):"")+'">'+(i+1)+'</span><span class="l" title="'+esc(it.l)+'">'+esc(it.l)+'</span><span class="t"><i style="width:'+w+'%;background:'+c+'"></i></span><b style="color:'+(it.tc||c)+'">'+it.txt+'</b></div>';}).join("")+'</div>';}
 function fxDonut(parts,centro){const tot=parts.reduce((a,p)=>a+p.v,0);if(!tot)return '<p class="fx-e">Sem dados no período.</p>';
   const R=42,C=2*Math.PI*R,vis=parts.filter(p=>p.v>0),gap=vis.length>1?1.6:0;let a=0;
   const segs=vis.map(p=>{const len=p.v/tot*C;const s='<circle r="'+R+'" cx="60" cy="60" fill="none" stroke="'+p.c+'" stroke-width="16" stroke-dasharray="'+Math.max(.5,len-gap).toFixed(2)+' '+(C-Math.max(.5,len-gap)).toFixed(2)+'" stroke-dashoffset="'+(-a).toFixed(2)+'" transform="rotate(-90 60 60)"/>';a+=len;return s;}).join("");
@@ -770,28 +770,28 @@ function fxDonut(parts,centro){const tot=parts.reduce((a,p)=>a+p.v,0);if(!tot)re
     parts.map(p=>{const pc=Math.round(p.v/tot*100);return '<li><span class="dl"><i style="background:'+p.c+'"></i>'+esc(p.l)+'</span><b>'+(p.txt||p.v)+'</b><small>'+pc+'%</small><span class="dbar"><i style="width:'+pc+'%;background:'+p.c+'"></i></span></li>';}).join("")+'</ul>'+
     (maior?'<p class="fx-dmax">Maior fatia: <b style="color:'+maior.c+'">'+esc(maior.l)+'</b> ('+Math.round(maior.v/tot*100)+'%)</p>':'')+'</div>';}
 let FX_GID=0;
-function fxLine(pts,cor,unid,HH){if(!pts.length)return '<p class="fx-e">Sem dados.</p>';const W=1040,H=HH||170,pl=34,pr=14,pt=22,pb=26,mx=Math.max(...pts.map(p=>p.v),1)*1.08,gid="fxg"+(++FX_GID);
+function fxLine(pts,cor,unid,HH){if(!pts.length)return '<p class="fx-e">Sem dados.</p>';const W=1040,H=HH||170,pl=34,pr=14,pt=22,pb=26,mx=(()=>{const r=Math.max(...pts.map(p=>p.v),1)*1.08;if(unid==="%"||typeof unid==="function")return r;const st=r>100?20:r>40?10:r>10?4:2;return Math.ceil(r/st)*st;})(),gid="fxg"+(++FX_GID);
   const x=i=>pl+(pts.length===1?(W-pl-pr)/2:i*(W-pl-pr)/(pts.length-1)),y=v=>pt+(1-v/mx)*(H-pt-pb);
-  const grid=[0,.25,.5,.75,1].map(g=>'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(mx*g)+'" y2="'+y(mx*g)+'" stroke="#EEF2F7"'+(g?' stroke-dasharray="3 4"':'')+'/>'+(g%.5===0?'<text x="'+(pl-6)+'" y="'+(y(mx*g)+3)+'" font-size="9" text-anchor="end" fill="#94A3B8">'+(unid==="%"?Math.round(mx*g*100)+"%":Math.round(mx*g))+'</text>':'')).join("");
+  const grid=[0,.25,.5,.75,1].map(g=>'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(mx*g)+'" y2="'+y(mx*g)+'" stroke="#EEF2F7"'+(g?' stroke-dasharray="3 4"':'')+'/>'+(g%.5===0?'<text x="'+(pl-6)+'" y="'+(y(mx*g)+3)+'" font-size="9" text-anchor="end" fill="#94A3B8">'+(typeof unid==="function"?unid(mx*g):unid==="%"?Math.round(mx*g*100)+"%":Math.round(mx*g))+'</text>':'')).join("");
   const P=pts.map((p,i)=>[x(i),y(p.v)]);let path="M"+P[0][0].toFixed(1)+" "+P[0][1].toFixed(1);
-  for(let i=1;i<P.length;i++){const p0=P[i-2]||P[i-1],p1=P[i-1],p2=P[i],p3=P[i+1]||p2,t=.18;const c1=[p1[0]+(p2[0]-p0[0])*t,p1[1]+(p2[1]-p0[1])*t],c2=[p2[0]-(p3[0]-p1[0])*t,p2[1]-(p3[1]-p1[1])*t];
+  for(let i=1;i<P.length;i++){const p0=P[i-2]||P[i-1],p1=P[i-1],p2=P[i],p3=P[i+1]||p2,t=.18;const lo=Math.min(p1[1],p2[1]),hi=Math.max(p1[1],p2[1]),cl=v=>Math.max(lo,Math.min(hi,v)),c1=[p1[0]+(p2[0]-p0[0])*t,cl(p1[1]+(p2[1]-p0[1])*t)],c2=[p2[0]-(p3[0]-p1[0])*t,cl(p2[1]-(p3[1]-p1[1])*t)];
     path+=" C"+c1[0].toFixed(1)+" "+Math.min(H-pb,c1[1]).toFixed(1)+" "+c2[0].toFixed(1)+" "+Math.min(H-pb,c2[1]).toFixed(1)+" "+p2[0].toFixed(1)+" "+p2[1].toFixed(1);}
   const area=path+" L"+P[P.length-1][0].toFixed(1)+" "+(H-pb)+" L"+P[0][0].toFixed(1)+" "+(H-pb)+" Z";
   const med=pts.reduce((s,p)=>s+p.v,0)/pts.length,iMax=pts.reduce((b,p,i)=>p.v>pts[b].v?i:b,0),passo=Math.ceil(pts.length/16);
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block"><defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+cor+'" stop-opacity=".32"/><stop offset="1" stop-color="'+cor+'" stop-opacity="0"/></linearGradient></defs>'+grid+
-    '<path d="'+area+'" fill="url(#'+gid+')"/>'+(pts.length>1?'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(med).toFixed(1)+'" y2="'+y(med).toFixed(1)+'" stroke="'+cor+'" stroke-opacity=".55" stroke-dasharray="6 5"/><text x="'+(W-pr)+'" y="'+(y(med)-4).toFixed(1)+'" font-size="9" text-anchor="end" fill="'+cor+'" font-weight="700">média '+(unid==="%"?Math.round(med*100)+"%":med.toFixed(1).replace(".",",").replace(/,0$/,""))+'</text>':'')+
+    '<path d="'+area+'" fill="url(#'+gid+')"/>'+(pts.length>1?'<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y(med).toFixed(1)+'" y2="'+y(med).toFixed(1)+'" stroke="'+cor+'" stroke-opacity=".55" stroke-dasharray="6 5"/><text x="'+(W-pr)+'" y="'+(y(med)-4).toFixed(1)+'" font-size="9" text-anchor="end" fill="'+cor+'" font-weight="700">média '+(typeof unid==="function"?unid(med):unid==="%"?Math.round(med*100)+"%":med.toFixed(1).replace(".",",").replace(/,0$/,""))+'</text>':'')+
     '<path d="'+path+'" fill="none" stroke="'+cor+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>'+
     pts.map((p,i)=>{const mxp=i===iMax&&pts.length>1;return '<circle cx="'+P[i][0].toFixed(1)+'" cy="'+P[i][1].toFixed(1)+'" r="'+(mxp?5:3.2)+'" fill="#fff" stroke="'+(p.c||cor)+'" stroke-width="'+(mxp?3:2)+'"/>'+
       (p.v||pts.length<=20?'<text x="'+P[i][0].toFixed(1)+'" y="'+(P[i][1]-(mxp?10:7)).toFixed(1)+'" font-size="'+(mxp?10.5:9)+'" text-anchor="middle" fill="'+(mxp?cor:"#0F172A")+'" font-weight="800">'+(p.txt!=null?p.txt:p.v)+'</text>':'')+
       (i%passo===0||i===pts.length-1?'<text x="'+P[i][0].toFixed(1)+'" y="'+(H-8)+'" font-size="9" text-anchor="middle" fill="#64748B">'+esc(p.l)+'</text>':'');}).join("")+'</svg>';}
 function fxCols(items){if(!items.length)return '<p class="fx-e">Sem dados no período.</p>';const max=Math.max(...items.map(i=>Math.abs(i.v)),1);
-  return '<div class="fx-cols">'+items.map(it=>{const c=it.c||"#2563EB";return '<div><b>'+it.txt+'</b><i style="height:'+Math.max(3,Math.round(Math.abs(it.v)/max*100))+'%;background:'+c+'"></i><span>'+esc(it.l)+'</span></div>';}).join("")+'</div>';}
+  return '<div class="fx-cols">'+items.map(it=>{const c=it.c||"#2563EB";return '<div title="'+esc(it.t||it.l)+'"><b>'+it.txt+'</b><i style="height:'+Math.max(3,Math.round(Math.abs(it.v)/max*82))+'%;background:'+c+'"></i><span>'+esc(it.l)+'</span></div>';}).join("")+'</div>';}
 
 
 
 function fxLegenda(){return '<div class="fx-leg"><b>LEGENDA:</b><span class="s-ot">● ≥95% Ótima</span><span class="s-rg">● 85–94% Regular</span><span class="s-at">● 70–84% Atenção</span><span class="s-cr">● &lt;70% Crítica</span><span class="s-na">Não auditada</span></div>';}
 function fxMapa(qRua,rotulo){const T=ruaTotMap();const max=Math.max(50,...Object.keys(T).map(Number),...Object.keys(qRua).map(Number));
-  return fxLegenda()+BLOCOS.filter(b=>b[1]<=max).map(([nm,a,z])=>{const rs=[];for(let r=a;r<=Math.min(z,max);r++)if(!RUAS_FORA.has(String(r))&&(r<=55||T[String(r)]))rs.push(String(r));if(!rs.length)return "";
+  return fxLegenda()+BLOCOS.filter(b=>b[1]<=max).map(([nm,a,z])=>{const rs=[];for(let r=a;r<=Math.min(z,max);r++)if(r!==1&&!RUAS_FORA.has(String(r))&&(r<=55||T[String(r)]))rs.push(String(r));if(!rs.length)return "";
     const qs=rs.map(r=>qRua[r]).filter(q=>q!=null);const med=qs.length?qs.reduce((x,y)=>x+y,0)/qs.length:null;
     return '<div class="fx-bl" style="color:'+(med==null?"#64748B":FXC[fxCls(med)])+'">Bloco '+nm+' <span>'+(med==null?"—":pc1(med))+'</span></div><div class="fx-sq">'+
       rs.map(r=>{const q=qRua[r];return '<div class="s-'+fxCls(q)+'"><span>'+r+'</span><small>'+(q==null?"—":pc0(q))+'</small></div>';}).join("")+'</div>';}).join("")+(rotulo?'<p class="fx-e" style="margin-top:8px">'+rotulo+'</p>':'');}
@@ -1976,7 +1976,9 @@ function fxPrev(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.pp).filter(ppVal
         '<p class="fx-e" style="margin-top:6px">'+Object.values(segs).sort((a,b)=>b.i-a.i).slice(0,4).map(x=>esc(curto(x.n))+": "+(x.i/Math.max(1,x.dias.size)).toFixed(1).replace(".",",")+" por dia trabalhado").join(" · ")+'</p>')+
       fxCard("Situação das avarias (vales)",fxDonut([{l:"Pendente",v:pe.length,c:"#CA8A04"},{l:"Emitido",v:em.length,c:"#16A34A"},{l:"Não emitido",v:ne.length,c:"#DC2626"}]))+'</div>'+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+
-      fxCard("Itens com mais ocorrências",fxTable([{t:"Código"},{t:"Descrição"},{t:"Ocorr.",n:1},{t:"Un",n:1},{t:"Valor",n:1}],Object.entries(itens).sort((a,b)=>b[1].v-a[1].v).slice(0,7).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.i,x.q,BRL0(x.v)])))+
+      fxCard("Valor a recuperar — vales pendentes por colaborador",(()=>{const P={};rows.filter(r=>r.Status_Vale!=="Emitido").forEach(r=>{const k=r.Matricula_Colaborador||r.Colaborador_Responsavel||"—";const x=P[k]=P[k]||{n:r.Colaborador_Responsavel||k,i:0,co:0,v:0,ant:r.ts};x.i++;if(r.Motivo===PP_MOT[1])x.co++;x.v+=r._v;x.ant=Math.min(x.ant,r.ts);});
+        const L=Object.values(P).sort((a,b)=>b.v-a.v).slice(0,8),tv=Object.values(P).reduce((s,x)=>s+x.v,0);
+        return L.length?fxTable([{t:"Colaborador"},{t:"Pendentes",n:1},{t:"Consumo indevido",n:1},{t:"Valor pendente",n:1},{t:"Mais antiga",n:1}],L.map(x=>{const d=Math.floor((Date.now()-x.ant)/864e5);return [esc(curto(x.n)),x.i,x.co||"",'<b style="color:#B91C1C">'+BRL0(x.v)+'</b>','<span style="color:'+(d>7?"#B91C1C":"#64748B")+'">'+d+' dia'+(d===1?"":"s")+'</span>'];}))+'<p class="fx-e" style="margin-top:6px">Ocorrências ainda sem vale emitido. Total a recuperar: <b>'+BRL0(tv)+'</b>. Em vermelho, pendências com mais de 7 dias.</p>':'<p class="fx-e">Nenhum vale pendente no período.</p>';})())+
       fxCard("Colaboradores com mais ocorrências",fxBars(Object.values(cols).sort((a,b)=>b.i-a.i||b.v-a.v).slice(0,7).map(x=>({l:curto(x.n),v:x.i,txt:x.i+" · "+BRL0(x.v),c:"#DC2626"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-m"'))+'</div>'+
     fxFull("Ocorrências registradas por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Prevenção de Perdas");}
 (function(){const s=document.createElement("style");s.textContent=".pd .termo.clt{background:#F8FAFC;border-color:#CBD5E1}.pd .termo.clt h2{color:#0F172A}.pd .termo .chk{margin:6px 0}.pd .sg.sg4{grid-template-columns:repeat(4,1fr);column-gap:14px}.pd .sg.sg2{grid-template-columns:repeat(2,1fr);column-gap:60px}"+
@@ -2415,15 +2417,23 @@ function fxQual(){const a=new Date(FECH.de+"T00:00:00").getTime(),b=new Date(FEC
     '<div class="q-leg"><span><i class="a"></i>Período: '+rotA+'</span><span><i class="b"></i>Comparação: '+rotB+'</span></div></div>';
   return '<div class="fxq-cmp no-print"><b>Comparar com:</b> <label>De <input type="date" id="fxq-de" value="'+iso(ca)+'"></label> <label>Até <input type="date" id="fxq-ate" value="'+iso(cb)+'"></label> <button type="button" id="fxq-prev">Período anterior</button></div>'+
     '<div class="fx-h"><div><h1>Qualidade — Conformidades × Não conformidades por setor</h1><p>Período: <b>'+rotA+'</b> · comparado com <b>'+rotB+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date())+'</b></div></div>'+
-    fxKpis([{t:"Conformidade geral",v:pf(gA),c:"#15803D",s:"antes "+pf(gB)+" · "+dv(gA,gB),sc:cor(gA,gB)},{t:"Não conformidades",v:nA,c:"#DC2626",s:"antes "+nB+" · "+dn(nA,nB),sc:cor(nA,nB,true)},
-      {t:"Ruas — conformes",v:A[0][2].conf,c:"#16A34A",s:"de "+A[0][2].tot+" endereços · "+pf(A[0][2].pct)},{t:"Retorno — conformes",v:A[1][2].conf,c:"#0E7490",s:"de "+A[1][2].tot+" itens · "+pf(A[1][2].pct)},
-      {t:"Cargas — O.S. sem erro do conferente",v:A[2][2].conf,c:"#0EA5E9",s:"de "+A[2][2].tot+" O.S. · "+pf(A[2][2].pct)}],true)+
+    fxKpis([{t:"Conformidade geral",v:pf(gA),c:gA==null?"#64748B":FXC[fxCls(gA/100)],s:"antes "+pf(gB)+" · "+dv(gA,gB),sc:cor(gA,gB)},{t:"Não conformidades",v:nA,c:"#DC2626",s:"antes "+nB+" · "+dn(nA,nB),sc:cor(nA,nB,true)},
+      ...(()=>{const C=A.filter(x=>x[2].pct!=null),pior=C.slice().sort((x,y)=>x[2].pct-y[2].pct)[0],meta=C.filter(x=>x[2].pct>=95).length,mel=A.map((x,i)=>({x,d:x[2].pct!=null&&B[i][2].pct!=null?x[2].pct-B[i][2].pct:null})).filter(o=>o.d!=null).sort((a,b)=>b.d-a.d)[0];
+        return [{t:"Setor mais crítico",v:pior?pior[0]:"—",c:pior?FXC[fxCls(pior[2].pct/100)]:"#64748B",s:pior?pf(pior[2].pct)+" conforme · "+pior[2].nc+" NCs":""},{t:"Setores na meta (≥ 95%)",v:meta+" de "+C.length,c:meta===C.length&&C.length?"#15803D":"#B45309",s:"com base de auditados"},
+          {t:"Maior melhora",v:mel&&mel.d>0?mel.x[0]:"—",c:"#15803D",s:mel&&mel.d>0?dv(mel.x[2].pct,mel.x[2].pct-mel.d):"sem comparação"}];})()],true)+
+    '<div class="q-sc">'+A.map((x,i)=>{const y=B[i],p=x[2].pct,pb=y[2].pct,temB=x[2].tot!=null,c=temB?FXC[fxCls(p==null?null:p/100)]:"#334155",st=!temB?"só NCs":p==null?"sem auditoria":p>=95?"ótimo":p>=85?"regular":p>=70?"atenção":"crítico";
+        const vr=temB?(p==null||pb==null?"":'<span style="color:'+cor(p,pb)+'">'+(p>=pb?"▲ ":"▼ ")+dv(p,pb).replace(/^[+]/,"")+'</span>'):'<span style="color:'+cor(x[2].nc,y[2].nc,true)+'">'+(x[2].nc>y[2].nc?"▲ ":x[2].nc<y[2].nc?"▼ ":"")+dn(x[2].nc,y[2].nc)+'</span>';
+        return '<div class="q-card" style="border-top-color:'+x[3]+'"><span class="q-n">'+x[0]+'</span><b style="color:'+c+'">'+(temB?pf(p):x[2].nc)+'</b><small>'+(temB?x[2].conf+' de '+x[2].tot+' '+x[1]+' conformes':'não conformidades no período')+'</small>'+
+          (temB?'<div class="q-pg"><i style="width:'+(p||0)+'%;background:'+c+'"></i><em style="left:95%"></em></div>':'')+'<div class="q-ft"><span class="q-st" style="background:'+c+'1A;color:'+c+'">'+st+'</span>'+vr+'</div></div>';}).join("")+'</div>'+
+    '<p class="fx-e" style="margin:6px 0 10px">Como ler: <b>% conforme</b> = auditados sem erro ÷ total auditado. Faixas: ótimo ≥ 95% · regular ≥ 85% · atenção ≥ 70% · crítico abaixo de 70%. A marca na barra indica a meta de 95%. Aéreo, SAC e Prevenção não têm base de auditados: mostram só a quantidade de NCs. As setas comparam com '+rotB+'.</p>'+
     fxCard("Comparativo por setor",fxTable([{t:"Setor"},{t:"Base"},{t:"Auditados",n:1},{t:"Conformes",n:1},{t:"NCs",n:1},{t:"% conforme",n:1},{t:"NCs antes",n:1},{t:"% antes",n:1},{t:"Variação %",n:1},{t:"Variação NCs",n:1}],
       A.map((x,i)=>{const y=B[i];return ['<b>'+x[0]+'</b>',x[1],x[2].tot==null?"—":x[2].tot,x[2].conf==null?"—":x[2].conf,'<b style="color:#B91C1C">'+x[2].nc+'</b>','<b>'+pf(x[2].pct)+'</b>',y[2].nc,pf(y[2].pct),'<span style="color:'+cor(x[2].pct,y[2].pct)+'">'+dv(x[2].pct,y[2].pct)+'</span>','<span style="color:'+cor(x[2].nc,y[2].nc,true)+'">'+dn(x[2].nc,y[2].nc)+'</span>'];})))+
-    '<div class="fx-row" style="grid-template-columns:1fr">'+fxCard("Período atual × comparação",barras)+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr">'+fxCard("Período atual × comparação (barra colorida = atual · cinza = comparação)",barras)+'</div>'+
     fxFull("Não conformidades por dia (todos os setores)",fxLine(linha,"#DC2626",null,130))+fxFoot("Qualidade por setor");}
 (function(){const s=document.createElement("style");s.textContent=".fxq-cmp{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 10px;font-size:13px}.fxq-cmp input{border:1px solid #CBD5E1;border-radius:6px;padding:4px 6px;font:inherit}.fxq-cmp button{border:1px solid #1D4ED8;background:#fff;color:#1D4ED8;border-radius:6px;padding:4px 10px;cursor:pointer;font-weight:600}#print .no-print{display:none!important}"+
  ".q-bars{display:grid;gap:8px}.q-row{display:grid;grid-template-columns:200px 1fr 1fr;gap:10px;align-items:center}.q-l{font-weight:700;font-size:12px}.q-l small{display:block;font-weight:400;color:#64748B;font-size:10.5px}.q-b{position:relative;height:20px;background:#EEF2F7;border-radius:5px;overflow:hidden}.q-b i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.q-old i{background:#94A3B8}.q-b b{position:relative;font-size:11px;padding-left:6px;line-height:20px;color:#0F172A}"+
+ ".q-sc{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;margin:10px 0 4px}.q-card{background:#fff;border:1px solid #E2E8F0;border-top:4px solid;border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;-webkit-print-color-adjust:exact;print-color-adjust:exact}.q-n{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#475569}.q-card b{font-size:26px;line-height:1.15;margin-top:2px}.q-card small{font-size:10.5px;color:#64748B;min-height:28px}"+
+ ".q-pg{position:relative;height:7px;background:#EEF2F7;border-radius:99px;margin:6px 0 2px}.q-pg i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.q-pg em{position:absolute;top:-3px;bottom:-3px;width:2px;background:#0F172A}.q-ft{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:auto;padding-top:6px;font-size:11px;font-weight:700}.q-st{border-radius:99px;padding:1px 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}"+
  ".q-leg{display:flex;gap:18px;font-size:11px;color:#475569;margin-top:4px}.q-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}.q-leg .a{background:#16A34A}.q-leg .b{background:#94A3B8}";document.head.appendChild(s);})();
 
 // ===== Cesta básica (painel embutido) =====
@@ -2642,6 +2652,9 @@ function fxAdega(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.adega).filter(r
 .fx-don li .dl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fx-don li .dbar{grid-column:1/-1;height:4px;background:#F1F5F9;border-radius:99px;overflow:hidden}.fx-don li .dbar i{display:block;height:100%;width:0;border-radius:99px;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .fx-dmax{flex-basis:100%;margin:2px 0 0;font-size:10px;color:#64748B}.rp-acc{display:flex;align-items:center;gap:6px}.rp-acc span{flex:1;height:9px;background:#F1F5F9;border-radius:99px;overflow:hidden}.rp-acc i{display:block;height:100%;border-radius:99px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rp-acc b{font-size:11px;min-width:42px;text-align:right}
 .fx-bars-m .fx-br .t i em,.fx-bars-s .fx-br .t i em{display:none}
+.fx-bars .fx-br,.fx-bars-w .fx-br,.fx-bars-m .fx-br,.fx-bars-s .fx-br{grid-template-columns:16px minmax(60px,38%) minmax(50px,1fr) max-content!important}.fx-br .t{height:10px!important}.fx-br b{min-width:34px}
+.fx-cols>div{min-width:0}.fx-cols span{max-width:100%;overflow:hidden;text-overflow:ellipsis}.fx-cols b{font-size:9.5px}
+.fx-sh{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.fx-k b{white-space:nowrap}
 .fx-cols i{border-radius:6px 6px 2px 2px;box-shadow:inset -4px 0 0 rgba(0,0,0,.08)}
 .fx-k>div{box-shadow:0 1px 3px rgba(15,23,42,.06)}
 `;document.head.appendChild(s);})();
@@ -3158,9 +3171,11 @@ function fxSol(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.solicit).filter(r
       {t:"Dentro do prazo",v:resp.length?Math.round(noPrazo/resp.length*100)+"%":"—",c:"#15803D",s:"meta: resposta em até 24h"},{t:"Maior tempo",v:solTempo(resp.length?Math.max(...resp.map(r=>r._m||0)):null),c:"#B91C1C"}],true)+
     '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+fxCard("Filiais — solicitações e tempo médio",fxBars(Object.entries(fil).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,x])=>({l:k,v:x.n,txt:x.n+" · "+(x.c?solTempo(Math.round(x.t/x.c)):"—"),c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-w"'))+
       fxCard("Motivos",fxDonut(Object.entries(mot).map(([k,v])=>({l:k,v,c:MC[k]||"#334155"}))))+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+fxCard("Itens mais solicitados",fxTable([{t:"Código"},{t:"Descrição"},{t:"Solicitações",n:1},{t:"Quantidade",n:1}],Object.entries(itens).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,x])=>[esc(k),esc(String(x.d||"").slice(0,30)),x.n,x.q])))+
+    '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+fxCard("Motoristas reincidentes (2 ou mais solicitações)",(()=>{const M={};rows.forEach(r=>{const k=r.Matricula_Motorista||r.Motorista||"—";const x=M[k]=M[k]||{n:r.Motorista||k,uf:r.UF||"",i:0,f:0,na:0,car:new Set()};x.i++;if(/falta/i.test(r.Motivo||""))x.f++;if(/não autorizada/i.test(r.Resultado||""))x.na++;x.car.add(r.Carregamento);});
+        const L=Object.values(M).filter(x=>x.i>=2).sort((a,b)=>b.i-a.i||b.na-a.na).slice(0,8);
+        return L.length?fxTable([{t:"Motorista"},{t:"UF"},{t:"Solicitações",n:1},{t:"Carregamentos",n:1},{t:"Falta de mercadoria",n:1},{t:"Não autorizadas",n:1}],L.map(x=>[esc(curto(x.n)),esc(x.uf),'<b>'+x.i+'</b>',x.car.size,x.f||"",'<b style="color:'+(x.na?"#B91C1C":"#64748B")+'">'+(x.na||"")+'</b>']))+'<p class="fx-e" style="margin-top:6px">Motoristas com mais de uma solicitação de contagem no período. Contagens não autorizadas indicam reclamação que não se confirmou.</p>':'<p class="fx-e">Nenhum motorista com mais de uma solicitação no período.</p>';})())+
       fxCard("Prazo das respostas",fxDonut([{l:"Até 24h",v:noPrazo,c:"#16A34A"},{l:"Acima do prazo",v:resp.length-noPrazo,c:"#DC2626"},{l:"Aguardando",v:ab.length,c:"#CA8A04"}]))+'</div>'+
-    fxFull("Tempo médio de resposta por dia",fxLine(linha,"#2563EB",null,130))+fxFoot("Solicitação de contagens");}
+    fxFull("Tempo médio de resposta por dia",fxLine(linha,"#2563EB",v=>solTempo(Math.round(v)),130))+fxFoot("Solicitação de contagens");}
 
 // ===== Comissão automática lançada todos os dias (saldo de picking, aéreo, Validação BOX e 1350) =====
 const BOX_AUD=["10003033","10002517"];
@@ -3243,38 +3258,47 @@ function valShelfRows(all){const H=x=>VAL.dados[x.aba==="AUDITORIA_AE"?"AE":"AP"
     const o={aba:x.aba.replace("AUDITORIA_",""),end,rua:String(parseInt(c(/^RUA$/),10)||"—"),cod,desc:x.desc||(k!=null?P.desc[k]:""),vf,vs,d:dd(vf,hoje),dAud:dd(vf,au),q,vl,val:q*vl,ts:x.ts,lote:c(/LOTE_?SEQ/)};
     const key=end+"|"+cod+"|"+rotIso(vf);if(!best[key]||best[key].ts<o.ts)best[key]=o;});
   return Object.values(best);}
-function fxShelf(all){const S=valShelfRows(all);if(!S.length)return fxFull("Shelf life",'<p class="fx-e">As auditorias do período não trazem a validade encontrada (colunas VALIDADE_FISICA / VALIDADE_ENCONTRADA).</p>');
-  const BRLc=v=>BRL.format(v),F=[{l:"Vencido",t:d=>d<0,c:"#7F1D1D",a:"Retirar e bloquear já"},{l:"0–20 dias",t:d=>d>=0&&d<=20,c:"#DC2626",a:"Rebaixa / venda imediata"},{l:"21–45 dias",t:d=>d>20&&d<=45,c:"#F59E0B",a:"Priorizar saída (FIFO)"},{l:"46–90 dias",t:d=>d>45&&d<=90,c:"#EAB308",a:"Monitorar"},{l:"Acima de 90 dias",t:d=>d>90,c:"#16A34A",a:"OK"}];
-  const fx=o=>F.find(f=>f.t(o.d)),soma=L=>L.reduce((s,o)=>s+o.val,0),un=L=>L.reduce((s,o)=>s+o.q,0),pc=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"—";
-  const venc=S.filter(o=>o.d<0),c20=S.filter(o=>o.d>=0&&o.d<=20),c45=S.filter(o=>o.d>20&&o.d<=45),risco=venc.concat(c20,c45),tot=soma(S),vAud=S.filter(o=>o.dAud<0);
+function fxShelf(all){const S=valShelfRows(all);VAL.shelf=S;if(!S.length)return fxFull("Shelf life",'<p class="fx-e">As auditorias do período não trazem a validade encontrada (colunas VALIDADE_FISICA / VALIDADE_ENCONTRADA).</p>');
+  const BRLc=v=>BRL0(v),BRLk=v=>Math.abs(v)>=1000?"R$ "+(v/1000).toFixed(1).replace(".",",")+" mil":BRL0(v),F=VAL_FX;
+  const soma=L=>L.reduce((s,o)=>s+o.val,0),un=L=>L.reduce((s,o)=>s+o.q,0),pc=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"—",it=n=>n+" ite"+(n===1?"m":"ns");
+  const venc=S.filter(o=>o.d<0),c20=S.filter(o=>o.d>=0&&o.d<=20),c45=S.filter(o=>o.d>20&&o.d<=45),risco=venc.concat(c20,c45),tot=soma(S),temV=tot>0,met=L=>temV?soma(L):L.length;
   const ds=S.map(o=>o.d).sort((a,b)=>a-b),med=ds[Math.floor(ds.length/2)];
-  const cmp=S.filter(o=>o.vs),igual=cmp.filter(o=>rotIso(o.vs)===rotIso(o.vf)),otim=cmp.filter(o=>o.vs>o.vf),otD=otim.length?Math.round(otim.reduce((s,o)=>s+(o.vs-o.vf)/864e5,0)/otim.length):0;
-  const multi={};S.forEach(o=>{const k=o.end+"|"+o.cod;multi[k]=(multi[k]||0)+1;});const mix=Object.values(multi).filter(n=>n>1).length;
-  const ruas={};risco.forEach(o=>{const x=ruas[o.rua]=ruas[o.rua]||{n:0,v:0};x.n++;x.v+=o.val;});const rTop=Object.entries(ruas).sort((a,b)=>b[1].v-a[1].v||b[1].n-a[1].n);
-  const sem=[];for(let w=0;w<12;w++){const a=w*7,b=a+6,L=S.filter(o=>o.d>=a&&o.d<=b);sem.push({l:"S"+(w+1),v:L.length,txt:L.length?L.length+"":"",c:w<3?"#DC2626":w<7?"#F59E0B":"#EAB308"});}
-  const itens={};risco.forEach(o=>{const x=itens[o.cod]=itens[o.cod]||{desc:o.desc,n:0,v:0,q:0};x.n++;x.v+=o.val;x.q+=o.q;});const iTop=Object.entries(itens).sort((a,b)=>b[1].v-a[1].v).slice(0,8);
-  // leitura crítica
-  const ler=[];
-  if(venc.length)ler.push('<b style="color:#7F1D1D">'+venc.length+' lote(s) vencido(s)</b> em estoque ('+un(venc)+' un · '+BRLc(soma(venc))+'): retirar do endereço e bloquear hoje.');
-  if(vAud.length)ler.push('<b>'+vAud.length+'</b> lote(s) já estavam <b>vencidos no momento da auditoria</b> — falha de controle de validade na armazenagem/reposição.');
-  ler.push('<b>'+pc(soma(risco),tot)+'</b> do valor auditado ('+BRLc(soma(risco))+' de '+BRLc(tot)+') vence em até <b>45 dias</b>.');
-  if(rTop.length)ler.push('Rua <b>'+esc(rTop[0][0])+'</b> concentra '+pc(rTop[0][1].v,soma(risco)||1)+' do valor em risco'+(rTop[1]?'; rua <b>'+esc(rTop[1][0])+'</b> vem a seguir ('+pc(rTop[1][1].v,soma(risco)||1)+')':'')+'.');
-  if(cmp.length)ler.push('Validade do sistema confere em <b>'+pc(igual.length,cmp.length)+'</b> dos lotes; em <b>'+otim.length+'</b> o sistema mostra validade <b>maior</b> que a física (média de '+otD+' dias) — risco de vencer sem aparecer nos relatórios.');
-  if(mix)ler.push('<b>'+mix+'</b> endereço(s) com mais de uma validade do mesmo item — risco de FIFO.');
-  ler.push('Shelf life mediano restante: <b>'+med+' dias</b>.');
-  const acao=S.filter(o=>o.d<=45).sort((a,b)=>a.d-b.d||b.val-a.val).slice(0,20);
-  const div=otim.slice().sort((a,b)=>(b.vs-b.vf)-(a.vs-a.vf)).slice(0,10);
-  return '<h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem;color:#7F1D1D">Shelf life — risco de vencimento</h2>'+
-    fxKpis([{t:"Vencidos em estoque",v:venc.length,c:"#7F1D1D",s:un(venc)+" un · "+BRLc(soma(venc))},{t:"Vencem em até 20 dias",v:c20.length,c:"#DC2626",s:un(c20)+" un · "+BRLc(soma(c20))},{t:"Vencem em 21–45 dias",v:c45.length,c:"#F59E0B",s:un(c45)+" un · "+BRLc(soma(c45))},
-      {t:"Valor em risco (≤45 dias)",v:BRLc(soma(risco)),c:"#B91C1C",s:pc(soma(risco),tot)+" do valor auditado"},{t:"Shelf life mediano",v:med+" dias",c:"#0F172A",s:S.length+" lote(s) com validade lida"},{t:"Validade do sistema confere",v:pc(igual.length,cmp.length),c:"#2563EB",s:otim.length+" com sistema otimista"}],true)+
-    '<div class="fx-c" style="margin-top:10px;border-left:4px solid #B91C1C"><h3>Leitura crítica</h3><ul style="margin:6px 0 0 18px;padding:0;line-height:1.55">'+ler.map(t=>'<li>'+t+'</li>').join("")+'</ul></div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Lotes por faixa de vencimento",fxBars(F.map(f=>{const L=S.filter(o=>fx(o)===f);return {l:f.l,v:L.length,txt:L.length+" lote(s) · "+BRLc(soma(L)),c:f.c};})))+
-      fxCard("Curva de vencimento — próximas 12 semanas",fxCols(sem)+'<p class="fx-e" style="margin-top:4px">Lotes que vencem a cada semana a partir de hoje (S1 = próximos 7 dias).</p>')+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Ruas com mais valor em risco (≤45 dias)",fxBars(rTop.slice(0,10).map(([k,x])=>({l:"Rua "+k,v:x.v,txt:x.n+" lote(s) · "+BRLc(x.v),c:"#B91C1C"}))))+
-      fxCard("Itens com mais valor em risco",fxBars(iTop.map(([k,x])=>({l:k+" – "+String(x.desc).slice(0,22),v:x.v,txt:x.q+" un · "+BRLc(x.v),c:"#DC2626"}))))+'</div>'+
-    fxFull("Ação imediata — lotes vencidos e que vencem em até 45 dias",fxTable([{t:"Endereço"},{t:"Código"},{t:"Descrição"},{t:"Validade"},{t:"Dias",n:1},{t:"Qtd",n:1},{t:"Valor",n:1},{t:"Ação"}],
-      acao.map(o=>{const f=fx(o);return [esc(o.end),esc(o.cod),esc(String(o.desc).slice(0,30)),ceBr(rotIso(o.vf)),'<b style="color:'+f.c+'">'+(o.d<0?"vencido há "+(-o.d):o.d)+'</b>',o.q||"",o.val?BRLc(o.val):"—",'<b style="color:'+f.c+'">'+f.a+'</b>'];})))+
-    (div.length?fxFull("Sistema × físico — validade do sistema maior que a encontrada",fxTable([{t:"Endereço"},{t:"Código"},{t:"Descrição"},{t:"Sistema"},{t:"Física"},{t:"Diferença",n:1}],div.map(o=>[esc(o.end),esc(o.cod),esc(String(o.desc).slice(0,30)),ceBr(rotIso(o.vs)),ceBr(rotIso(o.vf)),'<b style="color:#B91C1C">+'+Math.round((o.vs-o.vf)/864e5)+' dias</b>']))):'');}
+  const cmp=S.filter(o=>o.vs),igual=cmp.filter(o=>rotIso(o.vs)===rotIso(o.vf)),otim=cmp.filter(o=>o.vs>o.vf);
+  const ruas={};risco.forEach(o=>{const x=ruas[o.rua]=ruas[o.rua]||{n:0,v:0};x.n++;x.v+=o.val;});const rTop=Object.entries(ruas).sort((a,b)=>(temV?b[1].v-a[1].v:0)||b[1].n-a[1].n).slice(0,10);
+  const itens={};risco.forEach(o=>{const x=itens[o.cod]=itens[o.cod]||{desc:o.desc,n:0,v:0,q:0};x.n++;x.v+=o.val;x.q+=o.q;});const iTop=Object.entries(itens).sort((a,b)=>(temV?b[1].v-a[1].v:0)||b[1].q-a[1].q).slice(0,8);
+  // vencimento por mês: já vencido + mês atual + 5 meses + depois
+  const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"],h=new Date(),mk=d=>d.getFullYear()*12+d.getMonth(),m0=mk(h);
+  const meses=[{l:"Vencido",t:o=>o.d<0,c:"#7F1D1D"}].concat([0,1,2,3,4,5].map(i=>{const d=new Date(h.getFullYear(),h.getMonth()+i,1);return {l:MES[d.getMonth()]+"/"+String(d.getFullYear()).slice(2),t:o=>o.d>=0&&mk(o.vf)===m0+i,c:i===0?"#DC2626":i===1?"#F59E0B":"#EAB308"};})).concat([{l:"Depois",t:o=>o.d>=0&&mk(o.vf)>m0+5,c:"#16A34A"}]);
+  const curva=meses.map(m=>{const L=S.filter(m.t);return {l:m.l,v:met(L),txt:L.length?(temV?BRLk(soma(L)):it(L.length)):"",c:m.c,t:m.l+": "+it(L.length)+" · "+un(L)+" un · "+BRLc(soma(L))};});
+  return '<div class="fx-sh"><h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem;color:#7F1D1D">Shelf life — risco de vencimento</h2><div class="no-print"><button type="button" class="btn sm" id="fxv-xls">Relatório de ação (Excel)</button> <button type="button" class="btn sm" id="fxv-pdf">Relatório de ação (PDF)</button></div></div>'+
+    fxKpis([{t:"Vencidos em estoque",v:venc.length,c:"#7F1D1D",s:it(venc.length)+" · "+un(venc)+" un · "+BRLc(soma(venc))},{t:"Vencem em até 20 dias",v:c20.length,c:"#DC2626",s:un(c20)+" un · "+BRLc(soma(c20))},{t:"Vencem em 21 a 45 dias",v:c45.length,c:"#F59E0B",s:un(c45)+" un · "+BRLc(soma(c45))},
+      {t:"Valor em risco (até 45 dias)",v:BRLc(soma(risco)),c:"#B91C1C",s:pc(soma(risco),tot)+" do valor auditado"},{t:"Shelf life mediano",v:med+" dias",c:"#0F172A",s:it(S.length)+" com validade lida"},{t:"Validade do sistema confere",v:pc(igual.length,cmp.length),c:"#2563EB",s:otim.length+" com validade do sistema maior"}],true)+
+    '<div class="fx-row" style="grid-template-columns:1fr 1.3fr;margin-top:10px">'+fxCard("Estoque auditado por prazo de vencimento",fxBars(F.map(f=>{const L=S.filter(o=>f.t(o.d));return {l:f.l,v:met(L),txt:it(L.length)+" · "+BRLk(soma(L)),c:f.c};})))+
+      fxCard("Quando o estoque auditado vence (por mês)",fxCols(curva)+'<p class="fx-e" style="margin-top:6px">'+(temV?"Valor em R$":"Quantidade de itens")+' do estoque auditado que vence em cada mês, conforme a validade encontrada no endereço. A primeira coluna é o que já está vencido.</p>')+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Ruas com mais valor em risco (até 45 dias)",fxCols(rTop.map(([k,x])=>({l:"Rua "+k,v:temV?x.v:x.n,txt:temV?BRLk(x.v):it(x.n),c:"#B91C1C",t:"Rua "+k+": "+it(x.n)+" · "+BRLc(x.v)}))))+
+      fxCard("Itens com mais valor em risco (até 45 dias)",fxCols(iTop.map(([k,x])=>({l:k,v:temV?x.v:x.q,txt:temV?BRLk(x.v):x.q+" un",c:"#DC2626",t:k+" – "+x.desc+": "+x.q+" un · "+BRLc(x.v)})))+'<p class="fx-e" style="margin-top:6px">'+iTop.map(([k,x])=>'<b>'+esc(k)+'</b> '+esc(String(x.desc||"").slice(0,26))).join(" · ")+'</p>')+'</div>';}
+const VAL_FX=[{l:"Vencido",t:d=>d<0,c:"#7F1D1D",a:"Retirar e bloquear já"},{l:"0 a 20 dias",t:d=>d>=0&&d<=20,c:"#DC2626",a:"Rebaixa / venda imediata"},{l:"21 a 45 dias",t:d=>d>20&&d<=45,c:"#F59E0B",a:"Priorizar saída (FIFO)"},{l:"46 a 90 dias",t:d=>d>45&&d<=90,c:"#EAB308",a:"Monitorar"},{l:"Acima de 90 dias",t:d=>d>90,c:"#16A34A",a:"OK"}];
+function valAcaoLista(){const S=VAL.shelf||[],fx=o=>VAL_FX.find(f=>f.t(o.d));return S.filter(o=>o.d<=45).sort((a,b)=>a.d-b.d||b.val-a.val).map(o=>Object.assign({f:fx(o)},o));}
+async function valAcaoExcel(){const L=valAcaoLista();if(!L.length){toast("Nenhum item vencido ou vencendo em até 45 dias no período.");return;}
+  try{if(!window.XLSX)await loadScript(XLSX_URL_LOCAL());
+    const a=[["Relatório de ação — validade (vencidos e que vencem em até 45 dias)"],["Período das auditorias: "+ceBr(FECH.de)+" a "+ceBr(FECH.ate)+" · gerado em "+fmtDT(new Date()).slice(0,16)],[],["Tipo","Endereço","Rua","Código","Descrição","Validade encontrada","Validade sistema","Dias para vencer","Qtd","Vl. unitário","Valor","Ação"]]
+      .concat(L.map(o=>[o.aba,o.end,o.rua,o.cod,o.desc||"",ceBr(rotIso(o.vf)),o.vs?ceBr(rotIso(o.vs)):"",o.d,o.q,Math.round(o.vl*100)/100,Math.round(o.val*100)/100,o.f.a]));
+    const sx=(VAL.shelf||[]).filter(o=>o.vs&&o.vs>o.vf).sort((a,b)=>(b.vs-b.vf)-(a.vs-a.vf));
+    const b=[["Validade do sistema maior que a encontrada no endereço"],[],["Endereço","Código","Descrição","Validade sistema","Validade encontrada","Diferença (dias)","Qtd","Valor"]].concat(sx.map(o=>[o.end,o.cod,o.desc||"",ceBr(rotIso(o.vs)),ceBr(rotIso(o.vf)),Math.round((o.vs-o.vf)/864e5),o.q,Math.round(o.val*100)/100]));
+    const wb=XLSX.utils.book_new(),s1=XLSX.utils.aoa_to_sheet(a),s2=XLSX.utils.aoa_to_sheet(b);s1["!cols"]=[{wch:5},{wch:12},{wch:6},{wch:9},{wch:40},{wch:12},{wch:12},{wch:10},{wch:8},{wch:11},{wch:12},{wch:26}];s2["!cols"]=[{wch:12},{wch:9},{wch:40},{wch:12},{wch:12},{wch:12},{wch:8},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,s1,"Ação");XLSX.utils.book_append_sheet(wb,s2,"Sistema x Físico");XLSX.writeFile(wb,"Validade_Acao_"+todayISO()+".xlsx");toast("Relatório de ação baixado.");}
+  catch(e){toast("Não consegui gerar o Excel: "+(e.message||e));}}
+function valAcaoPdf(){const L=valAcaoLista();if(!L.length){toast("Nenhum item vencido ou vencendo em até 45 dias no período.");return;}
+  const tot=L.reduce((s,o)=>s+o.val,0),un=L.reduce((s,o)=>s+o.q,0),venc=L.filter(o=>o.d<0);
+  const html='<div class="pd fx"><div class="fx-h"><div><h1>Relatório de ação — validade</h1><p>Itens vencidos e que vencem em até 45 dias · auditorias de <b>'+ceBr(FECH.de)+'</b> a <b>'+ceBr(FECH.ate)+'</b></p></div><div class="r">Gerado: <b>'+fmtDT(new Date()).slice(0,16)+'</b><br>'+L.length+' itens · '+un+' un · '+BRL0(tot)+'</div></div>'+
+    fxKpis([{t:"Itens",v:L.length,c:"#0F172A"},{t:"Vencidos",v:venc.length,c:"#7F1D1D"},{t:"Unidades",v:un,c:"#DC2626"},{t:"Valor",v:BRL0(tot),c:"#B91C1C"}],true)+
+    fxCard("Itens para ação",fxTable([{t:"Endereço"},{t:"Código"},{t:"Descrição"},{t:"Validade"},{t:"Dias",n:1},{t:"Qtd",n:1},{t:"Valor",n:1},{t:"Ação"},{t:"Feito ✓"}],
+      L.map(o=>[esc(o.end),esc(o.cod),esc(String(o.desc||"").slice(0,34)),ceBr(rotIso(o.vf)),'<b style="color:'+o.f.c+'">'+(o.d<0?"vencido há "+(-o.d):o.d)+'</b>',o.q||"",o.val?BRL0(o.val):"—",'<b style="color:'+o.f.c+'">'+o.f.a+'</b>','☐'])))+
+    '<div class="fx-f"><span>Relatório de ação · Validade</span><span>Santa Therezinha</span></div></div>';
+  openDoc({html,multi:false,land:true,name:"Validade_Acao_"+todayISO()+".pdf",title:"Relatório de ação – validade",short:"Relatório de ação – validade: "+L.length+" itens, "+BRL0(tot),
+    text:["*RELATÓRIO DE AÇÃO – VALIDADE*",...L.slice(0,40).map(o=>o.end+" · "+o.cod+" – "+o.desc+": "+(o.d<0?"vencido":"vence em "+o.d+" dias")+" → "+o.f.a)].join("\n")});
+  setTimeout(()=>{const bar=document.querySelector("#print .pv-bar");if(bar&&!bar.querySelector(".pv-xls")){const b=document.createElement("button");b.type="button";b.className="pv-xls";b.textContent="Baixar Excel";b.onclick=valAcaoExcel;bar.appendChild(b);}},60);}
+document.addEventListener("click",e=>{const id=e.target&&e.target.id;if(id==="fxv-xls")valAcaoExcel();if(id==="fxv-pdf")valAcaoPdf();});
 
 function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tipo==="val")renderFech();});return '<p class="fx-e">'+esc(VAL.msg||"Lendo a planilha de validade…")+'</p>';}
   const a0=new Date(FECH.de+"T00:00:00").getTime(),b0=new Date(FECH.ate+"T23:59:59").getTime(),noP=L=>L.filter(x=>!x.ts||(x.ts>=a0&&x.ts<=b0));
@@ -3283,7 +3307,7 @@ function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tip
   const pc=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"—";
   return '<div class="fxq-cmp no-print"><button type="button" id="fxv-nc"'+(inc.length?"":" disabled")+'>Imprimir NCs das inconsistências ('+inc.length+')</button> <button type="button" id="fxv-upd">Atualizar da planilha</button></div>'+fxHead(tit,all.length)+
     fxKpis([{t:"Auditorias de validade",v:all.length,c:"#0F172A",s:"AE "+ae.length+" · AP "+ap.length},{t:"Inconsistências",v:inc.length,c:"#DC2626",s:pc(inc.length,all.length)+" das auditorias"},{t:"AUDITORIA_AE",v:ae.length,c:"#2563EB",s:ae.filter(x=>x.inc).length+" inconsistência(s)"},
-      {t:"AUDITORIA_AP",v:ap.length,c:"#7C3AED",s:ap.filter(x=>x.inc).length+" inconsistência(s)"},{t:"Conformidade",v:pc(all.length-inc.length,all.length),c:"#16A34A"},{t:"Comissão (10003583)",v:all.length+" aud.",c:"#0369A1",s:"atividade Validade"},{t:"Endereços pulados",v:pul.length,c:"#D97706",s:pul.filter(x=>x.Status==="Pulado").length+" ainda pendente(s) · "+pul.filter(x=>x.Status!=="Pulado").length+" auditado(s) depois"}],true)+fxShelf(all)+'<h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem">Qualidade das auditorias</h2>'+
+      {t:"AUDITORIA_AP",v:ap.length,c:"#7C3AED",s:ap.filter(x=>x.inc).length+" inconsistência(s)"},{t:"Conformidade",v:pc(all.length-inc.length,all.length),c:"#16A34A"},{t:"Endereços pulados",v:pul.length,c:"#D97706",s:pul.filter(x=>x.Status==="Pulado").length+" ainda pendente(s) · "+pul.filter(x=>x.Status!=="Pulado").length+" auditado(s) depois"}],true)+fxShelf(all)+'<h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem">Qualidade das auditorias</h2>'+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+fxCard("Itens com inconsistência",fxTable([{t:"Aba"},{t:"Data"},{t:"Código"},{t:"Descrição"},{t:"Situação"}],inc.slice(0,14).map(x=>[x.aba.replace("AUDITORIA_",""),esc(x.data?ceBr(x.data):""),esc(x.cod),esc(String(x.desc).slice(0,30)),'<b style="color:#B91C1C">'+esc(String(x.st||"Inconsistente").slice(0,26))+'</b>'])))+
       fxCard("Resultado",fxDonut([{l:"Conforme",v:all.length-inc.length,c:"#16A34A"},{l:"Inconsistente",v:inc.length,c:"#DC2626"}]))+'</div>'+
     fxFull("Auditorias de validade por dia",fxLine(linha,"#0369A1",null,130))+
@@ -3330,8 +3354,15 @@ function chepLer(txt){const T=txt.replace(/\s+/g," "),U=norm(T);
   const num=(T.match(/N[º°o\.]?\s*(?:DA\s*)?(?:NF-?E?|NOTA)?\s*[:.]?\s*(\d{3,9})/i)||T.match(/NOTA FISCAL[^0-9]{0,40}(\d{3,9})/i)||T.match(/DOCUMENTO[^0-9]{0,20}(\d{3,9})/i)||[])[1]||"";
   const data=(T.match(/EMISS[ÃA]O[^0-9]{0,30}(\d{2}\/\d{2}\/\d{4})/i)||T.match(/(\d{2}\/\d{2}\/\d{4})/)||[])[1]||"";
   const loja=chepLojaTxt(T);
-  let pal=0;const mq=T.match(/PALE?T\w*[^0-9]{0,50}?(\d{1,5})(?:[.,]0+)?(?=\s|$|\s*UN)/i)||T.match(/(\d{1,5})(?:[.,]0+)?\s*(?:UN|UND|PC|PCS)\b[^0-9]{0,30}PALE?T/i);if(mq){const n=parseInt(mq[1],10)||0;pal=(n>=1900&&n<=2100)?0:n;}
-  return {num,data,destino:loja||"",pal};}
+  return {num,data,destino:loja||"",pal:chepPal(T)};}
+/* Quantidade de paletes na DANFE: em cada linha de produto com "PALETE", lê a quantidade que vem depois da unidade
+   (… NCM 8 dígitos · CST · CFOP · UN · QTD …). Soma as linhas. Se não achar, tenta o quadro de volumes ("QUANTIDADE 30 ESPÉCIE PALETE"). */
+function chepPal(T){const U=norm(T).replace(/\s+/g," ");let tot=0,achou=false,fim=-1;const re=/PALE?T/g;let m;
+  while((m=re.exec(U))){if(m.index<fim)continue;const w=U.slice(m.index,m.index+280);
+    const q=w.match(/\b\d{8}\b\s+\d{3,4}\s+\d{4}\s+(?:UN|UND|UNID|PC|PCS|PCT|PC\.)\s+(\d{1,3}(?:\.\d{3})+|\d{1,6})(?:,\d{1,4})?\b/)||w.match(/\b(?:UN|UND|UNID|PC|PCS)\s+(\d{1,3}(?:\.\d{3})+|\d{1,6})(?:,\d{1,4})?\b/);
+    if(q){const n=parseInt(q[1].replace(/\./g,""),10)||0;if(n>0&&n<100000){tot+=n;achou=true;}fim=m.index+q.index+q[0].length;}}
+  if(!achou){const v=U.match(/QUANTIDADE\s*(\d{1,5})\s*ESPECIE\s*PALE?T/)||U.match(/ESPECIE\s*PALE?T\w*\s*(?:QUANTIDADE\s*)?(\d{1,5})\b/)||U.match(/\b(\d{1,5})\s*PALE?TE?S\b/);if(v){const n=+v[1];if(n>0&&!(n>=1900&&n<=2100))tot=n;}}
+  return tot;}
 $("h-pdf").addEventListener("change",async e=>{const fs=[...e.target.files];e.target.value="";if(!fs.length)return;if(!CH.tipo){setErr("h-tipo-f","Escolha se é NOTA ou AJUSTE DE INVENTÁRIO.");toast("Escolha o tipo do documento primeiro.");return;}
   $("h-msg").textContent="Lendo "+fs.length+" PDF(s)…";
   for(const f of fs){if(f.size>15e6){toast(f.name+": arquivo maior que 15 MB.");continue;}let info={num:"",data:"",destino:"",pal:0},pags=0;try{const r=await chepTexto(f);info=chepLer(r.txt);pags=r.pags;}catch(x){console.warn(x);}
@@ -3372,8 +3403,9 @@ FX_TAB.chep="Chep";FX_TIT.chep="Chep_Documentos";
 function fxChep(){const rows=(FECH.dados&&FECH.dados.chep?ceRows(FECH.dados.chep):[]).filter(r=>r.ID).map(r=>Object.assign(r,{_d:ceIso(r.Data_Documento||r.Data_Importacao),_p:ceParse(r.Quantidade_Paletes)||0})).filter(r=>r._d>=FECH.de&&r._d<=FECH.ate),tit="Chep — paletes (notas e ajustes de inventário)";
   const nt=rows.filter(r=>r.Tipo==="Nota"),inv=rows.filter(r=>r.Tipo!=="Nota"),pal=L=>L.reduce((s,r)=>s+r._p,0),lj={};CHEP_LJ.forEach(k=>lj[k]={n:0,p:0});nt.forEach(r=>{const k=chepLoja(r.Destino)||"—";const x=lj[k]=lj[k]||{n:0,p:0};x.n++;x.p+=r._p;});
   const porD={};rows.forEach(r=>{const x=porD[r._d]=porD[r._d]||{n:0};x.n++;});const linha=Object.keys(porD).sort().map(k=>({l:ceBr(k).slice(0,5),v:porD[k].n,txt:String(porD[k].n)}));
-  return fxHead(tit,rows.length)+fxKpis([{t:"Notas emitidas",v:nt.length,c:"#2563EB",s:pal(nt)+" palete(s)"},{t:"Ajustes de inventário",v:inv.length,c:"#7C3AED",s:pal(inv)+" palete(s)"},{t:"Documentos",v:rows.length,c:"#0369A1",s:new Set(rows.map(r=>r.Importado_Por)).size+" importador(es)"}],true)+
-    '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+fxCard("Notas por loja",fxBars(Object.entries(lj).sort((a,b)=>b[1].n-a[1].n).map(([k,x])=>({l:k,v:x.n,txt:x.n+" nota(s) · "+x.p+" pal.",c:"#2563EB"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-w"'))+
+  const comP=nt.filter(r=>r._p>0),temP=comP.length>0;
+  return fxHead(tit,rows.length)+fxKpis([{t:"Notas emitidas",v:nt.length,c:"#2563EB",s:Object.values(lj).filter(x=>x.n).length+" loja(s)"}].concat(temP?[{t:"Paletes nas notas",v:pal(nt),c:"#0F766E",s:"lidos de "+comP.length+" de "+nt.length+" nota(s)"}]:[]).concat([{t:"Ajustes de inventário",v:inv.length,c:"#7C3AED",s:inv.some(r=>r._p)?pal(inv)+" palete(s)":""},{t:"Documentos",v:rows.length,c:"#0369A1",s:new Set(rows.map(r=>r.Importado_Por)).size+" importador(es)"}]),true)+
+    '<div class="fx-row" style="grid-template-columns:1.3fr 1fr">'+fxCard("Notas por loja",fxBars(Object.entries(lj).sort((a,b)=>b[1].n-a[1].n).map(([k,x])=>({l:k,v:x.n,txt:x.n+" nota"+(x.n===1?"":"s")+(temP&&x.p?" · "+x.p+" pal.":""),c:"#2563EB"}))))+
       fxCard("Tipo de documento",fxDonut([{l:"Nota",v:nt.length,c:"#2563EB"},{l:"Ajuste de inventário",v:inv.length,c:"#7C3AED"}]))+'</div>'+
     fxFull("Documentos por dia",fxLine(linha,"#2563EB",null,120))+fxFoot("Chep");}
 (function(){const s=document.createElement("style");s.textContent="#h-tipo button small{display:block;font-weight:500;font-size:.72rem;opacity:.8}";document.head.appendChild(s);})();
