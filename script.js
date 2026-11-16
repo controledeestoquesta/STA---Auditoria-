@@ -3229,10 +3229,53 @@ function valTab(v){const A=(v&&v.valores)||[];const hi=A.findIndex(r=>r.filter(c
 const valCol=(H,re)=>H.find(h=>re.test(norm(h)));
 function valInfo(nome,v){const {H,rows}=valTab(v);const cData=valCol(H,/^DATA|DATA DA AUD|DT/),cCod=valCol(H,/COD|PRODUTO/),cDesc=valCol(H,/DESC/),cAud=valCol(H,/AUDITOR|RESPONS|COLABORADOR|MATR/),cStat=valCol(H,/INCONSIST|STATUS|SITUA|RESULT|CONFORM|DIVERG/);
   const bad=r=>{const vals=cStat?[r[cStat]]:Object.values(r);return vals.some(x=>/INCONSIST|NAO CONFORME|NÃO CONFORME|DIVERG|VENCID|REPROV|\bNOK\b|ERRAD/i.test(String(x)))&&!(cStat&&/^(OK|CONFORME|SEM INCONSIST)/i.test(String(r[cStat])));};
-  const L=rows.map(r=>{const d=rotDt(r[cData])||null;return {aba:nome,r,ts:d?d.getTime():0,data:d?rotIso(d):"",cod:r[cCod]||"",desc:r[cDesc]||"",aud:r[cAud]||"",st:r[cStat]||"",inc:bad(r)};});
+  const L=rows.map(r=>{const d=rotDt(r[cData])||(()=>{const m=String(r[cData]||"").match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);return m?new Date(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0)):null;})()||null;return {aba:nome,r,ts:d?d.getTime():0,data:d?rotIso(d):"",cod:r[cCod]||"",desc:r[cDesc]||"",aud:r[cAud]||"",st:r[cStat]||"",inc:bad(r)};});
   return {H,L,cData,cCod,cDesc,cAud,cStat};}
 async function valCarregar(){if(VAL.busy)return;VAL.busy=true;VAL.msg="Lendo a planilha de validade…";try{const j=await ppPost({acao:"val_ler"});VAL.dados={AE:valInfo("AUDITORIA_AE",j.abas&&j.abas.AUDITORIA_AE),AP:valInfo("AUDITORIA_AP",j.abas&&j.abas.AUDITORIA_AP),pul:j.pulados?ceRows(j.pulados).filter(r=>r.ID):[]};VAL.msg="";}catch(e){VAL.msg=e.message;}VAL.busy=false;}
 FX_TAB.val="Validade";FX_TIT.val="Auditoria_Validade";
+/* ===== Shelf life (fechamento de validade): risco de vencimento a partir das validades encontradas nas auditorias AE/AP ===== */
+function valData(s){s=String(s||"").trim();let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);if(m){const y=+m[3]<100?2000+ +m[3]:+m[3];return new Date(y,+m[2]-1,+m[1]);}return null;}
+function valShelfRows(all){const H=x=>VAL.dados[x.aba==="AUDITORIA_AE"?"AE":"AP"].H,col=(x,re)=>valCol(H(x),re);
+  const hoje=new Date(todayISO()+"T00:00:00"),dd=(a,b)=>Math.round((a-b)/864e5),best={};
+  all.forEach(x=>{const r=x.r,cF=col(x,/VALIDADE_?\s?(FISICA|ENCONTRADA)|DT_?VAL_?(FIS|ENC)/),cS=col(x,/VALIDADE_?\s?SISTEMA|^DTVAL$/);const vf=valData(r[cF]);if(!vf)return;
+    const vs=valData(r[cS]),c=k=>r[col(x,k)]||"",end=[c(/^RUA$/),c(/^PREDIO$/),c(/^NIVEL$/),c(/^APTO$/)].filter(Boolean).join("-"),cod=String(x.cod||"").replace(/^0+/,"");
+    const q=ceParse(c(/QTDE?_?ENCONTRADA/))||ceParse(c(/QTDE?_?SISTEMA|^QTDE?$/))||0,k=pIdx.get(cod)??pIdx.get(String(x.cod)),vl=k!=null?P.vl[k]||0:0,au=x.ts?new Date(x.ts):hoje;
+    const o={aba:x.aba.replace("AUDITORIA_",""),end,rua:String(parseInt(c(/^RUA$/),10)||"—"),cod,desc:x.desc||(k!=null?P.desc[k]:""),vf,vs,d:dd(vf,hoje),dAud:dd(vf,au),q,vl,val:q*vl,ts:x.ts,lote:c(/LOTE_?SEQ/)};
+    const key=end+"|"+cod+"|"+rotIso(vf);if(!best[key]||best[key].ts<o.ts)best[key]=o;});
+  return Object.values(best);}
+function fxShelf(all){const S=valShelfRows(all);if(!S.length)return fxFull("Shelf life",'<p class="fx-e">As auditorias do período não trazem a validade encontrada (colunas VALIDADE_FISICA / VALIDADE_ENCONTRADA).</p>');
+  const BRLc=v=>BRL.format(v),F=[{l:"Vencido",t:d=>d<0,c:"#7F1D1D",a:"Retirar e bloquear já"},{l:"0–20 dias",t:d=>d>=0&&d<=20,c:"#DC2626",a:"Rebaixa / venda imediata"},{l:"21–45 dias",t:d=>d>20&&d<=45,c:"#F59E0B",a:"Priorizar saída (FIFO)"},{l:"46–90 dias",t:d=>d>45&&d<=90,c:"#EAB308",a:"Monitorar"},{l:"Acima de 90 dias",t:d=>d>90,c:"#16A34A",a:"OK"}];
+  const fx=o=>F.find(f=>f.t(o.d)),soma=L=>L.reduce((s,o)=>s+o.val,0),un=L=>L.reduce((s,o)=>s+o.q,0),pc=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"—";
+  const venc=S.filter(o=>o.d<0),c20=S.filter(o=>o.d>=0&&o.d<=20),c45=S.filter(o=>o.d>20&&o.d<=45),risco=venc.concat(c20,c45),tot=soma(S),vAud=S.filter(o=>o.dAud<0);
+  const ds=S.map(o=>o.d).sort((a,b)=>a-b),med=ds[Math.floor(ds.length/2)];
+  const cmp=S.filter(o=>o.vs),igual=cmp.filter(o=>rotIso(o.vs)===rotIso(o.vf)),otim=cmp.filter(o=>o.vs>o.vf),otD=otim.length?Math.round(otim.reduce((s,o)=>s+(o.vs-o.vf)/864e5,0)/otim.length):0;
+  const multi={};S.forEach(o=>{const k=o.end+"|"+o.cod;multi[k]=(multi[k]||0)+1;});const mix=Object.values(multi).filter(n=>n>1).length;
+  const ruas={};risco.forEach(o=>{const x=ruas[o.rua]=ruas[o.rua]||{n:0,v:0};x.n++;x.v+=o.val;});const rTop=Object.entries(ruas).sort((a,b)=>b[1].v-a[1].v||b[1].n-a[1].n);
+  const sem=[];for(let w=0;w<12;w++){const a=w*7,b=a+6,L=S.filter(o=>o.d>=a&&o.d<=b);sem.push({l:"S"+(w+1),v:L.length,txt:L.length?L.length+"":"",c:w<3?"#DC2626":w<7?"#F59E0B":"#EAB308"});}
+  const itens={};risco.forEach(o=>{const x=itens[o.cod]=itens[o.cod]||{desc:o.desc,n:0,v:0,q:0};x.n++;x.v+=o.val;x.q+=o.q;});const iTop=Object.entries(itens).sort((a,b)=>b[1].v-a[1].v).slice(0,8);
+  // leitura crítica
+  const ler=[];
+  if(venc.length)ler.push('<b style="color:#7F1D1D">'+venc.length+' lote(s) vencido(s)</b> em estoque ('+un(venc)+' un · '+BRLc(soma(venc))+'): retirar do endereço e bloquear hoje.');
+  if(vAud.length)ler.push('<b>'+vAud.length+'</b> lote(s) já estavam <b>vencidos no momento da auditoria</b> — falha de controle de validade na armazenagem/reposição.');
+  ler.push('<b>'+pc(soma(risco),tot)+'</b> do valor auditado ('+BRLc(soma(risco))+' de '+BRLc(tot)+') vence em até <b>45 dias</b>.');
+  if(rTop.length)ler.push('Rua <b>'+esc(rTop[0][0])+'</b> concentra '+pc(rTop[0][1].v,soma(risco)||1)+' do valor em risco'+(rTop[1]?'; rua <b>'+esc(rTop[1][0])+'</b> vem a seguir ('+pc(rTop[1][1].v,soma(risco)||1)+')':'')+'.');
+  if(cmp.length)ler.push('Validade do sistema confere em <b>'+pc(igual.length,cmp.length)+'</b> dos lotes; em <b>'+otim.length+'</b> o sistema mostra validade <b>maior</b> que a física (média de '+otD+' dias) — risco de vencer sem aparecer nos relatórios.');
+  if(mix)ler.push('<b>'+mix+'</b> endereço(s) com mais de uma validade do mesmo item — risco de FIFO.');
+  ler.push('Shelf life mediano restante: <b>'+med+' dias</b>.');
+  const acao=S.filter(o=>o.d<=45).sort((a,b)=>a.d-b.d||b.val-a.val).slice(0,20);
+  const div=otim.slice().sort((a,b)=>(b.vs-b.vf)-(a.vs-a.vf)).slice(0,10);
+  return '<h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem;color:#7F1D1D">Shelf life — risco de vencimento</h2>'+
+    fxKpis([{t:"Vencidos em estoque",v:venc.length,c:"#7F1D1D",s:un(venc)+" un · "+BRLc(soma(venc))},{t:"Vencem em até 20 dias",v:c20.length,c:"#DC2626",s:un(c20)+" un · "+BRLc(soma(c20))},{t:"Vencem em 21–45 dias",v:c45.length,c:"#F59E0B",s:un(c45)+" un · "+BRLc(soma(c45))},
+      {t:"Valor em risco (≤45 dias)",v:BRLc(soma(risco)),c:"#B91C1C",s:pc(soma(risco),tot)+" do valor auditado"},{t:"Shelf life mediano",v:med+" dias",c:"#0F172A",s:S.length+" lote(s) com validade lida"},{t:"Validade do sistema confere",v:pc(igual.length,cmp.length),c:"#2563EB",s:otim.length+" com sistema otimista"}],true)+
+    '<div class="fx-c" style="margin-top:10px;border-left:4px solid #B91C1C"><h3>Leitura crítica</h3><ul style="margin:6px 0 0 18px;padding:0;line-height:1.55">'+ler.map(t=>'<li>'+t+'</li>').join("")+'</ul></div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Lotes por faixa de vencimento",fxBars(F.map(f=>{const L=S.filter(o=>fx(o)===f);return {l:f.l,v:L.length,txt:L.length+" lote(s) · "+BRLc(soma(L)),c:f.c};})))+
+      fxCard("Curva de vencimento — próximas 12 semanas",fxCols(sem)+'<p class="fx-e" style="margin-top:4px">Lotes que vencem a cada semana a partir de hoje (S1 = próximos 7 dias).</p>')+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Ruas com mais valor em risco (≤45 dias)",fxBars(rTop.slice(0,10).map(([k,x])=>({l:"Rua "+k,v:x.v,txt:x.n+" lote(s) · "+BRLc(x.v),c:"#B91C1C"}))))+
+      fxCard("Itens com mais valor em risco",fxBars(iTop.map(([k,x])=>({l:k+" – "+String(x.desc).slice(0,22),v:x.v,txt:x.q+" un · "+BRLc(x.v),c:"#DC2626"}))))+'</div>'+
+    fxFull("Ação imediata — lotes vencidos e que vencem em até 45 dias",fxTable([{t:"Endereço"},{t:"Código"},{t:"Descrição"},{t:"Validade"},{t:"Dias",n:1},{t:"Qtd",n:1},{t:"Valor",n:1},{t:"Ação"}],
+      acao.map(o=>{const f=fx(o);return [esc(o.end),esc(o.cod),esc(String(o.desc).slice(0,30)),ceBr(rotIso(o.vf)),'<b style="color:'+f.c+'">'+(o.d<0?"vencido há "+(-o.d):o.d)+'</b>',o.q||"",o.val?BRLc(o.val):"—",'<b style="color:'+f.c+'">'+f.a+'</b>'];})))+
+    (div.length?fxFull("Sistema × físico — validade do sistema maior que a encontrada",fxTable([{t:"Endereço"},{t:"Código"},{t:"Descrição"},{t:"Sistema"},{t:"Física"},{t:"Diferença",n:1}],div.map(o=>[esc(o.end),esc(o.cod),esc(String(o.desc).slice(0,30)),ceBr(rotIso(o.vs)),ceBr(rotIso(o.vf)),'<b style="color:#B91C1C">+'+Math.round((o.vs-o.vf)/864e5)+' dias</b>']))):'');}
+
 function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tipo==="val")renderFech();});return '<p class="fx-e">'+esc(VAL.msg||"Lendo a planilha de validade…")+'</p>';}
   const a0=new Date(FECH.de+"T00:00:00").getTime(),b0=new Date(FECH.ate+"T23:59:59").getTime(),noP=L=>L.filter(x=>!x.ts||(x.ts>=a0&&x.ts<=b0));
   const pul=(VAL.dados.pul||[]).filter(x=>{const d=ceIso(x.DataHora);return d>=FECH.de&&d<=FECH.ate;});const ae=noP(VAL.dados.AE.L),ap=noP(VAL.dados.AP.L),all=ae.concat(ap),inc=all.filter(x=>x.inc),tit="Auditoria de validade — Fechamento";
@@ -3240,7 +3283,7 @@ function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tip
   const pc=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"—";
   return '<div class="fxq-cmp no-print"><button type="button" id="fxv-nc"'+(inc.length?"":" disabled")+'>Imprimir NCs das inconsistências ('+inc.length+')</button> <button type="button" id="fxv-upd">Atualizar da planilha</button></div>'+fxHead(tit,all.length)+
     fxKpis([{t:"Auditorias de validade",v:all.length,c:"#0F172A",s:"AE "+ae.length+" · AP "+ap.length},{t:"Inconsistências",v:inc.length,c:"#DC2626",s:pc(inc.length,all.length)+" das auditorias"},{t:"AUDITORIA_AE",v:ae.length,c:"#2563EB",s:ae.filter(x=>x.inc).length+" inconsistência(s)"},
-      {t:"AUDITORIA_AP",v:ap.length,c:"#7C3AED",s:ap.filter(x=>x.inc).length+" inconsistência(s)"},{t:"Conformidade",v:pc(all.length-inc.length,all.length),c:"#16A34A"},{t:"Comissão (10003583)",v:all.length+" aud.",c:"#0369A1",s:"atividade Validade"},{t:"Endereços pulados",v:pul.length,c:"#D97706",s:pul.filter(x=>x.Status==="Pulado").length+" ainda pendente(s) · "+pul.filter(x=>x.Status!=="Pulado").length+" auditado(s) depois"}],true)+
+      {t:"AUDITORIA_AP",v:ap.length,c:"#7C3AED",s:ap.filter(x=>x.inc).length+" inconsistência(s)"},{t:"Conformidade",v:pc(all.length-inc.length,all.length),c:"#16A34A"},{t:"Comissão (10003583)",v:all.length+" aud.",c:"#0369A1",s:"atividade Validade"},{t:"Endereços pulados",v:pul.length,c:"#D97706",s:pul.filter(x=>x.Status==="Pulado").length+" ainda pendente(s) · "+pul.filter(x=>x.Status!=="Pulado").length+" auditado(s) depois"}],true)+fxShelf(all)+'<h2 class="fx-sec" style="margin:14px 0 8px;font-size:1.05rem">Qualidade das auditorias</h2>'+
     '<div class="fx-row" style="grid-template-columns:1.6fr 1fr">'+fxCard("Itens com inconsistência",fxTable([{t:"Aba"},{t:"Data"},{t:"Código"},{t:"Descrição"},{t:"Situação"}],inc.slice(0,14).map(x=>[x.aba.replace("AUDITORIA_",""),esc(x.data?ceBr(x.data):""),esc(x.cod),esc(String(x.desc).slice(0,30)),'<b style="color:#B91C1C">'+esc(String(x.st||"Inconsistente").slice(0,26))+'</b>'])))+
       fxCard("Resultado",fxDonut([{l:"Conforme",v:all.length-inc.length,c:"#16A34A"},{l:"Inconsistente",v:inc.length,c:"#DC2626"}]))+'</div>'+
     fxFull("Auditorias de validade por dia",fxLine(linha,"#0369A1",null,130))+
