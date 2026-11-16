@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 51)
+ * Auditoria STA – Santa Therezinha (versão 52)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -163,7 +163,7 @@ function vlcMinhas(sessao, todos) {
   const num = function (x) { return parseInt(String(x).replace(/\D/g, ''), 10) || 0; };
   itens.sort(function (a, b) { return num(a.rua) - num(b.rua) || num(a.predio) - num(b.predio) || num(a.nivel) - num(b.nivel) || num(a.apto) - num(b.apto); });
   const pend = {}; itens.forEach(function (i) { pend[i.id] = 1; });
-  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(sessao.matricula).filter(function (x) { return pend[x.id]; }) };
+  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(todos && adm ? null : sessao.matricula).filter(function (x) { return pend[x.id]; }) };
 }
 /* ---- Endereços pulados na convocação (aba Validade_Pulados da planilha da auditoria) ---- */
 const ABA_VPUL = 'Validade_Pulados';
@@ -194,8 +194,14 @@ function vlcPuladoResolver(idItem, quem) {
     v.forEach(function (l, i) { if (String(l[iI]) === String(idItem) && l[iS] === 'Pulado') { sh.getRange(i + 2, iS + 1).setValue('Auditado depois'); sh.getRange(i + 2, cab.indexOf('Resolvido_Em') + 1).setValue(agora); sh.getRange(i + 2, cab.indexOf('Resolvido_Por') + 1).setValue(quem || ''); } });
   } catch (e) { }
 }
+/** matricula = null → pulados de todos os auditores */
 function vlcPuladosAbertos(matricula) {
-  try { const t = lerTab(ABA_VPUL, COLS_VPUL), c = t.colunas; return t.registros.filter(function (l) { return String(l[c.indexOf('Matricula')]) === String(matricula) && l[c.indexOf('Status')] === 'Pulado'; }).map(function (l) { return { id: l[c.indexOf('ID_Item')], motivo: l[c.indexOf('Motivo')], em: l[c.indexOf('DataHora')], vezes: l[c.indexOf('Vezes')] }; }); } catch (e) { return []; }
+  try { const t = lerTab(ABA_VPUL, COLS_VPUL), c = t.colunas; return t.registros.filter(function (l) { return (matricula == null || String(l[c.indexOf('Matricula')]) === String(matricula)) && l[c.indexOf('Status')] === 'Pulado'; }).map(function (l) { return { id: l[c.indexOf('ID_Item')], motivo: l[c.indexOf('Motivo')], em: l[c.indexOf('DataHora')], vezes: l[c.indexOf('Vezes')], nome: l[c.indexOf('Nome')], mat: l[c.indexOf('Matricula')] }; }); } catch (e) { return []; }
+}
+/** Histórico completo dos pulados (ADM vê de todos; auditor vê os seus). */
+function vlcPuladosHist(sessao) {
+  const t = lerTab(ABA_VPUL, COLS_VPUL), c = t.colunas, adm = sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf('aud_fch') >= 0, iM = c.indexOf('Matricula');
+  return { ok: true, colunas: c, registros: t.registros.filter(function (l) { return adm || String(l[iM]) === String(sessao.matricula); }) };
 }
 /** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
 function vlcRegistrar(sessao, p) {
@@ -305,10 +311,11 @@ function doPost(e) {
       try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar' || dados.acao === 'vlc_pular') {
+  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar' || dados.acao === 'vlc_pular' || dados.acao === 'vlc_pul_hist') {
     if (['aud_adm', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de auditoria de validade (aud_vld).' });
     try {
       if (dados.acao === 'vlc_minhas') return resposta(vlcMinhas(sessao, !!dados.todos));
+      if (dados.acao === 'vlc_pul_hist') return resposta(vlcPuladosHist(sessao));
       if (dados.acao === 'vlc_pular') { const lkp = LockService.getScriptLock(); lkp.waitLock(30000); try { return resposta(vlcPular(sessao, dados)); } finally { lkp.releaseLock(); } }
       const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
       try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
