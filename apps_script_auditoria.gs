@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 56)
+ * Auditoria STA – Santa Therezinha (versão 57)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -535,7 +535,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 56, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 57, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1384,43 +1384,55 @@ function exportarCodigoValidade() {
 /* ===================== Notícias (RSS de fontes confiáveis, cache de 30 min) ===================== */
 function gnews_(q) { return 'https://news.google.com/rss/search?q=' + encodeURIComponent(q + ' when:7d') + '&hl=pt-BR&gl=BR&ceid=BR:pt-419'; }
 const NWS_FEEDS = {
-  logistica: [gnews_('(logística OR "cadeia de suprimentos" OR "centro de distribuição" OR transportadoras) (site:g1.globo.com OR site:valor.globo.com OR site:exame.com OR site:cnnbrasil.com.br OR site:estadao.com.br OR site:agenciabrasil.ebc.com.br OR site:mundologistica.com.br OR site:logweb.com.br OR site:tecnologistica.com.br)')],
-  gdf: [gnews_('(GDF OR "Governo do Distrito Federal" OR Brasília) (site:agenciabrasilia.df.gov.br OR site:agenciabrasil.ebc.com.br OR site:g1.globo.com OR site:correiobraziliense.com.br OR site:metropoles.com)')],
-  empresas: ['https://g1.globo.com/rss/g1/economia/', 'https://agenciabrasil.ebc.com.br/rss/economia/feed.xml'],
-  entretenimento: ['https://g1.globo.com/rss/g1/pop-arte/', 'https://agenciabrasil.ebc.com.br/rss/cultura/feed.xml']
+  logistica: [gnews_('logística (site:g1.globo.com OR site:valor.globo.com OR site:exame.com OR site:cnnbrasil.com.br OR site:estadao.com.br OR site:agenciabrasil.ebc.com.br OR site:mundologistica.com.br OR site:logweb.com.br OR site:tecnologistica.com.br)'),
+    gnews_('"cadeia de suprimentos" OR "centro de distribuição" OR transportadoras'), 'https://www.mundologistica.com.br/feed', 'https://www.logweb.com.br/feed/'],
+  gdf: [gnews_('GDF OR "Governo do Distrito Federal" (site:agenciabrasilia.df.gov.br OR site:agenciabrasil.ebc.com.br OR site:g1.globo.com OR site:correiobraziliense.com.br OR site:metropoles.com)'),
+    'https://www.agenciabrasilia.df.gov.br/feed/', gnews_('Distrito Federal Brasília')],
+  empresas: ['https://g1.globo.com/rss/g1/economia/', 'https://agenciabrasil.ebc.com.br/rss/economia/feed.xml', gnews_('empresas economia (site:valor.globo.com OR site:exame.com OR site:g1.globo.com)')],
+  entretenimento: ['https://g1.globo.com/rss/g1/pop-arte/', 'https://agenciabrasil.ebc.com.br/rss/cultura/feed.xml', gnews_('entretenimento OR cinema OR música OR novela (site:g1.globo.com OR site:omelete.com.br OR site:cnnbrasil.com.br)')]
 };
-function noticias(cat, forca) {
-  if (!NWS_FEEDS[cat]) return { ok: false, erro: 'Categoria de notícias inválida.' };
-  const cache = CacheService.getScriptCache(), key = 'nws2_' + cat;
-  if (!forca) { const c = cache.get(key); if (c) return JSON.parse(c); }
-  const resp = UrlFetchApp.fetchAll(NWS_FEEDS[cat].map(function (u) { return { url: u, muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 AuditoriaSTA' } }; }));
-  let itens = [];
-  resp.forEach(function (r, i) {
-    if (r.getResponseCode() !== 200) return;
-    try {
-      const doc = XmlService.parse(r.getContentText()), ch = doc.getRootElement().getChild('channel'); if (!ch) return;
-      const fonteCanal = (ch.getChildText('title') || '').replace(/\s*[-–|].*$/, '');
-      const media = XmlService.getNamespace('media', 'http://search.yahoo.com/mrss/');
-      ch.getChildren('item').slice(0, 25).forEach(function (it) {
-        let tit = (it.getChildText('title') || '').trim(), fonte = it.getChildText('source') || fonteCanal;
-        if (it.getChild('source')) { fonte = it.getChild('source').getText(); tit = tit.replace(new RegExp('\\s+-\\s+' + fonte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), ''); }
-        const desc = it.getChildText('description') || '';
-        let img = '';
-        const mc = it.getChild('content', media) || it.getChild('thumbnail', media); if (mc && mc.getAttribute('url')) img = mc.getAttribute('url').getValue();
-        const enc = it.getChild('enclosure'); if (!img && enc && enc.getAttribute('url') && /image/.test((enc.getAttribute('type') || { getValue: function () { return 'image'; } }).getValue())) img = enc.getAttribute('url').getValue();
-        if (!img) { const m = desc.match(/<img[^>]+src=["']([^"']+)["']/i); if (m) img = m[1]; }
-        const resumo = desc.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
-        const ts = Date.parse(it.getChildText('pubDate') || '') || 0;
-        if (tit) itens.push({ titulo: tit, link: it.getChildText('link') || '', fonte: fonte, ts: ts, img: img, resumo: (resumo.indexOf(tit) === 0 || /^\s*$/.test(resumo)) ? '' : resumo.slice(0, 240) });
-      });
-    } catch (e) { }
+function nwsTxt_(s) {
+  return String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, function (m, n) { return String.fromCharCode(+n); }).replace(/\s+/g, ' ').trim();
+}
+function nwsTag_(xml, tag) { const m = xml.match(new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)</' + tag + '>', 'i')); return m ? m[1] : ''; }
+/** Leitura de RSS por texto (não depende de XML perfeito). */
+function nwsParse_(xml, fonteUrl) {
+  const canal = nwsTxt_(nwsTag_(xml.split(/<item[\s>]/i)[0], 'title')).replace(/\s*[-–|>].*$/, '') || fonteUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+  const out = [];
+  (xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || []).slice(0, 25).forEach(function (it) {
+    let tit = nwsTxt_(nwsTag_(it, 'title')), fonte = nwsTxt_(nwsTag_(it, 'source')) || canal;
+    if (fonte && tit.slice(-fonte.length - 3) === ' - ' + fonte) tit = tit.slice(0, -fonte.length - 3);
+    let link = nwsTxt_(nwsTag_(it, 'link')); if (!link) { const g = it.match(/<guid[^>]*>([^<]+)<\/guid>/i); if (g && /^https?:/.test(g[1].trim())) link = g[1].trim(); }
+    const descRaw = nwsTag_(it, 'description').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+    let img = ''; const m1 = it.match(/<media:(?:content|thumbnail)[^>]+url=["']([^"']+)["']/i) || it.match(/<enclosure[^>]+url=["']([^"']+\.(?:jpe?g|png|webp)[^"']*)["']/i) || descRaw.match(/<img[^>]+src=["']([^"']+)["']/i); if (m1) img = m1[1].replace(/&amp;/g, '&');
+    const resumo = nwsTxt_(descRaw), ts = Date.parse(nwsTxt_(nwsTag_(it, 'pubDate'))) || 0;
+    if (tit && link) out.push({ titulo: tit, link: link, fonte: fonte, ts: ts, img: img, resumo: (!resumo || resumo.indexOf(tit) === 0 || /news\.google/.test(fonteUrl)) ? '' : resumo.slice(0, 240) });
   });
-  const vistos = {}; itens = itens.filter(function (x) { const k = x.titulo.toLowerCase().slice(0, 70); if (vistos[k]) return false; vistos[k] = 1; return true; });
-  itens.sort(function (a, b) { return b.ts - a.ts; });
-  const out = { ok: true, cat: cat, itens: itens.slice(0, 36), em: Date.now() };
-  try { cache.put(key, JSON.stringify(out), 1800); } catch (e) { }
   return out;
 }
+function noticias(cat, forca) {
+  if (!NWS_FEEDS[cat]) return { ok: false, erro: 'Categoria de notícias inválida.' };
+  const cache = CacheService.getScriptCache(), key = 'nws3_' + cat;
+  if (!forca) { const c = cache.get(key); if (c) return JSON.parse(c); }
+  const urls = NWS_FEEDS[cat], diag = [];
+  let resp = [];
+  try { resp = UrlFetchApp.fetchAll(urls.map(function (u) { return { url: u, muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AuditoriaSTA/1.0)', 'Accept': 'application/rss+xml, application/xml, text/xml, */*' } }; })); }
+  catch (e) { return { ok: false, erro: 'O Apps Script não tem autorização para acessar sites externos. No editor, execute a função testeNoticias e aceite a permissão. (' + (e.message || e) + ')' }; }
+  let itens = [];
+  resp.forEach(function (r, i) {
+    const host = urls[i].replace(/^https?:\/\/(www\.)?/, '').split('/')[0], code = r.getResponseCode(); let n = 0;
+    if (code === 200) { try { const L = nwsParse_(r.getContentText('UTF-8'), urls[i]); n = L.length; itens = itens.concat(L); } catch (e) { } }
+    diag.push(host + ': ' + (code === 200 ? n + ' notícia(s)' : 'erro ' + code));
+  });
+  const vistos = {}; itens = itens.filter(function (x) { const k = x.titulo.toLowerCase().replace(/[^a-z0-9à-ú]/g, '').slice(0, 60); if (vistos[k]) return false; vistos[k] = 1; return true; });
+  itens.sort(function (a, b) { return b.ts - a.ts; });
+  const out = { ok: true, cat: cat, itens: itens.slice(0, 36), em: Date.now(), diag: diag };
+  if (itens.length) { try { cache.put(key, JSON.stringify(out), 1800); } catch (e) { } }
+  return out;
+}
+/** Rode no editor uma vez: autoriza o acesso a sites externos e mostra quantas notícias cada fonte trouxe. */
+function testeNoticias() { ['logistica', 'gdf', 'empresas', 'entretenimento'].forEach(function (c) { const r = noticias(c, true); console.log(c + ': ' + (r.itens ? r.itens.length : 0) + ' · ' + (r.diag || [r.erro]).join(' | ')); }); }
 /** Corrige a loja de um documento Chep já importado. */
 function chepLoja(id, destino) {
   const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return { ok: false, erro: 'Documento não encontrado.' };
