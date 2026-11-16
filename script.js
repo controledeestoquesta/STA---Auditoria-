@@ -951,7 +951,7 @@ function bindFech(){document.querySelectorAll("[data-fx]").forEach(b=>b.onclick=
   $("fx-upd").onclick=()=>carregarFech(true);
   const mg=$("fx-mg");if(mg)mg.onchange=e=>{FECH.margem=Math.max(0,parseInt(e.target.value,10)||0);renderFech();};
   $("fx-pr").onclick=()=>{if(!FECH.dados){toast("Carregue os dados primeiro.");return;}const tit=FX_TIT[FECH.tipo];
-    openDoc({html:'<div class="pd fx">'+fxRelatorio()+'</div>',multi:false,land:true,name:"Fechamento_"+tit.replace(/\s+/g,"_")+"_"+FECH.de+"_a_"+FECH.ate+".pdf",title:"Fechamento – "+tit,
+    const wide=FECH.tipo==="val";openDoc({html:'<div class="pd fx">'+fxRelatorio()+'</div>',multi:false,land:!wide,wide,name:"Fechamento_"+tit.replace(/\s+/g,"_")+"_"+FECH.de+"_a_"+FECH.ate+".pdf",title:"Fechamento – "+tit,
       short:"Fechamento – "+tit+" – "+fdISO(FECH.de)+" a "+fdISO(FECH.ate),text:"*FECHAMENTO – "+tit.toUpperCase()+"*\nPeríodo: "+fdISO(FECH.de)+" a "+fdISO(FECH.ate)});};}
 async function carregarFech(manual){if(FECH.busy)return;
   if(DEMO||!SHEET_URL){FECH.info="O fechamento lê a planilha pelo site, com login de administrador.";renderFech();return;}
@@ -1802,14 +1802,14 @@ const waURLt=t=>"https://wa.me/"+WA_NUM+"?text="+encodeURIComponent(t);
 const H2C="lib/html2canvas.min.js";
 const JSPDF="lib/jspdf.umd.min.js";
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>{s.remove();rej(new Error("load"));};document.head.appendChild(s);});}
-async function makePdf(html,multi,land){
+async function makePdf(html,multi,land,wide){
   if(!window.html2canvas)await loadScript(H2C);if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript(JSPDF);
   const PW=land?297:210,PH=land?210:297;
-  const host=document.createElement("div");host.style.cssText="position:fixed;left:-10000px;top:0;width:"+(land?1123:794)+"px;background:#fff;padding:"+(land?"0":"34px 45px")+";box-sizing:border-box";
-  host.innerHTML=html;document.body.appendChild(host);
+  const host=document.createElement("div");host.style.cssText="position:fixed;left:-10000px;top:0;width:"+(land||wide?1123:794)+"px;background:#fff;padding:"+(land||wide?"0":"34px 45px")+";box-sizing:border-box";
+  host.innerHTML=html;host.querySelectorAll(".no-print").forEach(e=>e.remove());document.body.appendChild(host);
   await Promise.all([...host.querySelectorAll("img")].map(i=>i.complete?0:new Promise(ok=>{i.onload=i.onerror=ok;})));
   try{
-    const cv=await window.html2canvas(host,{scale:2,backgroundColor:"#ffffff",logging:false,windowWidth:land?1200:900});
+    const cv=await window.html2canvas(host,{scale:2,backgroundColor:"#ffffff",logging:false,windowWidth:land||wide?1200:900});
     const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:land?"landscape":"portrait"});
     const pageH=Math.floor(cv.width*PH/PW);
     if(!multi||cv.height<=pageH){let w=PW,h=cv.height*w/cv.width;if(h>PH){h=PH;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.92),"JPEG",(PW-w)/2,0,w,h);}
@@ -1831,7 +1831,7 @@ let CUR=null;
 async function sendWA(btn){const D=CUR;if(!D)return;
   if(!navigator.onLine){toast("Sem internet agora. Use Baixar PDF e envie quando a conexão voltar.");return;}
   const old=btn.textContent;btn.disabled=true;btn.textContent="Gerando PDF…";
-  try{const blob=D.pdfDocs?await makePdfLista(D.pdfDocs):await makePdf(D.html,D.multi,D.land),file=new File([blob],D.name,{type:"application/pdf"});
+  try{const blob=D.pdfDocs?await makePdfLista(D.pdfDocs):await makePdf(D.html,D.multi,D.land,D.wide),file=new File([blob],D.name,{type:"application/pdf"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){
       try{await navigator.share({files:[file],title:D.title,text:D.short});toast("Escolha WhatsApp e o contato (61) 98617-0228.");return;}
       catch(e){if(e&&e.name==="AbortError")return;}}
@@ -1841,15 +1841,16 @@ async function sendWA(btn){const D=CUR;if(!D)return;
 }
 function openDoc(D){CUR=D;const p=$("print");
   p.innerHTML='<div class="pv-bar"><button type="button" id="pv-x">'+(D.closeLabel||"Fechar")+'</button><button type="button" class="main" id="pv-p">Imprimir</button><button type="button" id="pv-dl">Baixar PDF</button><button type="button" class="wa" id="pv-wa">Enviar PDF no WhatsApp</button></div>'+D.html;
-  p.classList.toggle("land",!!D.land);p.hidden=false;p.scrollTop=0;
+  p.classList.toggle("land",!!D.land);p.classList.toggle("wide",!!D.wide);p.hidden=false;p.scrollTop=0;
   const pd=p.querySelector(".pd");
   let pg=$("pg-land");if(D.land){if(!pg){pg=document.createElement("style");pg.id="pg-land";pg.textContent="@page{size:A4 landscape;margin:0}";document.head.appendChild(pg);}}else if(pg)pg.remove();
   const fitLand=()=>{const h=pd.scrollHeight||1;document.documentElement.style.setProperty("--fit",Math.min(1,Math.floor(780/h*100)/100));};
-  if(D.land&&!D.multi)setTimeout(fitLand,60);else if(D.multi)document.documentElement.style.setProperty("--fit",1);else fitWhenReady(pd);
+  const fitWide=()=>{const h=pd.scrollHeight||1;document.documentElement.style.setProperty("--fitw",Math.min(.7,Math.floor(1090/h*100)/100));};
+  if(D.wide)setTimeout(fitWide,60);else if(D.land&&!D.multi)setTimeout(fitLand,60);else if(D.multi)document.documentElement.style.setProperty("--fit",1);else fitWhenReady(pd);
   $("pv-x").onclick=()=>{p.hidden=true;p.innerHTML="";CUR=null;const g=$("pg-land");if(g)g.remove();p.classList.remove("land");D.onClose&&D.onClose();};
-  $("pv-p").onclick=()=>{try{if(D.land&&!D.multi)fitLand();else if(!D.multi)window.stFit(pd);window.print();}catch(e){toast("Impressão bloqueada aqui. Use Baixar PDF.");}};
+  $("pv-p").onclick=()=>{try{if(D.wide)fitWide();else if(D.land&&!D.multi)fitLand();else if(!D.multi)window.stFit(pd);window.print();}catch(e){toast("Impressão bloqueada aqui. Use Baixar PDF.");}};
   $("pv-dl").onclick=async()=>{const bt=$("pv-dl");bt.disabled=true;bt.textContent="Gerando PDF…";
-    try{const blob=D.pdfDocs?await makePdfLista(D.pdfDocs):await makePdf(D.html,D.multi,D.land);if(await saveBlob(blob,D.name))toast("PDF salvo: "+D.name);}
+    try{const blob=D.pdfDocs?await makePdfLista(D.pdfDocs):await makePdf(D.html,D.multi,D.land,D.wide);if(await saveBlob(blob,D.name))toast("PDF salvo: "+D.name);}
     catch(e){console.error("PDF",e);toast("Não foi possível gerar o PDF: "+((e&&e.message)||e)+". Tente novamente.");}
     finally{bt.disabled=false;bt.textContent="Baixar PDF";}};
   $("pv-wa").onclick=()=>sendWA($("pv-wa"));
@@ -3326,15 +3327,13 @@ function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tip
     '<div class="vx-tps">'+tipo("Auditorias de validade",all,"#0F172A")+tipo("AUDITORIA_AE",ae,"#2563EB")+tipo("AUDITORIA_AP",ap,"#7C3AED")+
       '<div class="vx-tp" style="border-left-color:#D97706"><span>Endereços pulados</span><b>'+pul.length+'</b><small>no período</small><div><em style="color:#D97706">'+pul.filter(x=>x.Status==="Pulado").length+'</em> pendente(s) · <em style="color:#16A34A">'+pul.filter(x=>x.Status!=="Pulado").length+'</em> auditado(s) depois</div></div></div>'+
     '<div class="fx-c">'+termo+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1.25fr 1fr;margin-top:10px">'+fxCard("Perda projetada se nada for feito",(()=>{const P=[{l:"Já vencido",d:-1,c:"#7F1D1D"},{l:"Em 30 dias",d:30,c:"#B91C1C"},{l:"Em 60 dias",d:60,c:"#DC2626"},{l:"Em 90 dias",d:90,c:"#EA580C"}].map(x=>{const L=S.filter(o=>o.d<=x.d&&(x.d>=0||o.d<0));return Object.assign(x,{L,v:soma(L)});});
-        return '<div class="vx-proj">'+P.map(x=>'<div style="--c:'+x.c+'"><span>'+x.l+'</span><b>'+(temV?BRL0(x.v):it(x.L.length))+'</b><small>'+(temV?pc(x.v,tot)+' do valor auditado · ':'')+it(x.L.length)+' · '+un(x.L)+' un</small><div class="vx-pf"><i style="width:'+(temV?(tot?x.v/tot*100:0):(S.length?x.L.length/S.length*100:0))+'%"></i></div></div>').join("")+'</div><p class="fx-e" style="margin-top:8px">Valor acumulado do estoque auditado que estará vencido em cada prazo, contado a partir de hoje, se não houver venda, rebaixa ou retirada.</p>';})())+
-      fxCard("Validade do sistema × encontrada",'<div class="vx-acc"><b style="color:'+(cmp.length?FXC[fxCls(igual.length/cmp.length)]:"#64748B")+'">'+pc(igual.length,cmp.length)+'</b><span>das validades do sistema conferem com o endereço</span></div>'+fxBars([{l:"Confere",v:igual.length,txt:it(igual.length),c:"#16A34A"},{l:"Sistema maior que a física",v:cmp.filter(o=>o.vs>o.vf).length,txt:it(cmp.filter(o=>o.vs>o.vf).length),c:"#DC2626"},{l:"Sistema menor que a física",v:cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length,txt:it(cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length),c:"#F59E0B"}])+'<p class="fx-e" style="margin-top:6px">"Sistema maior" é o caso mais perigoso: o produto vence antes do que o sistema mostra.</p>')+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Ruas com mais valor em risco",fxCols(rTop.map(([k,x])=>({l:"Rua "+k,v:temV?x.v:x.n,txt:temV?BRLk(x.v):it(x.n),c:"#B91C1C",t:"Rua "+k+": "+it(x.n)+" · "+BRL0(x.v)}))))+
-      fxCard("Itens com mais valor em risco",fxBars(iTop.map(([k,x])=>({l:String(x.desc||k).split(/\s+/).slice(0,3).join(" "),v:temV?x.v:x.q,txt:temV?BRL0(x.v):x.q+" un",c:"#DC2626"}))))+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr">'+fxCard("Itens com inconsistência",inc.length?fxTable([{t:"Tipo"},{t:"Data"},{t:"Código"},{t:"Descrição"},{t:"Situação"}],inc.slice(0,10).map(x=>[x.aba.replace("AUDITORIA_",""),esc(x.data?ceBr(x.data):""),esc(x.cod),esc(String(x.desc).slice(0,30)),'<b style="color:#B91C1C">'+esc(String(x.st||"Inconsistente").slice(0,26))+'</b>'])):'<p class="fx-e">Nenhuma inconsistência no período.</p>')+'</div>'+
-    (pul.length?'<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Pulados por auditor",fxBars(Object.entries(pul.reduce((o,x)=>{const k=curto(x.Nome||x.Matricula||"—");o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,n])=>({l:k,v:n,txt:n+" pulado(s)",c:"#D97706"}))))+
-      fxCard("Motivo dos pulos",fxBars(Object.entries(pul.reduce((o,x)=>{const k=x.Motivo||"Sem motivo";o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,n])=>({l:k,v:n,txt:String(n),c:"#B45309"}))))+'</div>':'')+
-    fxFull("Auditorias de validade por dia",fxLine(linha,"#0369A1",null,130))+fxFoot("Auditoria de validade");}
+    '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Ruas com mais valor em risco (até 45 dias)",fxCols(rTop.map(([k,x])=>({l:"Rua "+k,v:temV?x.v:x.n,txt:temV?BRLk(x.v):it(x.n),c:"#B91C1C",t:"Rua "+k+": "+it(x.n)+" · "+BRL0(x.v)}))))+
+      fxCard("Itens com mais valor em risco (até 45 dias)",fxBars(iTop.map(([k,x])=>({l:String(x.desc||k).split(/\s+/).slice(0,3).join(" "),v:temV?x.v:x.q,txt:temV?BRL0(x.v):x.q+" un",c:"#DC2626"}))))+'</div>'+
+    '<div class="fx-row" style="grid-template-columns:1fr 1.4fr">'+fxCard("Validade do sistema × encontrada",'<div class="vx-acc"><b style="color:'+(cmp.length?FXC[fxCls(igual.length/cmp.length)]:"#64748B")+'">'+pc(igual.length,cmp.length)+'</b><span>das validades do sistema conferem com o endereço</span></div>'+fxBars([{l:"Confere",v:igual.length,txt:it(igual.length),c:"#16A34A"},{l:"Sistema maior que a física",v:cmp.filter(o=>o.vs>o.vf).length,txt:it(cmp.filter(o=>o.vs>o.vf).length),c:"#DC2626"},{l:"Sistema menor que a física",v:cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length,txt:it(cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length),c:"#F59E0B"}])+'<p class="fx-e" style="margin-top:6px">"Sistema maior" é o caso mais perigoso: o produto vence antes do que o sistema mostra.</p>')+
+      fxCard("Itens com inconsistência"+(inc.length>6?" (6 de "+inc.length+")":""),inc.length?fxTable([{t:"Tipo"},{t:"Data"},{t:"Código"},{t:"Descrição"},{t:"Situação"}],inc.slice(0,6).map(x=>[x.aba.replace("AUDITORIA_",""),esc(x.data?ceBr(x.data):""),esc(x.cod),esc(String(x.desc).slice(0,26)),'<b style="color:#B91C1C">'+esc(String(x.st||"Inconsistente").slice(0,22))+'</b>'])):'<p class="fx-e">Nenhuma inconsistência no período.</p>')+'</div>'+
+    (pul.length?'<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Pulados por auditor",fxBars(Object.entries(pul.reduce((o,x)=>{const k=curto(x.Nome||x.Matricula||"—");o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>({l:k,v:n,txt:n+" pulado(s)",c:"#D97706"}))))+
+      fxCard("Motivo dos pulos",fxBars(Object.entries(pul.reduce((o,x)=>{const k=x.Motivo||"Sem motivo";o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>({l:k,v:n,txt:String(n),c:"#B45309"}))))+'</div>':'')+
+    fxFull("Auditorias de validade por dia",fxLine(linha,"#0369A1",null,110))+fxFoot("Auditoria de validade");}
 (function(){const s=document.createElement("style");s.textContent=
  ".vx-bar button:first-child,.vx-bar button:nth-child(2){background:#1D4ED8;color:#fff}.vx-bar button[disabled]{opacity:.45;cursor:default}"+
  ".vx-hero{display:grid;grid-template-columns:1fr 1.7fr;gap:10px;margin:10px 0 4px}.vx-big{background:linear-gradient(135deg,#7F1D1D,#B91C1C);color:#fff;border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.vx-big span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.85;font-weight:700}.vx-big b{font-size:34px;line-height:1.15;margin:4px 0}.vx-big small{font-size:12px;opacity:.9}"+
@@ -3342,6 +3341,7 @@ function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tip
  ".vx-sec{display:flex;align-items:center;gap:10px;margin:18px 0 8px}.vx-sec>span{width:26px;height:26px;border-radius:50%;background:#0F172A;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}.vx-sec h2{margin:0;font-size:16px;color:#0F172A}.vx-sec p{margin:1px 0 0;font-size:11.5px;color:#64748B}"+
  ".vx-termo{display:flex;height:26px;border-radius:6px;overflow:hidden;background:#F1F5F9}.vx-termo i{display:block;height:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}.vx-leg{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.vx-leg>div{display:grid;grid-template-columns:12px 1fr auto;column-gap:6px;align-items:center;font-size:12px}.vx-leg span{width:12px;height:12px;border-radius:3px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.vx-leg em{grid-column:2/4;font-style:normal;color:#64748B;font-size:11px}.vx-leg small{font-weight:800;color:#0F172A}"+
  ".vx-proj{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.vx-proj>div{border:1px solid #E2E8F0;border-left:5px solid var(--c);border-radius:8px;padding:10px 12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.vx-proj span{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--c)}.vx-proj b{display:block;font-size:24px;line-height:1.2;color:var(--c);margin:2px 0}.vx-proj small{font-size:11px;color:#64748B}.vx-pf{height:6px;background:#F1F5F9;border-radius:99px;margin-top:6px;overflow:hidden}.vx-pf i{display:block;height:100%;background:var(--c);-webkit-print-color-adjust:exact;print-color-adjust:exact}"+
+ "#print.wide .pd.fx{width:1123px!important;max-width:none!important;zoom:var(--fitw,.7)}@media print{#print.wide .pd.fx{width:1123px!important;zoom:var(--fitw,.7)}}"+
  ".vx-acc{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}.vx-acc b{font-size:30px}.vx-acc span{font-size:12px;color:#475569}"+
  ".vx-tps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 10px}.vx-tp{background:#fff;border:1px solid #E2E8F0;border-left:4px solid;border-radius:8px;padding:10px 12px}.vx-tp>span{display:block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#475569}.vx-tp b{font-size:26px;line-height:1.2;color:#0F172A}.vx-tp small{font-size:11px;color:#64748B;margin-left:4px}.vx-tp div{font-size:11.5px;color:#475569;margin-top:2px}.vx-tp em{font-style:normal;font-weight:800}"+
  "@media (max-width:820px){.vx-hero{grid-template-columns:1fr}.vx-mini,.vx-tps{grid-template-columns:repeat(2,1fr)}.vx-leg{grid-template-columns:repeat(2,1fr)}}";document.head.appendChild(s);})();
