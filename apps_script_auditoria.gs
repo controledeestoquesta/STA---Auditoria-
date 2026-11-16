@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 57)
+ * Auditoria STA – Santa Therezinha (versão 58)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -308,11 +308,11 @@ function solResponder(id, qtd, resultado, sessao) {
 ABAS.validade = {
   nome: 'Auditoria_Validade_App', perm: 'aud_vld',
   colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
-    'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em'],
+    'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em', 'Vl_Unitario', 'Valor_Divergencia'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Numero_OS', 'Codigo_Produto', 'Endereco', 'Rua', 'Validade', 'Matricula_Colaborador_NC', 'Matricula_Auditor']
 };
 const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
-  'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos'];
+  'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Vl_Unitario', 'Valor_Divergencia'];
 const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
@@ -540,7 +540,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 57, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 58, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
