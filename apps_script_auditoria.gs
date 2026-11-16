@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 48)
+ * Auditoria STA – Santa Therezinha (versão 49)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -279,7 +279,7 @@ function doPost(e) {
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'val_ler') {
-    if (['aud_adm', 'aud_com'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para a auditoria de validade.' });
+    if (['aud_adm', 'aud_com', 'aud_fch', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para o fechamento de validade (aud_vld ou aud_fch).' });
     try { return resposta(valLer()); } catch (err) { return resposta({ ok: false, erro: 'Não consegui abrir a planilha de validade: ' + String(err.message || err) + ' (a conta dona do Apps Script precisa ter acesso a ela).' }); }
   }
   if (dados.acao === 'sol_ler' || dados.acao === 'sol_responder') {
@@ -410,7 +410,7 @@ function doGet(e) {
     if (p.acao === 'fechamento') {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
-      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf(x) >= 0; };
+      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf('aud_fch') >= 0 || s.permissoes.indexOf(x) >= 0; };
       if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp') && !tem('aud_vld')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
@@ -469,7 +469,8 @@ const PERMISSOES_CONHECIDAS = {
   aud_rot: 'Acesso a importacao das rotinas (1707, 8597, 1350, cadastro, O.S. 51)',
   aud_sol: 'Acesso a solicitacao de contagens',
   aud_chp: 'Acesso ao setor Chep (notas e ajustes de inventario de paletes)',
-  aud_vld: 'Acesso a auditoria de validade (AE/AP) no app',
+  aud_vld: 'Acesso a auditoria de validade (AE/AP) no app e ao fechamento de validade',
+  aud_fch: 'Acesso ao fechamento completo (todas as auditorias, somente leitura)',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
