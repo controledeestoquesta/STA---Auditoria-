@@ -1,5 +1,5 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v112';
+const VERSION = 'sta-v113';
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png',
   './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './cesta.html', './liberacao.html', './devolucoes.html'];
 
@@ -23,7 +23,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;                       // envios à planilha passam direto
   const u = new URL(req.url);
   if (u.hostname.endsWith('google.com') || u.hostname.endsWith('googleusercontent.com')) return;
-  if (u.origin === location.origin) { e.respondWith(networkFirst(req)); return; }
+  if (u.origin === location.origin) { e.respondWith(u.pathname.endsWith('sw.js') ? fetch(req) : fastFirst(req)); return; }
   if (/cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(u.hostname)) e.respondWith(cacheFirst(req));
 });
 
@@ -36,6 +36,15 @@ async function networkFirst(req) {
   if (!cached) return net;
   try { return await Promise.race([net, new Promise((_, rej) => setTimeout(() => rej(0), 4000))]); }
   catch (e) { return cached; }
+}
+
+// Site: abre na hora com a cópia da versão instalada e atualiza a cópia em segundo plano.
+// Versão nova chega pelo sw.js (outra VERSION): instala, assume e o app recarrega sozinho.
+async function fastFirst(req) {
+  const c = await caches.open(VERSION);
+  const cached = (await c.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await c.match('./index.html') : undefined);
+  if (cached) return cached;
+  try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()); return r; } catch (e) { return networkFirst(req); }
 }
 
 // Bibliotecas e fontes: usa a cópia salva; baixa só na primeira vez.

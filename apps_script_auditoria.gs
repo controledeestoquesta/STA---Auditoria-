@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 54)
+ * Auditoria STA – Santa Therezinha (versão 55)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -108,7 +108,7 @@ ABAS.solicit = {
 const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
 /* ===================== Setor Chep: PDFs de notas de paletes e ajustes de inventário ===================== */
 const ABA_CHEP = 'Chep_Documentos', PASTA_CHEP = 'Auditoria_Chep';
-const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em'];
+const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em', 'Paletes_CHEP', 'Paletes_PBR'];
 function chepSalvar(doc, b64, sessao) {
   const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, tipo = doc.Tipo === 'Inventário' ? 'Inventário' : 'Nota', num = String(doc.Numero_Documento || '').trim();
   if (num && sh.getLastRow() >= 2) {
@@ -533,7 +533,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 54, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 55, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
