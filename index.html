@@ -364,7 +364,7 @@
   </section>
 
   <section class="view" id="v-sol" hidden>
-    <div class="seg" role="group" aria-label="Solicitações" id="q-modo" style="margin-bottom:12px"><button type="button" data-qm="nova" aria-pressed="true">Nova solicitação</button><button type="button" data-qm="abertas" aria-pressed="false">Responder contagens</button></div>
+    <div class="seg" role="group" aria-label="Solicitações" id="q-modo" style="margin-bottom:12px;grid-template-columns:repeat(3,1fr)"><button type="button" data-qm="nova" aria-pressed="true">Nova solicitação</button><button type="button" data-qm="abertas" aria-pressed="false">Responder contagens</button><button type="button" data-qm="result" aria-pressed="false">Resultados</button></div>
     <div id="q-nova">
       <div class="block">
         <div class="field" id="q-tipo-f"><span class="lbl">A contagem é para *</span><div class="mot" id="q-tipo" role="radiogroup" aria-label="Tipo da contagem"><button type="button" role="radio" aria-checked="false" data-t="CLIENTE">CLIENTE</button><button type="button" role="radio" aria-checked="false" data-t="ADEGA">ADEGA</button></div></div>
@@ -384,6 +384,7 @@
       </div>
     </div>
     <div id="q-abertas" hidden></div>
+    <div id="q-result" hidden></div>
   </section>
 
   <section class="view" id="v-chep" hidden>
