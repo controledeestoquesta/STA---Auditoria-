@@ -1109,85 +1109,6 @@ function fxAero(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.aero).map(r=>Obj
       fxCard("Auditores — lançamentos",fxBars(Object.entries(aud).sort((a,b)=>b[1]-a[1]).map(([n,v])=>({l:curto(n),v,txt:String(v),c:"#3B82F6"}))).replace(/class="fx-bars"/,'class="fx-bars fx-bars-s"'))+'</div>'+
     fxFull("Lançamentos de não conformidade por dia (somente dias com auditoria)",fxLine(linha,"#DC2626",null,130))+fxFoot("Auditoria Aéreo");}
 
-
-/* ===== Setores — visual estilo Power BI (mesmos dados do relatório de setores) ===== */
-const BI_COR={rep:"#118DFF",ret:"#12239E",conf:"#E66C37",sep:"#6B007B",aer:"#E044A7"};
-function setCalc(){const [de,ate]=fxPeriodo();const ateF=isFinite(ate)?ate:Date.now()+864e5,len=Math.max(864e5,ateF-de),pde=de-len;
-  const ruasA=fxRows(FECH.dados&&FECH.dados.ruas).filter(r=>pbool(r.Possui_NC)),retA=fxRows(FECH.dados&&FECH.dados.retorno).filter(r=>pbool(r.Possui_NC)),carA=fxRows(FECH.dados&&FECH.dados.cargas),aerA=fxRows(FECH.dados&&FECH.dados.aero),sobA=sobrasRows().filter(o=>o.tipo==="Sobra");
-  const def=[{k:"rep",l:"Reposição — ruas",cur:"Repos. ruas",rows:ruasA,val:r=>pnum(r.Valor_Divergencia),pes:r=>r.Nome_Colaborador_NC},
-    {k:"ret",l:"Reposição — retorno",cur:"Repos. retorno",rows:retA,val:r=>Math.abs(pnum(r.Valor_Divergencia)),pes:r=>r.Nome_Colaborador_NC},
-    {k:"conf",l:"Cargas — conferência",cur:"Conferência",rows:carA.filter(r=>r.Causador!=="Separador"),val:r=>pnum(r.Valor_Total),pes:r=>causadorDe(r).n},
-    {k:"sep",l:"Separação — cargas (8074)",cur:"Separação",rows:sobA,val:r=>r.v,pes:r=>r.sep},
-    {k:"aer",l:"Aéreo — operador",cur:"Aéreo",rows:aerA,val:r=>pnum(r["Vlr. Total"]),pes:r=>r.Operador}];
-  const S=def.map(d=>{const cur=d.rows.filter(r=>r.ts>=de&&r.ts<ateF),ant=d.rows.filter(r=>r.ts>=pde&&r.ts<de);return Object.assign({},d,{c:BI_COR[d.k],cr:cur,n:cur.length,ant:ant.length,v:cur.reduce((a,r)=>a+d.val(r),0),vAnt:ant.reduce((a,r)=>a+d.val(r),0)});});
-  return {S,de,ate:ateF,pde};}
-function biSpark(vals,c){if(vals.length<2)return "";const W=120,H=30,mx=Math.max(1,...vals);const pts=vals.map((v,i)=>(i/(vals.length-1)*W).toFixed(1)+","+(H-2-v/mx*(H-4)).toFixed(1)).join(" ");
-  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="30" preserveAspectRatio="none"><polyline points="'+pts+'" fill="none" stroke="'+c+'" stroke-width="2"/><polygon points="0,'+H+' '+pts+' '+W+','+H+'" fill="'+c+'" opacity=".12"/></svg>';}
-function biVar(n,a,inv){if(!a)return n?'<span class="bi-vn">novo</span>':'<span class="bi-vn">—</span>';const p=Math.round((n-a)/a*100),pior=inv?p<0:p>0;return '<span style="color:'+(p===0?"#605E5C":pior?"#D13438":"#107C10")+';font-weight:700">'+(p>0?"▲":p<0?"▼":"■")+" "+Math.abs(p)+'%</span>';}
-function fxSetoresBI(){const {S,de,ate}=setCalc(),sel=FECH.biSet||"",VIS=sel?S.filter(s=>s.k===sel):S,tot=S.reduce((a,s)=>a+s.n,0),totV=S.reduce((a,s)=>a+s.v,0),totA=S.reduce((a,s)=>a+s.ant,0),totVA=S.reduce((a,s)=>a+s.vAnt,0);
-  const dias=[];for(let t=dayStart(fxDiaKey(de).replace(/(\d{4})(\d{2})(\d{2})/,"$1-$2-$3"));t<ate&&dias.length<62;t+=864e5)dias.push(fxDiaKey(t));
-  const porDia=s=>{const o={};s.cr.forEach(r=>{const k=fxDiaKey(r.ts);o[k]=(o[k]||0)+1;});return dias.map(k=>o[k]||0);};
-  const nV=VIS.reduce((a,s)=>a+s.n,0),vV=VIS.reduce((a,s)=>a+s.v,0),aV=VIS.reduce((a,s)=>a+s.ant,0),vaV=VIS.reduce((a,s)=>a+s.vAnt,0);
-  const pes={};VIS.forEach(s=>s.cr.forEach(r=>{const n=s.pes(r);if(!n)return;const x=pes[n]=pes[n]||{n,i:0,v:0,s:{}};x.i++;x.v+=s.val(r);x.s[s.k]=(x.s[s.k]||0)+1;}));
-  const pesL=Object.values(pes).sort((a,b)=>b.i-a.i||b.v-a.v),diasAt=new Set(VIS.flatMap(s=>s.cr.map(r=>fxDiaKey(r.ts)))).size;
-  const card=(t,v,sub,vr,sp,c)=>'<div class="bi-card"><span class="bi-ct">'+t+'</span><b style="color:'+(c||"#252423")+'">'+v+'</b><div class="bi-cs">'+sub+(vr?' · '+vr:'')+'</div>'+(sp||"")+'</div>';
-  // Pareto (colunas + linha acumulada)
-  const ord=S.slice().sort((a,b)=>b.n-a.n),W=560,H=230,pl=34,pr=34,pt=16,pb=36,bw=(W-pl-pr)/ord.length,mx=Math.max(1,...ord.map(s=>s.n));let ac=0;
-  const par='<svg viewBox="0 0 '+W+' '+H+'" width="100%"><line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+(H-pb)+'" y2="'+(H-pb)+'" stroke="#C8C6C4"/>'+[0,.5,1].map(f=>'<text x="'+(pl-6)+'" y="'+(H-pb-f*(H-pt-pb)+4)+'" font-size="9" text-anchor="end" fill="#605E5C">'+Math.round(mx*f)+'</text><text x="'+(W-pr+6)+'" y="'+(H-pb-f*(H-pt-pb)+4)+'" font-size="9" fill="#605E5C">'+Math.round(f*100)+'%</text>').join("")+
-    ord.map((s,i)=>{const h=s.n/mx*(H-pt-pb),x=pl+bw*i+bw*.2,op=!sel||sel===s.k?1:.25;return '<g data-bis="'+s.k+'" style="cursor:pointer" opacity="'+op+'"><rect x="'+x+'" y="'+(H-pb-h)+'" width="'+(bw*.6)+'" height="'+h+'" fill="'+s.c+'"/><text x="'+(x+bw*.3)+'" y="'+(H-pb-h-4)+'" font-size="11" font-weight="700" text-anchor="middle" fill="#252423">'+s.n+'</text><text x="'+(x+bw*.3)+'" y="'+(H-pb+14)+'" font-size="9.5" text-anchor="middle" fill="#323130">'+esc(s.cur)+'</text></g>';}).join("")+
-    '<polyline fill="none" stroke="#D9B300" stroke-width="2.2" points="'+ord.map((s,i)=>{ac+=s.n;return (pl+bw*i+bw*.5).toFixed(1)+","+(H-pb-(tot?ac/tot:0)*(H-pt-pb)).toFixed(1);}).join(" ")+'"/>'+(()=>{ac=0;return ord.map((s,i)=>{ac+=s.n;return '<circle cx="'+(pl+bw*i+bw*.5)+'" cy="'+(H-pb-(tot?ac/tot:0)*(H-pt-pb))+'" r="3.2" fill="#D9B300"/>';}).join("");})()+'</svg>';
-  // Donut
-  let a0=-Math.PI/2;const R1=70,R0=44,cx=90,cy=90,arc=(a,b,c,op)=>{const L=b-a>Math.PI?1:0,p=(r,t)=>(cx+r*Math.cos(t)).toFixed(2)+","+(cy+r*Math.sin(t)).toFixed(2);return '<path d="M'+p(R1,a)+' A'+R1+','+R1+' 0 '+L+' 1 '+p(R1,b)+' L'+p(R0,b)+' A'+R0+','+R0+' 0 '+L+' 0 '+p(R0,a)+'Z" fill="'+c+'" opacity="'+op+'"/>';};
-  const don='<div class="bi-don"><svg viewBox="0 0 180 180" width="170">'+(tot?S.filter(s=>s.n).map(s=>{const b=a0+s.n/tot*Math.PI*2*.9999,h='<g data-bis="'+s.k+'" style="cursor:pointer">'+arc(a0,b,s.c,!sel||sel===s.k?1:.25)+'</g>';a0=b;return h;}).join(""):'<circle cx="90" cy="90" r="57" fill="none" stroke="#EDEBE9" stroke-width="26"/>')+'<text x="90" y="88" text-anchor="middle" font-size="22" font-weight="700" fill="#252423">'+tot+'</text><text x="90" y="104" text-anchor="middle" font-size="9" fill="#605E5C">NCs</text></svg><div class="bi-leg">'+S.map(s=>'<div data-bis="'+s.k+'"'+(sel&&sel!==s.k?' style="opacity:.35"':'')+'><i style="background:'+s.c+'"></i>'+esc(s.cur)+' <b>'+(tot?Math.round(s.n/tot*100):0)+'%</b></div>').join("")+'</div></div>';
-  // Linhas por dia
-  const LW=1000,LH=210,lp=30,lr=10,lt=12,lb=26,mxD=Math.max(1,...VIS.map(s=>Math.max(...porDia(s)))),X=i=>lp+(dias.length<2?0:i/(dias.length-1))*(LW-lp-lr),Y=v=>LH-lb-v/mxD*(LH-lt-lb),passo=Math.max(1,Math.ceil(dias.length/12));
-  const lin='<svg viewBox="0 0 '+LW+' '+LH+'" width="100%">'+[0,.5,1].map(f=>'<line x1="'+lp+'" x2="'+(LW-lr)+'" y1="'+Y(mxD*f)+'" y2="'+Y(mxD*f)+'" stroke="#EDEBE9"/><text x="'+(lp-5)+'" y="'+(Y(mxD*f)+3)+'" font-size="9" text-anchor="end" fill="#605E5C">'+Math.round(mxD*f)+'</text>').join("")+
-    dias.map((k,i)=>i%passo?"":'<text x="'+X(i)+'" y="'+(LH-8)+'" font-size="9" text-anchor="middle" fill="#605E5C">'+k.slice(6)+"/"+k.slice(4,6)+'</text>').join("")+
-    VIS.map(s=>{const v=porDia(s);return '<polyline fill="none" stroke="'+s.c+'" stroke-width="2" points="'+v.map((x,i)=>X(i).toFixed(1)+","+Y(x).toFixed(1)).join(" ")+'"/>';}).join("")+'</svg><div class="bi-leg bi-leg-h">'+VIS.map(s=>'<div><i style="background:'+s.c+'"></i>'+esc(s.cur)+'</div>').join("")+'</div>';
-  // Matriz com barras de dados
-  const mxN=Math.max(1,...S.map(s=>s.n)),mxVv=Math.max(1,...S.map(s=>s.v));
-  const mat='<table class="bi-t"><thead><tr><th>Setor</th><th class="n">NCs</th><th class="n">% total</th><th class="n">Valor</th><th class="n">R$/NC</th><th class="n">Anterior</th><th class="n">Δ NCs</th><th class="n">Δ Valor</th></tr></thead><tbody>'+
-    ord.map(s=>'<tr data-bis="'+s.k+'" class="'+(sel===s.k?"on":"")+'"><td><i class="bi-dot" style="background:'+s.c+'"></i>'+esc(s.l)+'</td><td class="n bi-db"><span style="width:'+(s.n/mxN*100)+'%;background:'+s.c+'33"></span><b>'+s.n+'</b></td><td class="n">'+(tot?Math.round(s.n/tot*100):0)+'%</td><td class="n bi-db"><span style="width:'+(s.v/mxVv*100)+'%;background:#D9B30044"></span><b style="font-weight:400">'+BRL0(s.v)+'</b></td><td class="n">'+BRL0(s.n?s.v/s.n:0)+'</td><td class="n">'+s.ant+'</td><td class="n">'+biVar(s.n,s.ant)+'</td><td class="n">'+biVar(s.v,s.vAnt)+'</td></tr>').join("")+
-    '<tr class="bi-tot"><td>Total</td><td class="n">'+tot+'</td><td class="n">100%</td><td class="n">'+BRL0(totV)+'</td><td class="n">'+BRL0(tot?totV/tot:0)+'</td><td class="n">'+totA+'</td><td class="n">'+biVar(tot,totA)+'</td><td class="n">'+biVar(totV,totVA)+'</td></tr></tbody></table>';
-  // Top colaboradores (barras empilhadas por setor)
-  const mxP=Math.max(1,...pesL.map(x=>x.i));
-  const top='<div class="bi-hb">'+(pesL.slice(0,10).map(x=>'<div><span title="'+esc(x.n)+'">'+esc(curto(x.n))+'</span><div class="bi-hbar">'+S.filter(s=>x.s[s.k]).map(s=>'<i style="width:'+(x.s[s.k]/mxP*100)+'%;background:'+s.c+'"></i>').join("")+'</div><b>'+x.i+'</b></div>').join("")||'<p class="fx-e">Sem NCs no período.</p>')+'</div>';
-  // Mapa de calor dia da semana × setor
-  const DS=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"],hm={};S.forEach(s=>s.cr.forEach(r=>{const k=s.k+"|"+new Date(r.ts).getDay();hm[k]=(hm[k]||0)+1;}));const mxH=Math.max(1,...Object.values(hm));
-  const heat='<table class="bi-hm"><thead><tr><th></th>'+DS.map(d=>'<th>'+d+'</th>').join("")+'</tr></thead><tbody>'+S.map(s=>'<tr><td>'+esc(s.cur)+'</td>'+DS.map((d,i)=>{const v=hm[s.k+"|"+i]||0;return '<td style="background:rgba(17,141,255,'+(v?(.12+v/mxH*.78).toFixed(2):0)+');color:'+(v/mxH>.55?"#fff":"#252423")+'">'+(v||"")+'</td>';}).join("")+'</tr>').join("")+'</tbody></table>';
-  // Treemap de valor
-  const tv=S.filter(s=>s.v>0).sort((a,b)=>b.v-a.v);
-  const tree='<div class="bi-tree">'+(tv.map(s=>'<div data-bis="'+s.k+'" style="flex:'+s.v+' 1 0;background:'+s.c+(sel&&sel!==s.k?';opacity:.3':'')+'"><span>'+esc(s.cur)+'</span><b>'+BRL0(s.v)+'</b><small>'+(totV?Math.round(s.v/totV*100):0)+'%</small></div>').join("")||'<p class="fx-e">Sem valor no período.</p>')+'</div>';
-  const pior=ord[0];
-  return '<div class="bi"><div class="bi-top"><div><h1>Falhas de processos logísticos</h1><span>Fechamento de setores · '+ceBr(FECH.de)+' a '+ceBr(FECH.ate)+' · comparação com o período anterior de mesmo tamanho</span></div><div class="bi-logo">STA</div></div>'+
-    '<div class="bi-sl no-print"><span>Setor</span><button type="button" data-bis=""'+(sel?"":' class="on"')+'>Todos</button>'+S.map(s=>'<button type="button" data-bis="'+s.k+'"'+(sel===s.k?' class="on"':'')+'><i style="background:'+s.c+'"></i>'+esc(s.cur)+'</button>').join("")+'</div>'+
-    '<div class="bi-cards">'+card(sel?"NCs — "+esc(VIS[0].cur):"Total de NCs",nV,"anterior "+aV,biVar(nV,aV),biSpark(dias.map((k,i)=>VIS.reduce((a,s)=>a+porDia(s)[i],0)),"#118DFF"))+card("Valor das NCs",BRL0(vV),"anterior "+BRL0(vaV),biVar(vV,vaV),"","#252423")+
-      card("Valor médio por NC",BRL0(nV?vV/nV:0),"","","")+card("Pessoas com NC",pesL.length,pesL[0]?"maior: "+esc(curto(pesL[0].n))+" ("+pesL[0].i+")":"","","")+card("Média por dia com NC",diasAt?(nV/diasAt).toFixed(1).replace(".",","):"0",diasAt+" dia(s) com NC","","")+
-      card("Setor crítico",pior&&pior.n?esc(pior.cur):"—",pior&&pior.n?pior.n+" NCs · "+(tot?Math.round(pior.n/tot*100):0)+"% do total":"",pior&&pior.n?biVar(pior.n,pior.ant):"","",pior&&pior.c)+'</div>'+
-    '<div class="bi-g bi-g2"><div class="bi-v"><h3>NCs por setor (Pareto)</h3>'+par+'</div><div class="bi-v"><h3>Participação no total</h3>'+don+'</div></div>'+
-    '<div class="bi-g"><div class="bi-v"><h3>NCs por dia'+(sel?" — "+esc(VIS[0].cur):" por setor")+'</h3>'+lin+'</div></div>'+
-    '<div class="bi-g"><div class="bi-v"><h3>Comparativo por setor</h3>'+mat+'</div></div>'+
-    '<div class="bi-g bi-g3"><div class="bi-v"><h3>Top 10 colaboradores com NC</h3>'+top+'</div><div class="bi-v"><h3>Valor por setor</h3>'+tree+'</div><div class="bi-v"><h3>Dia da semana × setor</h3>'+heat+'</div></div>'+
-    '<div class="bi-ft">Fonte: planilha da Auditoria STA (auditorias de ruas, retorno, cargas, aéreo e rotina 8074) · gerado em '+fmtDT(new Date()).slice(0,16)+'</div></div>';}
-document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-bis]");if(t&&t.closest(".bi")){const k=t.dataset.bis;FECH.biSet=FECH.biSet===k?"":k;renderFech();return;}
-  const b=e.target.closest&&e.target.closest("#fx-bi");if(b){FECH.bi=!FECH.bi;try{localStorage.setItem("audcd_fx_bi",FECH.bi?"1":"");}catch(x){}renderFech();}});
-try{FECH.bi=localStorage.getItem("audcd_fx_bi")==="1";}catch(e){}
-(function(){const s=document.createElement("style");s.textContent=`
-.bi{background:#F3F2F1;border-radius:6px;padding:12px;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:#252423}
-.bi-top{display:flex;justify-content:space-between;align-items:center;background:#252423;color:#fff;border-radius:4px;padding:12px 16px;margin-bottom:10px}.bi-top h1{margin:0;font-size:20px;font-weight:600}.bi-top span{font-size:12px;opacity:.8}.bi-logo{background:#F2C811;color:#252423;font-weight:800;border-radius:4px;padding:6px 10px}
-.bi-sl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}.bi-sl>span{font-size:12px;font-weight:600;color:#605E5C;margin-right:4px}.bi-sl button{border:1px solid #C8C6C4;background:#fff;border-radius:2px;padding:6px 10px;font:inherit;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px}.bi-sl button.on{background:#252423;color:#fff;border-color:#252423}.bi-sl i{width:10px;height:10px;display:inline-block}
-.bi-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}.bi-card{background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.12);padding:10px 12px;min-height:96px;display:flex;flex-direction:column}.bi-ct{font-size:11.5px;color:#605E5C}.bi-card b{font-size:26px;font-weight:600;line-height:1.2;margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bi-cs{font-size:11px;color:#605E5C}.bi-card svg{margin-top:auto}
-.bi-g{display:grid;gap:8px;margin-bottom:8px}.bi-g2{grid-template-columns:1.5fr 1fr}.bi-g3{grid-template-columns:1.1fr 1fr 1fr}.bi-v{background:#fff;border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.12);padding:10px 12px;min-width:0}.bi-v h3{margin:0 0 6px;font-size:13px;font-weight:600;color:#252423}
-.bi-don{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bi-leg div{font-size:12px;margin:5px 0;cursor:pointer;display:flex;align-items:center;gap:6px}.bi-leg i,.bi-dot{width:10px;height:10px;display:inline-block;border-radius:2px;margin-right:6px}.bi-leg-h{display:flex;flex-wrap:wrap;gap:12px}.bi-leg-h div{cursor:default}
-.bi-t{width:100%;border-collapse:collapse;font-size:12.5px}.bi-t th{text-align:left;font-weight:600;color:#605E5C;border-bottom:1px solid #C8C6C4;padding:6px 8px}.bi-t td{padding:7px 8px;border-bottom:1px solid #EDEBE9}.bi-t .n{text-align:right}.bi-t tr[data-bis]{cursor:pointer}.bi-t tr.on td{background:#F3F2F1}.bi-t tr.bi-tot td{font-weight:700;border-top:2px solid #252423}
-.bi-db{position:relative}.bi-db span{position:absolute;right:8px;top:5px;bottom:5px;max-width:calc(100% - 16px)}.bi-db b,.bi-db{z-index:1}.bi-db b{position:relative}
-.bi-hb>div{display:grid;grid-template-columns:110px 1fr 30px;gap:8px;align-items:center;font-size:12px;margin:5px 0}.bi-hb span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bi-hbar{display:flex;height:16px;background:#F3F2F1}.bi-hbar i{display:block;height:100%}.bi-hb b{text-align:right}
-.bi-tree{display:flex;flex-wrap:wrap;gap:3px;height:190px;align-content:stretch}.bi-tree>div{min-width:60px;color:#fff;padding:8px;display:flex;flex-direction:column;cursor:pointer;overflow:hidden}.bi-tree span{font-size:12px}.bi-tree b{font-size:15px}.bi-tree small{opacity:.85}
-.bi-hm{width:100%;border-collapse:separate;border-spacing:2px;font-size:11.5px}.bi-hm th{font-weight:600;color:#605E5C}.bi-hm td{text-align:center;padding:6px 2px;border-radius:2px}.bi-hm td:first-child{text-align:left;white-space:nowrap;padding-right:6px}
-.bi-ft{font-size:11px;color:#605E5C;margin-top:4px}.bi-vn{color:#605E5C}
-@media (max-width:900px){.bi-cards{grid-template-columns:repeat(2,1fr)}.bi-g2,.bi-g3{grid-template-columns:1fr}}
-@media print{.bi{background:#fff}.bi-cards{grid-template-columns:repeat(6,1fr)}}`;document.head.appendChild(s);})();
-
 /* ---- Setores ---- */
 function sobrasRows(){const src=(FECH.dados&&Array.isArray(FECH.dados.sobras)&&FECH.dados.sobras.length)?FECH.dados.sobras:SOBRAS;
   return dedupSobras(src).map(a=>({ts:pts(String(a[0]).replace(/^(\d{4})-(\d{2})-(\d{2})/,"$3/$2/$1")),os:a[1],cod:a[2],desc:a[3],q:pnum(a[4]),conf:a[6],sep:a[8],sepM:a[7],v:pnum(a[10]),tipo:a[12]||"Sobra"})).filter(o=>o.ts);}
@@ -1203,8 +1124,7 @@ function ncRuaDia(rows){const m=new Map();rows.forEach(r=>{const rua=unz(r.Rua)|
   let x=m.get(k);if(!x){x={ts:r.ts,Rua:rua,Valor_Divergencia:0,linhas:0,_p:{}};m.set(k,x);}x.ts=Math.min(x.ts,r.ts);x.linhas++;x.Valor_Divergencia+=pnum(r.Valor_Divergencia);
   if(r.Nome_Colaborador_NC)x._p[r.Nome_Colaborador_NC]=(x._p[r.Nome_Colaborador_NC]||0)+1;});
   return [...m.values()].map(x=>Object.assign(x,{Nome_Colaborador_NC:(Object.entries(x._p).sort((a,b)=>b[1]-a[1])[0]||[""])[0]}));}
-function fxSetores(){const btn='<div class="fxq-cmp no-print"><button type="button" id="fx-bi">'+(FECH.bi?"Ver relatório padrão":"Ver visual Power BI")+'</button></div>';if(FECH.bi)return btn+fxSetoresBI();return btn+fxSetoresStd();}
-function fxSetoresStd(){const tit="Falhas de processos Logísticos";const [de,ate]=fxPeriodo();const len=Math.max(864e5,(isFinite(ate)?ate:Date.now())-de),pde=de-len;
+function fxSetores(){const tit="Falhas de processos Logísticos";const [de,ate]=fxPeriodo();const len=Math.max(864e5,(isFinite(ate)?ate:Date.now())-de),pde=de-len;
   const ruasA=fxRows(FECH.dados&&FECH.dados.ruas).filter(r=>pbool(r.Possui_NC)),retA=fxRows(FECH.dados&&FECH.dados.retorno).filter(r=>pbool(r.Possui_NC)),carA=fxRows(FECH.dados&&FECH.dados.cargas),aerA=fxRows(FECH.dados&&FECH.dados.aero),s8=sobrasRows().filter(o=>o.tipo==="Sobra"),sobA=s8;
   const def=[{k:"rep",l:"Reposição — ruas",cur:"Repos. ruas",c:"#16A34A",rows:ruasA,val:r=>pnum(r.Valor_Divergencia),pes:r=>r.Nome_Colaborador_NC},
     {k:"ret",l:"Reposição — retorno",cur:"Repos. retorno",c:"#0E7490",rows:retA,val:r=>Math.abs(pnum(r.Valor_Divergencia)),pes:r=>r.Nome_Colaborador_NC},
