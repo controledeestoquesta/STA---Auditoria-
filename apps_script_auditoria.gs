@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 53)
+ * Auditoria STA – Santa Therezinha (versão 54)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -188,21 +188,40 @@ function vlcPular(sessao, p) {
   vlcMarcarPulo(p.idItem, true, 'Pulado em ' + quando + ' por ' + (sessao.nome || sessao.matricula) + ' – ' + (o.Motivo || 'sem motivo'));
   return { ok: true };
 }
-/* Marca o pulo na planilha da validade: abas OPERACAO_ITENS e PENDENCIAS (colunas PULADO e PULADO_INFO, criadas no fim se não existirem). */
+/* Marca o pulo na planilha da validade: OPERACAO_ITENS e abas de PENDÊNCIAS (colunas PULADO e PULADO_INFO, criadas no fim se não existirem).
+   Acha a linha pelo ID_ITEM; se a aba não tiver ID_ITEM, pelo endereço (RUA, PREDIO, NIVEL, APTO) + CODPRODUTO.
+   Abas montadas por fórmula (QUERY/FILTER) não recebem escrita, porque as linhas mudam de lugar. */
 function vlcMarcarPulo(idItem, pulado, info) {
   try {
-    const ss = SpreadsheetApp.openById(VALIDADE_ID), alvo = ['OPERACAO_ITENS', 'PENDENCIAS'];
+    const ss = SpreadsheetApp.openById(VALIDADE_ID), N = function (x) { return vlcNorm(x).replace(/[\s.]+/g, '_'); };
+    const I = vlcTab(ss, 'OPERACAO_ITENS'), it = I.linhas.find(function (x) { return String(x.ID_ITEM) === String(idItem); }) || {};
+    const chave = function (o) { return [o.RUA, o.PREDIO, o.NIVEL, o.APTO].map(function (v) { return parseInt(String(v).replace(/\D/g, ''), 10) || 0; }).join('-') + '|' + String(o.CODPRODUTO || '').replace(/^0+/, ''); };
+    const kIt = chave(it);
     ss.getSheets().forEach(function (sh) {
-      if (alvo.indexOf(vlcNorm(sh.getName()).replace(/\s+/g, '_')) < 0 || sh.getLastRow() < 2) return;
-      const lc = sh.getLastColumn(), cab = sh.getRange(1, 1, 1, lc).getDisplayValues()[0].map(function (x) { return vlcNorm(x).replace(/\s+/g, '_'); });
-      const iId = cab.indexOf('ID_ITEM'); if (iId < 0) return;
-      const cel = sh.getRange(2, iId + 1, sh.getLastRow() - 1, 1).createTextFinder(String(idItem)).matchEntireCell(true).findAll(); if (!cel.length) return;
+      const nome = N(sh.getName()); if (!(nome === 'OPERACAO_ITENS' || nome.indexOf('PENDENCIA') >= 0) || sh.getLastRow() < 2) return;
+      const lc = sh.getLastColumn(), cab = sh.getRange(1, 1, 1, lc).getDisplayValues()[0].map(N);
+      if (nome !== 'OPERACAO_ITENS' && (sh.getRange(1, 1, 2, lc).getFormulas().some(function (l) { return l.some(function (f) { return f; }); }))) return;
+      let linhas = [];
+      const iId = cab.indexOf('ID_ITEM');
+      if (iId >= 0) linhas = sh.getRange(2, iId + 1, sh.getLastRow() - 1, 1).createTextFinder(String(idItem)).matchEntireCell(true).findAll().map(function (c) { return c.getRow(); });
+      else if (it.ID_ITEM && ['RUA', 'PREDIO', 'NIVEL', 'APTO'].every(function (k) { return cab.indexOf(k) >= 0; })) {
+        const v = sh.getRange(2, 1, sh.getLastRow() - 1, lc).getDisplayValues(), ic = cab.indexOf('CODPRODUTO') >= 0 ? cab.indexOf('CODPRODUTO') : cab.indexOf('CODIGO');
+        v.forEach(function (l, r) { const o = { RUA: l[cab.indexOf('RUA')], PREDIO: l[cab.indexOf('PREDIO')], NIVEL: l[cab.indexOf('NIVEL')], APTO: l[cab.indexOf('APTO')], CODPRODUTO: ic >= 0 ? l[ic] : it.CODPRODUTO }; if (chave(o) === kIt) linhas.push(r + 2); });
+      }
+      if (!linhas.length) return;
       let iP = cab.indexOf('PULADO'), iI = cab.indexOf('PULADO_INFO');
       if (iP < 0) { iP = sh.getLastColumn(); sh.getRange(1, iP + 1).setValue('PULADO'); }
       if (iI < 0) { iI = sh.getLastColumn(); sh.getRange(1, iI + 1).setValue('PULADO_INFO'); }
-      cel.forEach(function (c) { const r = c.getRow(); sh.getRange(r, iP + 1).setValue(pulado ? 'SIM' : ''); if (info != null) sh.getRange(r, iI + 1).setValue(info); });
+      linhas.forEach(function (r) { sh.getRange(r, iP + 1).setValue(pulado ? 'SIM' : ''); if (info != null) sh.getRange(r, iI + 1).setValue(info); });
     });
-  } catch (e) { }
+  } catch (e) { console.warn('vlcMarcarPulo', e); }
+}
+/** Rode no editor e me mande o resultado (Registro de execução): abas da planilha da validade, cabeçalhos e se são fórmula. */
+function diagnosticoValidade() {
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), out = [];
+  ss.getSheets().forEach(function (sh) { const lc = Math.max(1, sh.getLastColumn()); const f = sh.getRange(1, 1, Math.min(2, Math.max(1, sh.getLastRow())), lc).getFormulas().some(function (l) { return l.some(function (x) { return x; }); });
+    out.push(sh.getName() + ' (gid ' + sh.getSheetId() + ', ' + sh.getLastRow() + ' linhas' + (f ? ', FÓRMULA' : '') + '): ' + sh.getRange(1, 1, 1, lc).getDisplayValues()[0].join(' | ')); });
+  console.log(out.join('\n')); return out.join('\n');
 }
 /** Rode uma vez no editor: marca na planilha da validade todos os pulados já registrados em Validade_Pulados. */
 function marcarPuladosNaValidade() {
