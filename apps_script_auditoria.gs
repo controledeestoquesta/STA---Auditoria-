@@ -13,6 +13,10 @@
  * Implantar → Gerenciar implantações → lápis → Nova versão
  *   Executar como: Eu   |   Quem pode acessar: Qualquer pessoa
  */
+
+/** Rode no editor uma vez: autoriza o acesso a sites externos e mostra quantas notícias cada fonte trouxe. */
+function testeNoticias() { ['logistica', 'gdf', 'empresas', 'entretenimento'].forEach(function (c) { const r = noticias(c, true); console.log(c + ': ' + (r.itens ? r.itens.length : 0) + ' · ' + (r.diag || [r.erro]).join(' | ')); }); }
+
 const SHEET_ID = '1Srs2JdL1WEGsaa-SaLec2TaYQYX_eUmNsU2zE1M4CAA';
 const PASTA_FOTOS = 'Fotos Auditoria de Ruas';
 const ABA_PERMISSOES = 'Permissionamento';
@@ -110,6 +114,7 @@ const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial
 const ABA_CHEP = 'Chep_Documentos', PASTA_CHEP = 'Auditoria_Chep';
 const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em', 'Paletes_CHEP', 'Paletes_PBR'];
 function chepSalvar(doc, b64, sessao) {
+  if (!doc || !sessao) return { ok: false, erro: 'chepSalvar é chamada pelo aplicativo. Para testar as notícias, escolha testeNoticias no menu de funções.' };
   const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, tipo = doc.Tipo === 'Inventário' ? 'Inventário' : 'Nota', num = String(doc.Numero_Documento || '').trim();
   if (num && sh.getLastRow() >= 2) {
     const iT = cab.indexOf('Tipo'), iN = cab.indexOf('Numero_Documento');
@@ -1431,8 +1436,6 @@ function noticias(cat, forca) {
   if (itens.length) { try { cache.put(key, JSON.stringify(out), 1800); } catch (e) { } }
   return out;
 }
-/** Rode no editor uma vez: autoriza o acesso a sites externos e mostra quantas notícias cada fonte trouxe. */
-function testeNoticias() { ['logistica', 'gdf', 'empresas', 'entretenimento'].forEach(function (c) { const r = noticias(c, true); console.log(c + ': ' + (r.itens ? r.itens.length : 0) + ' · ' + (r.diag || [r.erro]).join(' | ')); }); }
 /** Corrige a loja de um documento Chep já importado. */
 function chepLoja(id, destino) {
   const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return { ok: false, erro: 'Documento não encontrado.' };
