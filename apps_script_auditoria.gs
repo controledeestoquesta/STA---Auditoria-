@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 52)
+ * Auditoria STA – Santa Therezinha (versão 53)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -177,6 +177,7 @@ function vlcPular(sessao, p) {
       if (String(v[i][ix('ID_Item')]) === String(p.idItem) && String(v[i][ix('Matricula')]) === String(sessao.matricula) && v[i][ix('Status')] === 'Pulado') {
         sh.getRange(i + 2, ix('DataHora') + 1).setValue(quando); sh.getRange(i + 2, ix('Vezes') + 1).setValue(String((parseInt(v[i][ix('Vezes')], 10) || 1) + 1));
         if (p.motivo) sh.getRange(i + 2, ix('Motivo') + 1).setValue(String(p.motivo).slice(0, 200));
+        vlcMarcarPulo(p.idItem, true, 'Pulado em ' + quando + ' por ' + (sessao.nome || sessao.matricula) + ' – ' + (p.motivo || v[i][ix('Motivo')] || 'sem motivo') + ' (' + ((parseInt(v[i][ix('Vezes')], 10) || 1) + 1) + 'x)');
         return { ok: true, repetido: true };
       }
     }
@@ -184,14 +185,40 @@ function vlcPular(sessao, p) {
   const o = { ID: 'PUL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000), DataHora: quando, Matricula: sessao.matricula, Nome: sessao.nome || '', Login_Validade: '',
     ID_Item: p.idItem, ID_Operacao: p.op || '', Operacao: p.opNome || '', Tipo: p.tipo || '', Endereco: p.endereco || '', Codigo_Produto: p.cod || '', Descricao: p.desc || '', Motivo: String(p.motivo || '').slice(0, 200), Vezes: '1', Status: 'Pulado', Resolvido_Em: '', Resolvido_Por: '' };
   sh.getRange(sh.getLastRow() + 1, 1, 1, cab.length).setNumberFormat('@').setValues([cab.map(function (k) { return o[k] == null ? '' : String(o[k]); })]);
+  vlcMarcarPulo(p.idItem, true, 'Pulado em ' + quando + ' por ' + (sessao.nome || sessao.matricula) + ' – ' + (o.Motivo || 'sem motivo'));
   return { ok: true };
+}
+/* Marca o pulo na planilha da validade: abas OPERACAO_ITENS e PENDENCIAS (colunas PULADO e PULADO_INFO, criadas no fim se não existirem). */
+function vlcMarcarPulo(idItem, pulado, info) {
+  try {
+    const ss = SpreadsheetApp.openById(VALIDADE_ID), alvo = ['OPERACAO_ITENS', 'PENDENCIAS'];
+    ss.getSheets().forEach(function (sh) {
+      if (alvo.indexOf(vlcNorm(sh.getName()).replace(/\s+/g, '_')) < 0 || sh.getLastRow() < 2) return;
+      const lc = sh.getLastColumn(), cab = sh.getRange(1, 1, 1, lc).getDisplayValues()[0].map(function (x) { return vlcNorm(x).replace(/\s+/g, '_'); });
+      const iId = cab.indexOf('ID_ITEM'); if (iId < 0) return;
+      const cel = sh.getRange(2, iId + 1, sh.getLastRow() - 1, 1).createTextFinder(String(idItem)).matchEntireCell(true).findAll(); if (!cel.length) return;
+      let iP = cab.indexOf('PULADO'), iI = cab.indexOf('PULADO_INFO');
+      if (iP < 0) { iP = sh.getLastColumn(); sh.getRange(1, iP + 1).setValue('PULADO'); }
+      if (iI < 0) { iI = sh.getLastColumn(); sh.getRange(1, iI + 1).setValue('PULADO_INFO'); }
+      cel.forEach(function (c) { const r = c.getRow(); sh.getRange(r, iP + 1).setValue(pulado ? 'SIM' : ''); if (info != null) sh.getRange(r, iI + 1).setValue(info); });
+    });
+  } catch (e) { }
+}
+/** Rode uma vez no editor: marca na planilha da validade todos os pulados já registrados em Validade_Pulados. */
+function marcarPuladosNaValidade() {
+  const t = lerTab(ABA_VPUL, COLS_VPUL), c = t.colunas, k = function (l, n) { return l[c.indexOf(n)]; }; let n = 0;
+  t.registros.forEach(function (l) { const ab = k(l, 'Status') === 'Pulado';
+    vlcMarcarPulo(k(l, 'ID_Item'), ab, 'Pulado em ' + k(l, 'DataHora') + ' por ' + k(l, 'Nome') + ' – ' + (k(l, 'Motivo') || 'sem motivo') + ((+k(l, 'Vezes') || 1) > 1 ? ' (' + k(l, 'Vezes') + 'x)' : '') + (ab ? '' : ' · auditado depois em ' + k(l, 'Resolvido_Em') + (k(l, 'Resolvido_Por') ? ' por ' + k(l, 'Resolvido_Por') : ''))); n++; });
+  return n + ' registro(s) marcados.';
 }
 /** Endereço pulado que depois foi auditado: fecha o registro (continua contado como pulado). */
 function vlcPuladoResolver(idItem, quem) {
   try {
     const A = abaRot(ABA_VPUL, COLS_VPUL), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return;
     const v = sh.getRange(2, 1, n - 1, cab.length).getDisplayValues(), iI = cab.indexOf('ID_Item'), iS = cab.indexOf('Status'), agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
-    v.forEach(function (l, i) { if (String(l[iI]) === String(idItem) && l[iS] === 'Pulado') { sh.getRange(i + 2, iS + 1).setValue('Auditado depois'); sh.getRange(i + 2, cab.indexOf('Resolvido_Em') + 1).setValue(agora); sh.getRange(i + 2, cab.indexOf('Resolvido_Por') + 1).setValue(quem || ''); } });
+    let teve = false;
+    v.forEach(function (l, i) { if (String(l[iI]) === String(idItem) && l[iS] === 'Pulado') { teve = true; sh.getRange(i + 2, iS + 1).setValue('Auditado depois'); sh.getRange(i + 2, cab.indexOf('Resolvido_Em') + 1).setValue(agora); sh.getRange(i + 2, cab.indexOf('Resolvido_Por') + 1).setValue(quem || ''); } });
+    if (teve) vlcMarcarPulo(idItem, false, null);
   } catch (e) { }
 }
 /** matricula = null → pulados de todos os auditores */
