@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 49)
+ * Auditoria STA – Santa Therezinha (versão 50)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -156,12 +156,13 @@ function vlcMinhas(sessao, todos) {
   ops.forEach(function (o) { opN[o.ID_OPERACAO] = o.NOME; });
   const itens = vlcTab(ss, 'OPERACAO_ITENS').linhas.filter(function (i) {
     if (!opN[i.ID_OPERACAO] || String(i.STATUS_ITEM).toUpperCase() !== 'PENDENTE') return false;
-    const atr = String(i.ATRIBUIDO_A || '').trim().toLowerCase();
-    return (todos && adm) || (login && atr === login);
+    /* ATRIBUIDO_A pode ter mais de um login (separados por vírgula, ponto e vírgula ou barra) */
+    const atr = String(i.ATRIBUIDO_A || '').toLowerCase().split(/[,;\/|]+/).map(function (x) { return x.trim(); });
+    return (todos && adm) || (login && atr.indexOf(login) >= 0);
   }).map(function (i) { return { id: i.ID_ITEM, op: i.ID_OPERACAO, opNome: opN[i.ID_OPERACAO], rua: i.RUA, predio: i.PREDIO, nivel: i.NIVEL, apto: i.APTO, cod: i.CODPRODUTO, desc: i.DESCRICAO, tipo: i.TIPO, dtval: i.DTVAL, qtde: i.QTDE, atr: i.ATRIBUIDO_A }; });
   const num = function (x) { return parseInt(String(x).replace(/\D/g, ''), 10) || 0; };
   itens.sort(function (a, b) { return num(a.rua) - num(b.rua) || num(a.predio) - num(b.predio) || num(a.nivel) - num(b.nivel) || num(a.apto) - num(b.apto); });
-  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 600) };
+  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000) };
 }
 /** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
 function vlcRegistrar(sessao, p) {
