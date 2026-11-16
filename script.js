@@ -3390,16 +3390,42 @@ $("v-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login p
     Validade:fdISO(ord[0].v),Validades:ord.map(l=>fdISO(l.v)+(l.q?" x "+l.q:"")).join("; "),Dias_Para_Vencer:d,Quantidade:ord.reduce((s,l)=>s+(parseInt(l.q,10)||0),0)||"",Resultado:VA.oc,Peso_Validade:VLA_PESO[VA.oc]||0,Possui_NC:nc,
     Matricula_Colaborador_NC:nc?C.mat[ci]:"",Nome_Colaborador_NC:nc?C.nome[ci]:"",Funcao_Colaborador_NC:nc?(C.fun[ci]||""):"",Observacao:$("v-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),fotos:VA.fotos.slice()};
   $("v-save").disabled=true;const ok=await saveRec(rec);$("v-save").disabled=false;
-  if(conv){try{const j=await ppPost({acao:"vlc_registrar",idItem:conv.id,validade:ord[0].v,lotes:ord.map(l=>({validade:l.v,qtd:l.q})),qtd:rec.Quantidade,resultado:rec.Resultado,obs:rec.Observacao,idCliente:rec.ID_Auditoria});
-      toast("Endereço auditado"+(j.divergencia?" · divergência: "+j.divergencia:"")+".");VC.itens=(VC.itens||[]).filter(x=>x.id!==conv.id);VC.total=Math.max(0,(VC.total||1)-1);}
-    catch(e){toast("Auditoria salva, mas não deu baixa na convocação: "+e.message);VC.itens=(VC.itens||[]).filter(x=>x.id!==conv.id);}}
+  if(conv){const pl={acao:"vlc_registrar",idItem:conv.id,validade:ord[0].v,lotes:ord.map(l=>({validade:l.v,qtd:l.q})),qtd:rec.Quantidade,resultado:rec.Resultado,obs:rec.Observacao,idCliente:rec.ID_Auditoria,quando:rec.DataHora};
+    const guardar=()=>{vlcFilaGravar(vlcFilaLer().concat([Object.assign({auditor,desc:vlcEnd(conv)+" · "+conv.cod},pl)]));toast("Sem internet: baixa guardada no aparelho. Será enviada à planilha quando a conexão voltar.");};
+    if(!navigator.onLine)guardar();
+    else{try{const j=await ppPost(pl);toast("Endereço auditado"+(j.divergencia?" · divergência: "+j.divergencia:"")+".");}
+      catch(e){if(e instanceof TypeError||/não respondeu/i.test(e.message))guardar();else toast("Auditoria salva, mas não deu baixa na convocação: "+e.message);}}
+    VC.itens=(VC.itens||[]).filter(x=>x.id!==conv.id);VC.total=Math.max(0,(VC.total||1)-1);vlcCacheSalvar();paintVlcFila();}
   else toast((ok||dbState==="off"?"Auditoria salva":"Salva neste aparelho, envio pendente")+" – "+rec.Resultado+".");
   if(nc)vlaDoc(rec);vlaReset();if(conv){VC.feitos=(VC.feitos||0)+1;vlcProximo();}else paintVLA();});
 $("v-pular").addEventListener("click",()=>{if(!VC.conv)return;VC.pulados=VC.pulados||new Set();VC.pulados.add(VC.conv.id);vlaReset();vlcProximo();toast("Endereço pulado. Ele volta para a fila quando você recomeçar.");});
 function cardVLA(r){return '<details class="rec '+(pbool(r.Possui_NC)?"nc":"ok")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Validade '+esc(r.Tipo||"")+'</span><span>'+esc(r.Resultado||"")+'</span></div><div class="addr">O.S. '+esc(r.Numero_OS||"")+' · '+esc(r.Endereco||"")+'</div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto||"")+'</div><div class="tags"><span class="tag">validade '+esc(r.Validades||r.Validade||"")+'</span>'+(r.Nome_Colaborador_NC?'<span class="tag nc">'+esc(curto(r.Nome_Colaborador_NC))+'</span>':'')+'</div></summary></details>';}
 // ===== Convocação ativa (sistema AE/AP da validade): tela inicial + um endereço por vez =====
 const VC={itens:null,busy:false,msg:"",todos:false,conv:null,tela:"inicio",filtro:{op:"",tipo:"TODOS",rua:""},pulados:new Set(),feitos:0};
-async function vlcCarregar(){if(VC.busy||DEMO||!SHEET_URL)return;VC.busy=true;vlcLista();try{const j=await ppPost({acao:"vlc_minhas",todos:VC.todos});VC.itens=j.itens||[];VC.total=j.total||0;VC.login=j.login||"";VC.recebido=fmtDT(new Date()).slice(0,16);VC.msg=j.login||VC.todos?"":"Seu usuário não foi encontrado na aba USUARIOS da validade (login = matrícula ou mesmo nome).";}catch(e){VC.msg=e.message;VC.itens=VC.itens||[];}VC.busy=false;paintVLA();}
+/* offline: a lista de endereços fica guardada no aparelho e as baixas feitas sem internet entram numa fila enviada sozinha quando a conexão volta */
+const vlcCK=()=>"audcd_vlc_cache_"+(auditor||""),VLC_FILA="audcd_vlc_fila";
+const vlcFilaLer=()=>{try{return JSON.parse(localStorage.getItem(VLC_FILA)||"[]")||[];}catch(e){return [];}};
+const vlcFilaGravar=L=>{try{localStorage.setItem(VLC_FILA,JSON.stringify(L));}catch(e){}};
+const vlcPend=()=>new Set(vlcFilaLer().filter(x=>x.auditor===auditor).map(x=>String(x.idItem)));
+function vlcCacheSalvar(){if(VC.todos)return;try{localStorage.setItem(vlcCK(),JSON.stringify({itens:VC.itens||[],total:VC.total||0,login:VC.login||"",recebido:VC.recebido||""}));}catch(e){}}
+function vlcCacheUsar(motivo){let c=null;try{c=JSON.parse(localStorage.getItem(vlcCK())||"null");}catch(e){}
+  if(c&&!VC.itens){const pd=vlcPend();VC.itens=(c.itens||[]).filter(i=>!pd.has(String(i.id)));VC.total=c.total||VC.itens.length;VC.login=c.login||"";VC.recebido=c.recebido||"";}
+  VC.itens=VC.itens||[];VC.msg=motivo+(c?" Usando a lista salva neste aparelho"+(VC.recebido?" (recebida em "+VC.recebido+")":"")+"; as baixas ficam guardadas e são enviadas sozinhas quando a internet voltar.":" Abra esta tela uma vez com internet para guardar seus endereços no aparelho.");}
+async function vlcCarregar(){if(VC.busy||DEMO||!SHEET_URL)return;
+  if(!navigator.onLine){vlcCacheUsar("Sem internet.");paintVLA();return;}
+  VC.busy=true;vlcLista();try{await vlcFlush(true);const j=await ppPost({acao:"vlc_minhas",todos:VC.todos});const pd=vlcPend();VC.itens=(j.itens||[]).filter(i=>!pd.has(String(i.id)));VC.total=j.total||0;VC.login=j.login||"";VC.recebido=fmtDT(new Date()).slice(0,16);VC.msg=j.login||VC.todos?"":"Seu usuário não foi encontrado na aba USUARIOS da validade (login = matrícula ou mesmo nome).";vlcCacheSalvar();}
+  catch(e){const rede=e instanceof TypeError||!navigator.onLine;if(rede){VC.itens=null;vlcCacheUsar("Sem conexão com a planilha.");}else{VC.msg=e.message;VC.itens=VC.itens||[];}}VC.busy=false;paintVLA();}
+let vlcEnviando=false;
+async function vlcFlush(silencioso){if(vlcEnviando||DEMO||!SHEET_URL||!LOGIN||!navigator.onLine)return 0;const L=vlcFilaLer();if(!L.length)return 0;vlcEnviando=true;let ok=0,perd=[];
+  for(const x of L){if(x.auditor!==auditor)continue;try{const p=Object.assign({},x);delete p.auditor;delete p.desc;await ppPost(p);ok++;vlcFilaGravar(vlcFilaLer().filter(y=>y.idCliente!==x.idCliente));}
+    catch(e){if(e instanceof TypeError||/não respondeu/i.test(e.message))break;
+      if(/já foi auditado|não encontrado/i.test(e.message)){perd.push((x.desc||x.idItem)+": "+e.message);vlcFilaGravar(vlcFilaLer().filter(y=>y.idCliente!==x.idCliente));}else break;}}
+  vlcEnviando=false;if(ok&&!silencioso)toast(ok+" baixa(s) de validade feitas sem internet foram enviadas à planilha.");
+  if(perd.length)alert("Baixas de validade não aceitas pela planilha:\n\n"+perd.join("\n"));paintVlcFila();return ok;}
+function paintVlcFila(){const n=vlcFilaLer().filter(x=>x.auditor===auditor).length;let el=$("v-cfila");if(!el){const box=$("v-conv");if(!box||!box.parentNode)return;el=document.createElement("p");el.id="v-cfila";el.className="note";el.style.cssText="margin:0 0 10px;font-weight:700;color:#B45309";box.parentNode.insertBefore(el,box);}
+  el.hidden=!n;el.textContent=n?"⏳ "+n+" baixa(s) de validade guardada(s) no aparelho — serão enviadas à planilha quando houver internet.":"";}
+window.addEventListener("online",()=>setTimeout(()=>vlcFlush().then(n=>{if(n&&$("v-vla")&&!$("v-vla").hidden&&!VC.conv)vlcCarregar();}),1500));
+setInterval(()=>{if(navigator.onLine&&vlcFilaLer().length)vlcFlush();},60000);setTimeout(()=>vlcFlush(),5000);
 const vlcEnd=i=>[i.rua,i.predio,i.nivel,i.apto].join("-");
 const vlcNum=x=>parseInt(String(x).replace(/\D/g,""),10)||0;
 function vlcFila(){const F=VC.filtro;let L=(VC.itens||[]).filter(i=>(!F.op||i.op===F.op)&&(F.tipo==="TODOS"||i.tipo===F.tipo));
@@ -3409,7 +3435,7 @@ function vlcProximo(){const L=vlcFila();VC.conv=L[0]||null;if(!VC.conv){VC.tela=
   else{const i=VC.conv;VA.tipo=i.tipo==="AP"?"AP":"AE";$("v-os").value=i.id;$("v-end").value=vlcEnd(i);const k=pIdx.get(String(i.cod))??pIdx.get(String(i.cod).replace(/^0+/,""));if(k!=null)vProd.pick(k);else{vProd.clear();VA.prod=null;}
     VA.lotes=[{v:"",q:""}];lotesRender();VA.oc=null;VA.sug=false;}
   paintVLA();window.scrollTo(0,0);}
-function vlcLista(){const box=$("v-conv");if(!box)return;const L=VC.itens||[],F=VC.filtro;
+function vlcLista(){const box=$("v-conv");if(!box)return;paintVlcFila();const L=VC.itens||[],F=VC.filtro;
   if(VC.conv){const i=VC.conv,fila=vlcFila(),dv=(()=>{const m=String(i.dtval||"").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/)||String(i.dtval||"").match(/(\d{4})-(\d{2})-(\d{2})/);if(!m)return null;const d=m[1].length===4?new Date(+m[1],+m[2]-1,+m[3]):new Date(+m[3],+m[2]-1,+m[1]);return Math.round((d-new Date(todayISO()+"T00:00:00"))/864e5);})();
     box.innerHTML='<div class="block vc-card"><div class="vc-top"><span class="vc-tp">'+esc(i.tipo)+'</span><span class="muted">'+fila.length+' pendente(s)</span><button type="button" class="btn sm" id="v-filtro">Trocar filtro</button></div>'+
       '<div class="vc-end">'+[["Rua",i.rua],["Prédio",i.predio],["Nível",i.nivel],["Apto",i.apto]].map(([l,v])=>'<div><span>'+l+'</span><b>'+esc(v)+'</b></div>').join("")+'</div>'+

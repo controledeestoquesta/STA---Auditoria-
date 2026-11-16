@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 47)
+ * Auditoria STA – Santa Therezinha (versão 48)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -165,9 +165,12 @@ function vlcMinhas(sessao, todos) {
 }
 /** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
 function vlcRegistrar(sessao, p) {
-  const ss = SpreadsheetApp.openById(VALIDADE_ID), tz = Session.getScriptTimeZone(), agora = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd'T'HH:mm:ss");
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), tz = Session.getScriptTimeZone(), recebido = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd'T'HH:mm:ss");
+  /* auditoria feita sem internet: DATA_HORA = momento da auditoria no aparelho (dd/mm/aaaa hh:mm); DATA_RECEBIDO = chegada na planilha */
+  const agora = (function (q) { const m = String(q || '').match(/^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); return m ? m[3] + '-' + m[2] + '-' + m[1] + 'T' + m[4] + ':' + m[5] + ':' + (m[6] || '00') : recebido; })(p.quando);
   const login = vlcLogin(ss, sessao) || String(sessao.matricula), I = vlcTab(ss, 'OPERACAO_ITENS'), it = I.linhas.find(function (x) { return String(x.ID_ITEM) === String(p.idItem); });
   if (!it) throw new Error('Endereço convocado não encontrado (' + p.idItem + ').');
+  if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO' && String(it.AUDITOR) === String(login)) return { ok: true, repetido: true, divergencia: it.DIVERGENCIA || '' };
   if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO') throw new Error('Este endereço já foi auditado por ' + it.AUDITOR + '.');
   const tipo = String(it.TIPO).toUpperCase() === 'AP' ? 'AP' : 'AE', val = String(p.validade || ''), qtd = String(p.qtd || '');
   const id = (tipo === 'AE' ? 'AE-' : 'AP-') + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
@@ -176,7 +179,7 @@ function vlcRegistrar(sessao, p) {
   if (tipo === 'AP' && qtd && it.QTDE && Number(qtd) !== Number(it.QTDE)) div = (div ? div + '; ' : '') + 'QTDE (' + qtd + ' x ' + it.QTDE + ')';
   const obs = ('[App STA] ' + (p.resultado || '') + (p.obs ? ' — ' + p.obs : '')).slice(0, 500);
   const base = { ID_REGISTRO: id, ID_OPERACAO: it.ID_OPERACAO, ID_ITEM: it.ID_ITEM, CHAVE_AE: it.CHAVE_AE, CHAVE_SEC: it.CHAVE_SEC, RUA: it.RUA, PREDIO: it.PREDIO, NIVEL: it.NIVEL, APTO: it.APTO,
-    CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: agora,
+    CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: recebido,
     ID_CLIENTE: p.idCliente || id, STATUS: 'CONCLUIDA', ORIGEM: 'APP STA' };
   /* várias validades no mesmo endereço: AP grava uma linha por validade (LOTE_SEQ); AE grava a menor e anota as demais na observação */
   const lotes = (Array.isArray(p.lotes) && p.lotes.length ? p.lotes : [{ validade: val, qtd: qtd }]).filter(function (l) { return l && l.validade; });
