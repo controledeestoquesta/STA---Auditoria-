@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 55)
+ * Auditoria STA – Santa Therezinha (versão 56)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -349,10 +349,12 @@ function doPost(e) {
       return resposta({ ok: true });
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (['chep_salvar', 'chep_ler'].indexOf(dados.acao) >= 0) {
+  if (dados.acao === 'noticias') { try { return resposta(noticias(String(dados.cat || ''), !!dados.forca)); } catch (err) { return resposta({ ok: false, erro: 'Não consegui ler as notícias: ' + (err.message || err) }); } }
+  if (['chep_salvar', 'chep_ler', 'chep_loja'].indexOf(dados.acao) >= 0) {
     if (['aud_adm', 'aud_chp', 'aud_com'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão do setor Chep (aud_chp).' });
     try {
       if (dados.acao === 'chep_ler') return resposta(Object.assign({ ok: true }, lerTab(ABA_CHEP, COLS_CHEP)));
+      if (dados.acao === 'chep_loja') return resposta(chepLoja(dados.id, dados.destino));
       const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
       try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
@@ -499,7 +501,7 @@ function doGet(e) {
     if (p.acao === 'fechamento') {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
-      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf('aud_fch') >= 0 || s.permissoes.indexOf(x) >= 0; };
+      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf('aud_fch') >= 0 || s.permissoes.indexOf('aud_reg') >= 0 || s.permissoes.indexOf(x) >= 0; };
       if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp') && !tem('aud_vld')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
@@ -533,7 +535,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 55, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 56, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -560,6 +562,7 @@ const PERMISSOES_CONHECIDAS = {
   aud_chp: 'Acesso ao setor Chep (notas e ajustes de inventario de paletes)',
   aud_vld: 'Acesso a auditoria de validade (AE/AP) no app e ao fechamento de validade',
   aud_fch: 'Acesso ao fechamento completo (todas as auditorias, somente leitura)',
+  aud_reg: 'Acesso aos Registros (todos os lançamentos e NCs, com impressão)',
   aud_ces: 'Acesso ao painel da cesta basica',
   aud_fat: 'Acesso ao painel de faturamento',
   aud_lib: 'Acesso a liberacao de mercadorias',
@@ -1376,4 +1379,52 @@ function exportarCodigoValidade() {
   const f = DriveApp.createFile('Projeto_Validade_Exportado.txt', partes.join('\n'), MimeType.PLAIN_TEXT);
   Logger.log('Arquivo criado: ' + f.getUrl());
   return f.getUrl();
+}
+
+/* ===================== Notícias (RSS de fontes confiáveis, cache de 30 min) ===================== */
+function gnews_(q) { return 'https://news.google.com/rss/search?q=' + encodeURIComponent(q + ' when:7d') + '&hl=pt-BR&gl=BR&ceid=BR:pt-419'; }
+const NWS_FEEDS = {
+  logistica: [gnews_('(logística OR "cadeia de suprimentos" OR "centro de distribuição" OR transportadoras) (site:g1.globo.com OR site:valor.globo.com OR site:exame.com OR site:cnnbrasil.com.br OR site:estadao.com.br OR site:agenciabrasil.ebc.com.br OR site:mundologistica.com.br OR site:logweb.com.br OR site:tecnologistica.com.br)')],
+  gdf: [gnews_('(GDF OR "Governo do Distrito Federal" OR Brasília) (site:agenciabrasilia.df.gov.br OR site:agenciabrasil.ebc.com.br OR site:g1.globo.com OR site:correiobraziliense.com.br OR site:metropoles.com)')],
+  empresas: ['https://g1.globo.com/rss/g1/economia/', 'https://agenciabrasil.ebc.com.br/rss/economia/feed.xml'],
+  entretenimento: ['https://g1.globo.com/rss/g1/pop-arte/', 'https://agenciabrasil.ebc.com.br/rss/cultura/feed.xml']
+};
+function noticias(cat, forca) {
+  if (!NWS_FEEDS[cat]) return { ok: false, erro: 'Categoria de notícias inválida.' };
+  const cache = CacheService.getScriptCache(), key = 'nws2_' + cat;
+  if (!forca) { const c = cache.get(key); if (c) return JSON.parse(c); }
+  const resp = UrlFetchApp.fetchAll(NWS_FEEDS[cat].map(function (u) { return { url: u, muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 AuditoriaSTA' } }; }));
+  let itens = [];
+  resp.forEach(function (r, i) {
+    if (r.getResponseCode() !== 200) return;
+    try {
+      const doc = XmlService.parse(r.getContentText()), ch = doc.getRootElement().getChild('channel'); if (!ch) return;
+      const fonteCanal = (ch.getChildText('title') || '').replace(/\s*[-–|].*$/, '');
+      const media = XmlService.getNamespace('media', 'http://search.yahoo.com/mrss/');
+      ch.getChildren('item').slice(0, 25).forEach(function (it) {
+        let tit = (it.getChildText('title') || '').trim(), fonte = it.getChildText('source') || fonteCanal;
+        if (it.getChild('source')) { fonte = it.getChild('source').getText(); tit = tit.replace(new RegExp('\\s+-\\s+' + fonte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$'), ''); }
+        const desc = it.getChildText('description') || '';
+        let img = '';
+        const mc = it.getChild('content', media) || it.getChild('thumbnail', media); if (mc && mc.getAttribute('url')) img = mc.getAttribute('url').getValue();
+        const enc = it.getChild('enclosure'); if (!img && enc && enc.getAttribute('url') && /image/.test((enc.getAttribute('type') || { getValue: function () { return 'image'; } }).getValue())) img = enc.getAttribute('url').getValue();
+        if (!img) { const m = desc.match(/<img[^>]+src=["']([^"']+)["']/i); if (m) img = m[1]; }
+        const resumo = desc.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+        const ts = Date.parse(it.getChildText('pubDate') || '') || 0;
+        if (tit) itens.push({ titulo: tit, link: it.getChildText('link') || '', fonte: fonte, ts: ts, img: img, resumo: (resumo.indexOf(tit) === 0 || /^\s*$/.test(resumo)) ? '' : resumo.slice(0, 240) });
+      });
+    } catch (e) { }
+  });
+  const vistos = {}; itens = itens.filter(function (x) { const k = x.titulo.toLowerCase().slice(0, 70); if (vistos[k]) return false; vistos[k] = 1; return true; });
+  itens.sort(function (a, b) { return b.ts - a.ts; });
+  const out = { ok: true, cat: cat, itens: itens.slice(0, 36), em: Date.now() };
+  try { cache.put(key, JSON.stringify(out), 1800); } catch (e) { }
+  return out;
+}
+/** Corrige a loja de um documento Chep já importado. */
+function chepLoja(id, destino) {
+  const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return { ok: false, erro: 'Documento não encontrado.' };
+  const ids = sh.getRange(2, cab.indexOf('ID') + 1, n - 1, 1).getDisplayValues();
+  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === String(id)) { sh.getRange(i + 2, cab.indexOf('Destino') + 1).setValue(String(destino || '')); return { ok: true }; }
+  return { ok: false, erro: 'Documento não encontrado.' };
 }
