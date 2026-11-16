@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 50)
+ * Auditoria STA – Santa Therezinha (versão 51)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -162,7 +162,40 @@ function vlcMinhas(sessao, todos) {
   }).map(function (i) { return { id: i.ID_ITEM, op: i.ID_OPERACAO, opNome: opN[i.ID_OPERACAO], rua: i.RUA, predio: i.PREDIO, nivel: i.NIVEL, apto: i.APTO, cod: i.CODPRODUTO, desc: i.DESCRICAO, tipo: i.TIPO, dtval: i.DTVAL, qtde: i.QTDE, atr: i.ATRIBUIDO_A }; });
   const num = function (x) { return parseInt(String(x).replace(/\D/g, ''), 10) || 0; };
   itens.sort(function (a, b) { return num(a.rua) - num(b.rua) || num(a.predio) - num(b.predio) || num(a.nivel) - num(b.nivel) || num(a.apto) - num(b.apto); });
-  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000) };
+  const pend = {}; itens.forEach(function (i) { pend[i.id] = 1; });
+  return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(sessao.matricula).filter(function (x) { return pend[x.id]; }) };
+}
+/* ---- Endereços pulados na convocação (aba Validade_Pulados da planilha da auditoria) ---- */
+const ABA_VPUL = 'Validade_Pulados';
+const COLS_VPUL = ['ID', 'DataHora', 'Matricula', 'Nome', 'Login_Validade', 'ID_Item', 'ID_Operacao', 'Operacao', 'Tipo', 'Endereco', 'Codigo_Produto', 'Descricao', 'Motivo', 'Vezes', 'Status', 'Resolvido_Em', 'Resolvido_Por'];
+function vlcPular(sessao, p) {
+  const A = abaRot(ABA_VPUL, COLS_VPUL), sh = A.sh, cab = A.cab, n = sh.getLastRow(), ix = function (k) { return cab.indexOf(k); };
+  const tz = Session.getScriptTimeZone(), quando = String(p.quando || Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm:ss'));
+  if (n >= 2) {
+    const v = sh.getRange(2, 1, n - 1, cab.length).getDisplayValues();
+    for (let i = 0; i < v.length; i++) {
+      if (String(v[i][ix('ID_Item')]) === String(p.idItem) && String(v[i][ix('Matricula')]) === String(sessao.matricula) && v[i][ix('Status')] === 'Pulado') {
+        sh.getRange(i + 2, ix('DataHora') + 1).setValue(quando); sh.getRange(i + 2, ix('Vezes') + 1).setValue(String((parseInt(v[i][ix('Vezes')], 10) || 1) + 1));
+        if (p.motivo) sh.getRange(i + 2, ix('Motivo') + 1).setValue(String(p.motivo).slice(0, 200));
+        return { ok: true, repetido: true };
+      }
+    }
+  }
+  const o = { ID: 'PUL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000), DataHora: quando, Matricula: sessao.matricula, Nome: sessao.nome || '', Login_Validade: '',
+    ID_Item: p.idItem, ID_Operacao: p.op || '', Operacao: p.opNome || '', Tipo: p.tipo || '', Endereco: p.endereco || '', Codigo_Produto: p.cod || '', Descricao: p.desc || '', Motivo: String(p.motivo || '').slice(0, 200), Vezes: '1', Status: 'Pulado', Resolvido_Em: '', Resolvido_Por: '' };
+  sh.getRange(sh.getLastRow() + 1, 1, 1, cab.length).setNumberFormat('@').setValues([cab.map(function (k) { return o[k] == null ? '' : String(o[k]); })]);
+  return { ok: true };
+}
+/** Endereço pulado que depois foi auditado: fecha o registro (continua contado como pulado). */
+function vlcPuladoResolver(idItem, quem) {
+  try {
+    const A = abaRot(ABA_VPUL, COLS_VPUL), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return;
+    const v = sh.getRange(2, 1, n - 1, cab.length).getDisplayValues(), iI = cab.indexOf('ID_Item'), iS = cab.indexOf('Status'), agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+    v.forEach(function (l, i) { if (String(l[iI]) === String(idItem) && l[iS] === 'Pulado') { sh.getRange(i + 2, iS + 1).setValue('Auditado depois'); sh.getRange(i + 2, cab.indexOf('Resolvido_Em') + 1).setValue(agora); sh.getRange(i + 2, cab.indexOf('Resolvido_Por') + 1).setValue(quem || ''); } });
+  } catch (e) { }
+}
+function vlcPuladosAbertos(matricula) {
+  try { const t = lerTab(ABA_VPUL, COLS_VPUL), c = t.colunas; return t.registros.filter(function (l) { return String(l[c.indexOf('Matricula')]) === String(matricula) && l[c.indexOf('Status')] === 'Pulado'; }).map(function (l) { return { id: l[c.indexOf('ID_Item')], motivo: l[c.indexOf('Motivo')], em: l[c.indexOf('DataHora')], vezes: l[c.indexOf('Vezes')] }; }); } catch (e) { return []; }
 }
 /** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
 function vlcRegistrar(sessao, p) {
@@ -195,6 +228,7 @@ function vlcRegistrar(sessao, p) {
   const upd = { STATUS_ITEM: 'AUDITADO', AUDITOR: login, DATA_STATUS: agora, ID_REGISTRO: id, DIVERGENCIA: div, RESERVADO_POR: '', RESERVADO_ATE: '', VERSAO: Number(it.VERSAO || 1) + 1 };
   Object.keys(upd).forEach(function (k) { const j = I.cab.indexOf(k); if (j >= 0) I.sh.getRange(it._linha, j + 1).setValue(upd[k]); });
   try { CacheService.getScriptCache().remove('painel_' + it.ID_OPERACAO); } catch (e) { }
+  vlcPuladoResolver(it.ID_ITEM, sessao.nome || sessao.matricula);
   return { ok: true, idRegistro: id, divergencia: div, tipo: tipo };
 }
 /** Rode uma vez no editor para autorizar o acesso à planilha de validade. */
@@ -271,17 +305,18 @@ function doPost(e) {
       try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar') {
+  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar' || dados.acao === 'vlc_pular') {
     if (['aud_adm', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de auditoria de validade (aud_vld).' });
     try {
       if (dados.acao === 'vlc_minhas') return resposta(vlcMinhas(sessao, !!dados.todos));
+      if (dados.acao === 'vlc_pular') { const lkp = LockService.getScriptLock(); lkp.waitLock(30000); try { return resposta(vlcPular(sessao, dados)); } finally { lkp.releaseLock(); } }
       const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
       try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'val_ler') {
     if (['aud_adm', 'aud_com', 'aud_fch', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para o fechamento de validade (aud_vld ou aud_fch).' });
-    try { return resposta(valLer()); } catch (err) { return resposta({ ok: false, erro: 'Não consegui abrir a planilha de validade: ' + String(err.message || err) + ' (a conta dona do Apps Script precisa ter acesso a ela).' }); }
+    try { const r = valLer(); try { r.pulados = lerTab(ABA_VPUL, COLS_VPUL); } catch (e) { } return resposta(r); } catch (err) { return resposta({ ok: false, erro: 'Não consegui abrir a planilha de validade: ' + String(err.message || err) + ' (a conta dona do Apps Script precisa ter acesso a ela).' }); }
   }
   if (dados.acao === 'sol_ler' || dados.acao === 'sol_responder') {
     if (sessao.permissoes.indexOf('aud_adm') < 0 && sessao.permissoes.indexOf('aud_sol') < 0) return resposta({ ok: false, erro: 'Sem permissão de solicitação de contagens (aud_sol).' });
