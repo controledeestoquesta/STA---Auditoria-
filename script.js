@@ -1067,12 +1067,12 @@ function docsOriginais(lista,base){const docs=[],feitos=new Set();const asc=list
   return docs;}
 async function makePdfLista(docs){if(!window.html2canvas)await loadScript(H2C);if(!(window.jspdf&&window.jspdf.jsPDF))await loadScript(JSPDF);
   const pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:docs[0]&&docs[0].land?"landscape":"portrait"});let primeira=true;
-  for(const d of docs){const host=document.createElement("div");host.style.cssText=d.land?"position:fixed;left:-10000px;top:0;width:1123px;background:#fff;padding:0;box-sizing:border-box":"position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:34px 45px;box-sizing:border-box";host.innerHTML=d.html;document.body.appendChild(host);
+  for(const d of docs){const host=document.createElement("div");host.style.cssText=d.land?"position:fixed;left:-10000px;top:0;width:1123px;background:#fff;padding:0;box-sizing:border-box":d.wide?"position:fixed;left:-10000px;top:0;width:1123px;background:#fff;padding:0;box-sizing:border-box":"position:fixed;left:-10000px;top:0;width:794px;background:#fff;padding:34px 45px;box-sizing:border-box";host.innerHTML=d.html;host.querySelectorAll(".no-print").forEach(e=>e.remove());document.body.appendChild(host);
     if(d.land){await Promise.all([...host.querySelectorAll("img")].map(i=>i.complete?0:new Promise(ok=>{i.onload=i.onerror=ok;})));
       try{const cv=await window.html2canvas(host,{scale:1.7,backgroundColor:"#ffffff",logging:false,windowWidth:1200});if(!primeira)pdf.addPage("a4","landscape");
         let w=297,h=cv.height*w/cv.width;if(h>210){h=210;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.88),"JPEG",(297-w)/2,0,w,h);primeira=false;}finally{host.remove();}continue;}
     await Promise.all([...host.querySelectorAll("img")].map(i=>i.complete?0:new Promise(ok=>{i.onload=i.onerror=ok;})));
-    try{const cv=await window.html2canvas(host,{scale:1.6,backgroundColor:"#ffffff",logging:false});const pageH=Math.floor(cv.width*297/210);
+    try{const cv=await window.html2canvas(host,d.wide?{scale:1.7,backgroundColor:"#ffffff",logging:false,windowWidth:1200}:{scale:1.6,backgroundColor:"#ffffff",logging:false});const pageH=Math.floor(cv.width*297/210);
       if(!d.multi||cv.height<=pageH){if(!primeira)pdf.addPage("a4","portrait");let w=210,h=cv.height*w/cv.width;if(h>297){h=297;w=cv.width*h/cv.height;}pdf.addImage(cv.toDataURL("image/jpeg",.85),"JPEG",(210-w)/2,0,w,h);primeira=false;}
       else{const pc=document.createElement("canvas");pc.width=cv.width;const ctx=pc.getContext("2d");let y=0;
         while(y<cv.height){const h=Math.min(pageH,cv.height-y);pc.height=h;ctx.fillStyle="#fff";ctx.fillRect(0,0,pc.width,h);ctx.drawImage(cv,0,y,cv.width,h,0,0,cv.width,h);
@@ -2998,19 +2998,21 @@ async function spkExcel(L,periodo){try{if(!window.XLSX)await loadScript(XLSX_URL
 document.addEventListener("click",e=>{if(e.target&&e.target.id==="fxk-exp"){spkExportar(fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r=>r.Codigo_Produto),fdISO(FECH.de)+" a "+fdISO(FECH.ate));}});
 
 // ===== Relatório consolidado: todos os fechamentos do dia + NCs do dia em um PDF =====
-const RC_TIPOS=[["ruas","ruas"],["mapa","aero"],["retorno","retorno"],["cargas","cargas"],["aero","aero"],["procura","procura"],["spk","saldo"],["prev","pp"],["sac","sac"],["adega","adega"],["qual",null],["setores",null]];
+const RC_TIPOS=[["ruas","ruas"],["mapa","aero"],["retorno","retorno"],["cargas","cargas"],["aero","aero"],["procura","procura"],["spk","saldo"],["val","__val"],["prev","pp"],["sac","sac"],["adega","adega"],["qual",null],["setores",null]];
 const ontemISO=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
-function rcPode(k){return (k==="setores"||k==="qual")?ehAdm():k==="mapa"?(podeVer("ruas")||podeVer("aero")):podeVer(k);}
+function rcPode(k){return (k==="setores"||k==="qual")?ehAdm():k==="val"?fxPode("val"):k==="mapa"?(podeVer("ruas")||podeVer("aero")):podeVer(k);}
 async function relConsolidado(){const dia=($("rc-data")&&$("rc-data").value)||ontemISO(),pular=!$("rc-vazios")||$("rc-vazios").checked,comNC=!$("rc-nc")||$("rc-nc").checked;
   const bt=$("rc-go");if(bt){bt.disabled=true;bt.textContent="Montando relatório…";}
   try{if(!FECH.dados||FECH._rcDia!==dia){toast("Buscando os dados da planilha…");await carregarFech(true);FECH._rcDia=dia;}
     if(!FECH.dados){toast("Não consegui ler a planilha: "+(FECH.info||"sem resposta"));return;}
+    if(rcPode("val")&&(!VAL.dados||FECH._rcVal!==dia)){toast("Buscando a planilha de validade…");VAL.dados=null;await valCarregar();FECH._rcVal=dia;if(!VAL.dados)toast("Validade não entrou: "+(VAL.msg||"sem resposta da planilha de validade"));}
     const salvo={tipo:FECH.tipo,de:FECH.de,ate:FECH.ate},docs=[],indice=[];const mes=dia.slice(0,8)+"01";
     const dKey=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
     try{for(const [k,ds] of RC_TIPOS){if(!rcPode(k)||!FX_TAB[k])continue;FECH.tipo=k;FECH.de=k==="setores"?mes:dia;FECH.ate=dia;
-        if(pular&&ds){const n=fxRows(FECH.dados[ds]).filter(r=>dKey(r.ts)===dia).length;if(!n)continue;}
+        if(k==="val"&&!VAL.dados)continue;
+        if(pular&&ds){const n=ds==="__val"?VAL.dados.AE.L.concat(VAL.dados.AP.L).filter(x=>x.ts&&dKey(x.ts)===dia).length+(VAL.dados.pul||[]).filter(x=>ceIso(x.DataHora)===dia).length:fxRows(FECH.dados[ds]).filter(r=>dKey(r.ts)===dia).length;if(!n)continue;}
         let html="";try{html=fxRelatorio();}catch(e){console.error(k,e);continue;}
-        html=html.replace(/<div class="fxq-cmp no-print">[\s\S]*?<\/div>/,"");docs.push({html:'<div class="pd fx">'+html+'</div>',land:true});indice.push([FX_TAB[k],k==="setores"?"acumulado de "+fdISO(mes)+" a "+fdISO(dia):fdISO(dia),"Fechamento"]);}}
+        html=html.replace(/<div class="fxq-cmp no-print">[\s\S]*?<\/div>/,"");docs.push({html:'<div class="pd fx">'+html+'</div>',land:k!=="val",wide:k==="val"});indice.push([FX_TAB[k],k==="setores"?"acumulado de "+fdISO(mes)+" a "+fdISO(dia):fdISO(dia),"Fechamento"]);}}
     finally{Object.assign(FECH,salvo);}
     let ncs=[];if(comNC){ncs=sheetRecs0(FECH.dados).filter(r=>ehNC(r)&&dKey(r.ts)===dia).sort((a,b)=>(a._aba||"").localeCompare(b._aba||"")||a.ts-b.ts);
       for(let i=0;i<ncs.length;i+=2)docs.push({html:'<div class="ncpg">'+ncFicha(ncs[i],false)+(ncs[i+1]?ncFicha(ncs[i+1],false):'')+'</div>',multi:false});
