@@ -2817,9 +2817,19 @@ async function cntLerFoto(file,prog){const img=await cntImg(file),W=await ocrWor
   let dataRel="";try{await W.setParameters({tessedit_char_whitelist:"0123456789/: ",tessedit_pageseg_mode:"6"});const cv=cntPrep(cntCanvas(img,best.r,[.55,0,1,.16]),"norm");const {data}=await W.recognize(cv);const m=data.text.match(/(\d{2})\/(\d{2})\/(20\d{2})/);if(m)dataRel=m[1]+"/"+m[2]+"/"+m[3];}catch(e){}
   return {linhas:best.L,rot:best.r,dataRel,esp};}
 /* agregação por dia: endereços lidos das fotos (sem repetir) + ruas digitadas no método antigo (pela base) */
-function cntAgrega(rows,keyFn){const dias={};rows.forEach(r=>{const k=keyFn(r);const x=dias[k]=dias[k]||{ts:r.ts,ruas:new Set(),ends:new Set(),man:new Set(),aud:new Set()};
-    String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(rr=>{x.man.add(rr);x.ruas.add(rr);});if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
-  Object.values(dias).forEach(x=>{x.end=cntEnd([...x.ruas]);});return dias;}
+/* ruas de um lançamento de contagem: lista "8,9,10", faixas "8-12" / "8 a 12", Rua_Inicial–Rua_Final (lançamentos antigos)
+   e números que a planilha converteu ("8,9" virou 8.9) */
+function cntRuasDe(r){let t=String(r.Ruas==null?"":r.Ruas).trim();const out=new Set();
+  if(t){if(/^\d+\.\d+$/.test(t))t=t.replace(".",",");t=t.replace(/(\d{1,2})\s*(?:-|–|a|até)\s*(\d{1,2})/gi,(m,a,b)=>{a=+a;b=+b;if(b<a||b-a>60)return m;const L=[];for(let i=a;i<=b;i++)L.push(i);return L.join(",");});
+    t.split(/[,;\/\s]+/).forEach(p=>{if(/^\d{1,2}$/.test(p)&&+p>0)out.add(String(+p));});}
+  if(!out.size){const a=parseInt(r.Rua_Inicial,10),b=parseInt(r.Rua_Final,10);if(a>0&&b>=a&&b-a<=60){for(let i=a;i<=b;i++)out.add(String(i));}else if(a>0)out.add(String(a));}
+  return out;}
+/* soma por lançamento: cada lançamento conta as suas ruas (ou Qtd_Ruas, se for maior); endereços pela base da rua ou Qtd_Enderecos */
+function cntAgrega(rows,keyFn){const dias={};rows.forEach(r=>{const k=keyFn(r);const x=dias[k]=dias[k]||{ts:r.ts,ruas:new Set(),ends:new Set(),man:new Set(),aud:new Set(),nRuas:0,end:0};
+    const set=cntRuasDe(r),q=Math.round(pnum(r.Qtd_Ruas)||0);set.forEach(rr=>{x.man.add(rr);x.ruas.add(rr);});
+    x.nRuas+=Math.max(set.size,q);x.end+=set.size?cntEnd([...set])+(q>set.size?Math.round(pnum(r.Qtd_Enderecos)*(q-set.size)/q)||0:0):(Math.round(pnum(r.Qtd_Enderecos))||0);
+    if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
+  return dias;}
 const CNT={fila:[],busy:false};
 function cntFotoUI(){const box=$("n-fotos");if(!box)return;const hoje=fdISO(todayISO());
   const recs=allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto"&&String(r.Matricula_Auditor)===String(auditor));
@@ -2851,7 +2861,7 @@ async function fotoMini(file,max){const c=await cntImg(file),s=Math.min(1,max/Ma
 /* resumo do período: ruas únicas por dia, endereços pela base */
 function cntPeriodo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.contagem),dias={},porRua={};
   Object.assign(dias,cntAgrega(rows,r=>fxDiaKey(r.ts)));Object.values(dias).forEach(x=>x.ruas.forEach(rr=>{porRua[rr]=(porRua[rr]||0)+1;}));
-  const L=Object.keys(dias).sort().map(k=>{const x=dias[k];return {k,ts:x.ts,ruas:x.ruas.size,end:x.end,aud:[...x.aud]};});
+  const L=Object.keys(dias).sort().map(k=>{const x=dias[k];return {k,ts:x.ts,ruas:x.nRuas,end:x.end,aud:[...x.aud]};});
   const ruasUni=new Set(Object.keys(porRua)),totEnd=L.reduce((s,x)=>s+x.end,0);
   return {L,ruasUni,porRua,totRuasDia:L.reduce((s,x)=>s+x.ruas,0),totEnd,dias:L.length,medEnd:L.length?totEnd/L.length:0,medRuas:L.length?L.reduce((s,x)=>s+x.ruas,0)/L.length:0};}
 function cntBloco(){const C=cntPeriodo();if(!C.dias)return fxCard("Contagem de ruas auditadas","<p class=\"fx-e\">Nenhuma contagem registrada no período. Os auditores registram em <b>Contagem de ruas</b> (foto do relatório por endereço).</p>");
@@ -3758,7 +3768,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","feedback","ncaud","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v137</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v138</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3847,7 +3857,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v137</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v138</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4152,8 +4162,8 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   const spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
   const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;if(r.Matricula_Colaborador){const x=quem({Matricula_Auditor:r.Matricula_Colaborador,Nome_Auditor:r.Nome_Colaborador});if(x)x.spk+=q;}});
   const ret=fxRows(D.retorno).filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
-  const cnt=fxRows(D.contagem).filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.ruas.size;aeroEnd+=d.end;});}catch(e){}
-  const porA={};cnt.forEach(r=>{const x=quem(r);if(x)(porA[x.k]=porA[x.k]||[]).push(r);});Object.entries(porA).forEach(([k,rs])=>{try{Object.values(cntAgrega(rs,r=>fxDiaKey(r.ts))).forEach(d=>{A[k].aeroRuas+=d.ruas.size;A[k].aeroEnd+=d.end;});}catch(e){}});
+  const cnt=fxRows(D.contagem).filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.nRuas;aeroEnd+=d.end;});}catch(e){}
+  const porA={};cnt.forEach(r=>{const x=quem(r);if(x)(porA[x.k]=porA[x.k]||[]).push(r);});Object.entries(porA).forEach(([k,rs])=>{try{Object.values(cntAgrega(rs,r=>fxDiaKey(r.ts))).forEach(d=>{A[k].aeroRuas+=d.nRuas;A[k].aeroEnd+=d.end;});}catch(e){}});
   const ruas=fxRows(D.ruas).filter(noP);const ccD={};ruas.forEach(r=>{const e=unz(r.Rua)||String(fmtAddr(r.Endereco||"")).split("-")[0];if(!e||RUAS_FORA.has(e))return;const dk=fxDiaKey(r.ts);(ccD[dk]=ccD[dk]||new Set()).add(e);const x=quem(r);if(x){x.ccE=x.ccE||{};(x.ccE[dk]=x.ccE[dk]||new Set()).add(e);}});
   const cc=Object.values(ccD).reduce((s,x)=>s+x.size,0);Object.values(A).forEach(x=>{x.cc=Object.values(x.ccE||{}).reduce((s,y)=>s+y.size,0);delete x.ccE;});
   const pro=fxRows(D.procura).filter(noP).filter(r=>r.Codigo_Produto);let corte=0;pro.forEach(r=>{const v=proQ(r).vF||0;corte+=v;const x=quem(r);if(x)x.corte+=v;});
@@ -4453,7 +4463,7 @@ function hmCena(){/* ilustração animada do CD: porta-paletes, empilhadeira e c
     '<g class="hm-cam"><rect x="0" y="150" width="150" height="62" rx="4" fill="#F8FAFC"/><rect x="0" y="150" width="150" height="14" fill="#2563EB"/><text x="75" y="192" text-anchor="middle" font-size="15" font-weight="800" fill="#1E3A8A" font-family="Arial">STA</text><path d="M150 168h34l22 22v22h-56z" fill="#1D4ED8"/><rect x="160" y="174" width="24" height="16" rx="2" fill="#BFDBFE"/><circle cx="30" cy="214" r="11" fill="#0F172A"/><circle cx="120" cy="214" r="11" fill="#0F172A"/><circle cx="185" cy="214" r="11" fill="#0F172A"/></g>'+
     '</svg>';}
 function hmHoje(){const hoje=fdISO(todayISO()),A=allRecs().filter(r=>r.Data===hoje),M=A.filter(r=>String(r.Matricula_Auditor)===String(auditor));
-  let ruas=0;try{const ag=cntAgrega(A.filter(r=>r._aba==="contagem"),()=>"d").d;ruas=ag?ag.ruas.size:0;}catch(e){}
+  let ruas=0;try{const ag=cntAgrega(A.filter(r=>r._aba==="contagem"),()=>"d").d;ruas=ag?ag.nRuas:0;}catch(e){}
   return [{t:"Seus lançamentos hoje",v:M.length,c:"#2563EB"},{t:"Não conformidades hoje",v:M.filter(ehNC).length,c:"#DC2626"},{t:"Ruas contadas hoje (CD)",v:ruas,c:"#0D9488"},{t:"Aguardando envio",v:queue.length,c:queue.length?"#D97706":"#16A34A"}];}
 function hmNewsList(){const L=[];["logistica","df","empresas"].forEach(c=>{const D=NWS.dados[c];(D&&D.itens||[]).slice(0,8).forEach(n=>L.push(Object.assign({cat:c},n)));});
   const vis={};return L.filter(n=>{if(vis[n.link])return false;vis[n.link]=1;return true;}).sort((a,b)=>b.ts-a.ts);}
