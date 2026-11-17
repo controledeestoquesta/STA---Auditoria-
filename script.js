@@ -4116,6 +4116,11 @@ var GM={cfg:null,per:"semana",off:0,users:null,vm:null,vmEm:0,busy:false,msg:""}
 function gmCfg(){return Object.assign({},GM_DEF,GM.cfg||{});}
 async function gmCarregarCfg(){if(GM.cfg||DEMO||!SHEET_URL)return;try{const j=await ppPost({acao:"painel_ler",painel:"metas"});if(j&&j.dados)GM.cfg=j.dados;else GM.cfg={};}catch(e){GM.cfg={};}}
 const gmNk=s=>{const p=String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase().replace(/[^A-Z ]/g," ").trim().split(/\s+/).filter(Boolean);return p.length?p[0]+" "+p[p.length-1]:"";};
+/* nome pela matrícula: cadastro de colaboradores, quadro e lançamentos da planilha */
+function gmNomeDe(mat){mat=String(mat||"").trim();if(!mat)return "";try{const i=cIdx.get(mat);if(i!=null&&C.nome[i])return C.nome[i];}catch(e){}
+  try{const q=(QUADRO||[]).find(x=>x.mat===mat);if(q&&q.nome)return q.nome;}catch(e){}
+  const D=FECH.dados||{};if(!GM.nm||GM.nmD!==D){GM.nmD=D;GM.nm={};Object.keys(D).forEach(a=>{try{fxRows(D[a]).forEach(r=>{[["Matricula_Auditor","Nome_Auditor"],["Matricula_Colaborador_NC","Nome_Colaborador_NC"],["Matricula_Colaborador","Nome_Colaborador"],["Matricula_Conferente","Nome_Conferente"]].forEach(([m,n])=>{const k=String(r[m]||"").trim();if(k&&r[n]&&!/^\d+$/.test(r[n])&&!GM.nm[k])GM.nm[k]=r[n];});});}catch(e){}});}
+  return GM.nm[mat]||"";}
 function gmTitulo(s){return String(curto(s)||"").toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());}
 /* período: semana (seg a dom) ou mês, com deslocamento */
 function gmPeriodo(per,off){const h=new Date();h.setHours(0,0,0,0);let de,ate,lab;
@@ -4128,12 +4133,12 @@ function gmSemanasMes(y,m){let n=0;const d=new Date(y,m,1);while(d.getMonth()===
 function gmFator(P){const c=gmCfg();if(P.per==="mes"){const d=new Date(P.de);return gmSemanasMes(d.getFullYear(),d.getMonth());}return 1;}
 function gmRitmo(P){const c=gmCfg(),now=Date.now();if(now>=P.ate)return 1;if(now<P.de)return 0;const t=gmDiasUteis(P.de,P.ate,c.diasSemana)||1,h=new Date();h.setHours(0,0,0,0);const f=gmDiasUteis(P.de,h.getTime()+864e5,c.diasSemana);return Math.min(1,f/t);}
 function gmTotPicking(){return Object.entries(RUA_ENDS).filter(([r])=>!RUAS_FORA.has(r)).reduce((s,[,v])=>s+v,0);}
-async function gmUsuarios(){if(GM.users||DEMO||!SHEET_URL)return;try{const j=await admPost({acao:"admin_listar"});if(j&&j.ok)GM.users=(j.usuarios||[]).map(u=>({mat:String(u.matricula),nome:u.nome||u.matricula,perms:Object.keys(u.perms||{}).filter(k=>u.perms[k]==="Ativo")}));}catch(e){}}
+async function gmUsuarios(){if(GM.users||DEMO||!SHEET_URL)return;try{const j=await admPost({acao:"admin_listar"});if(j&&j.ok)GM.users=(j.usuarios||[]).map(u=>({mat:String(u.matricula),nome:u.nome||"",perms:Object.keys(u.perms||{}).filter(k=>u.perms[k]==="Ativo")}));}catch(e){}}
 async function gmValidade(forca){if(DEMO||!SHEET_URL)return;if(!forca&&GM.vm&&Date.now()-GM.vmEm<10*6e4)return;try{const j=await ppPost({acao:"vlc_metas"});if(j&&j.ok){GM.vm=j;GM.vmEm=Date.now();}else GM.vmErr=(j&&j.erro)||"";}catch(e){GM.vmErr=String(e.message||e);}}
 /** calcula metas da equipe e de cada auditor no período */
 function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.ate,fat=gmFator(P),du=gmDiasUteis(P.de,P.ate,c.diasSemana),rit=gmRitmo(P);
   const A={};const aud=(mat,nome)=>{const k=mat?"m"+String(mat):"n"+gmNk(nome);if(!k||k==="n")return null;const x=A[k]=A[k]||{k,mat:String(mat||""),nome:nome||"",perms:[],spk:0,ret:0,aeroRuas:0,aeroEnd:0,cc:0,corte:0,vld:null,dias:new Set()};if(nome&&!x.nome)x.nome=nome;if(mat&&!x.mat)x.mat=String(mat);return x;};
-  (GM.users||[]).forEach(u=>{if(gestMats().indexOf(u.mat)>=0)return;if(!u.perms.some(p=>["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro"].indexOf(p)>=0))return;const x=aud(u.mat,u.nome);x.perms=u.perms;});
+  (GM.users||[]).forEach(u=>{if(gestMats().indexOf(u.mat)>=0)return;if(!u.perms.some(p=>["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro"].indexOf(p)>=0))return;const x=aud(u.mat,u.nome||gmNomeDe(u.mat));x.perms=u.perms;});
   const byNome={};Object.values(A).forEach(x=>{byNome[gmNk(x.nome)]=x;});
   const quem=r=>{if(r.Matricula_Auditor&&A["m"+r.Matricula_Auditor])return A["m"+r.Matricula_Auditor];const n=byNome[gmNk(r.Nome_Auditor)];if(n)return n;if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;};
   const spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
@@ -4151,8 +4156,8 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
       if(t0){const dl=t0+pr;if(dl>=P.de&&dl<lim){v.dev++;vT.dev++;if(st==="A"&&tf&&tf<=dl){v.ok++;vT.ok++;}}}});
     Object.entries(vA).forEach(([k,v])=>{A[k].vld=v;});}
   const porNm={};(GM.users||[]).forEach(u=>{porNm[gmNk(u.nome)]=porNm[gmNk(u.nome)]||{mat:u.mat,nome:u.nome};});try{C.mat.forEach((m,i)=>{const k=gmNk(C.nome[i]);if(k&&!porNm[k])porNm[k]={mat:String(m),nome:C.nome[i]};});}catch(e){}
-  Object.values(A).forEach(x=>{const u=porNm[gmNk(x.nome)];if(u){if(!x.mat)x.mat=u.mat;if(String(u.nome).length>String(x.nome).length)x.nome=u.nome;}if(x.mat&&!x.nome){try{const i=cIdx.get(x.mat);if(i!=null)x.nome=C.nome[i];}catch(e){}}});
-  const L=Object.values(A).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  Object.values(A).forEach(x=>{if(!x.nome||/^\d+$/.test(String(x.nome).trim())){const n=gmNomeDe(x.mat||x.nome);if(n){if(!x.mat)x.mat=String(x.nome).trim();x.nome=n;}}const u=porNm[gmNk(x.nome)];if(u){if(!x.mat)x.mat=u.mat;if(String(u.nome).length>String(x.nome).length)x.nome=u.nome;}if(x.mat&&!x.nome){try{const i=cIdx.get(x.mat);if(i!=null)x.nome=C.nome[i];}catch(e){}}});
+  const L=Object.values(A).filter(x=>gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
   const M={
     spk:{k:"spk",t:"Saldo de picking",esc:"Equipe",un:"itens",meta:c.spk*fat,real:spk.length,sub:"Meta da equipe: "+c.spk.toLocaleString("pt-BR")+" itens auditados por semana",perm:"aud_spk",campo:"spk"},
     aero:{k:"aero",t:"Auditoria aéreo",esc:"Equipe",un:"ruas",meta:c.aeroRuas*fat,real:aeroRuas,sub:"Zerar o CD 2 vezes por semana: "+c.aeroRuas+" ruas ("+c.aeroEnd.toLocaleString("pt-BR")+" endereços) por semana",extra:"Equivalente a "+Math.round(aeroRuas/c.aeroRuas*c.aeroEnd).toLocaleString("pt-BR")+" de "+(c.aeroEnd*fat).toLocaleString("pt-BR")+" endereços",perm:"aud_aer",campo:"aeroRuas"},
@@ -4269,7 +4274,7 @@ function ncaLista(){const s=fxRows(FECH.dados&&FECH.dados.ncaud),ids=new Set(s.m
 function paintNCA(){const box=$("gm-nc");if(!box)return;gmPrep(paintNCA);
   const P=gmPeriodo("semana",-1),R=FECH.dados?gmCalc(P):null,pre=GM.ncPre;GM.ncPre=null;
   const sug=R?R.L.map(x=>({x,it:gmFbDados(R,x).filter(i=>i.si.n>=0&&i.si.n<=1)})).filter(o=>o.it.length):[];
-  const users=(GM.users||[]).filter(u=>gestMats().indexOf(u.mat)<0).map(u=>({mat:u.mat,nome:u.nome})).concat(R?R.L.filter(x=>!x.perms.length).map(x=>({mat:x.mat,nome:x.nome})):[]);
+  const users=(GM.users||[]).filter(u=>gestMats().indexOf(u.mat)<0).map(u=>({mat:u.mat,nome:u.nome||gmNomeDe(u.mat)||u.mat})).concat(R?R.L.filter(x=>!x.perms.length).map(x=>({mat:x.mat,nome:x.nome})):[]);
   const H=ncaLista();
   box.innerHTML='<div class="fx-c"><h3>Sugestões automáticas — '+esc(P.lab)+'</h3>'+(R?(sug.length?'<div class="gm-fbl">'+sug.map((o,i)=>'<div class="gm-fi" style="--st:'+o.it[0].si.c+'"><div class="gm-fe gm-pc">'+(o.it[0].pct==null?'–':Math.round(o.it[0].pct*100)+'%')+'</div><div class="gm-fn"><b>'+esc(gmTitulo(o.x.nome))+'</b><small>'+o.it.map(t=>esc(t.m.t)+': '+(t.pct==null?'–':Math.round(t.pct*100)+'%')+' — '+t.si.t+(t.equipe?' (meta da equipe)':'')).join(" · ")+'</small></div><div class="gm-fa"><button type="button" class="btn sm" data-ncs="'+i+'">Preencher NC</button></div></div>').join("")+'</div>':'<p class="fx-e">Nenhum auditor com indicador abaixo de 75% na semana encerrada.</p>'):'<p class="fx-e">Lendo a planilha…</p>')+'</div>'+
     '<form class="fx-c gm-nf" id="nca-f" style="margin-top:14px"><h3>Registrar não conformidade</h3>'+
