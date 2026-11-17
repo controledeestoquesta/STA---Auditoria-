@@ -2919,7 +2919,7 @@ const kProd=picker($("k-prod"),{ph:"Código ou descrição do item",search:searc
 document.querySelectorAll("#k-modo button").forEach(b=>b.addEventListener("click",()=>{KS.modo=b.dataset.km;paintSPK();}));
 ["k-sis","k-aud"].forEach(id=>$(id).addEventListener("input",paintSPK));
 function spkRes(sis,aud){const d=aud-sis;return {d,sit:d===0?"OK":d>0?"Sobra":"Falta"};}
-function paintSPK(){if(!$("k-list"))return;document.querySelectorAll("#k-modo button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.km===KS.modo)));$("k-cont").hidden=KS.modo!=="cont";$("k-conf").hidden=KS.modo!=="conf";
+function paintSPK(){if(!$("k-list"))return;document.querySelectorAll("#k-modo button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.km===KS.modo)));$("k-cont").hidden=KS.modo!=="cont";$("k-conf").hidden=KS.modo!=="conf";if($("k-hist")){$("k-hist").hidden=KS.modo!=="hist";$("k-list").hidden=KS.modo==="hist";try{spkhUI();}catch(e){}}
   const s=$("k-sis").value,a=$("k-aud").value;if(KS.prod!=null&&s!==""&&a!==""){const x=spkRes(+s,+a),vl=P.vl[KS.prod];$("k-res").innerHTML='<span class="k-b '+x.sit.toLowerCase()+'">'+(x.sit==="OK"?"Sem divergência":x.sit+" de "+Math.abs(x.d)+" un")+'</span><small>'+BRL.format(Math.abs(x.d)*vl)+'</small>';}else $("k-res").textContent="—";
   listaSPK();}
 function spkHoje(){const t0=new Date();t0.setHours(0,0,0,0);return allRecs().filter(r=>r._aba==="saldo"&&r.ts>=t0.getTime()&&r.Matricula_Auditor===auditor).sort((a,b)=>b.ts-a.ts);}
@@ -4362,23 +4362,23 @@ html.desk nav button[data-v]:hover .dk-i{color:#fff!important}html.desk nav .dk-
 const SPKH_COLS=["ID_Auditoria","Data","DataHora","Data_Referencia","Quantidade_Itens","Matricula_Colaborador","Nome_Colaborador","Observacao","Lancado_Em","Matricula_Auditor","Nome_Auditor"];
 function spkhLista(){const s=fxRows(FECH.dados&&FECH.dados.spkh),ids=new Set(s.map(r=>String(r.ID_Auditoria)));return s.concat(allRecs().filter(r=>r._aba==="spkh"&&!ids.has(String(r.ID_Auditoria))).map(r=>Object.assign({},r,{ts:r.ts}))).sort((a,b)=>(b.ts||0)-(a.ts||0));}
 function spkhQtd(r){return pnum(r.Quantidade_Itens)||0;}
-function spkhUI(){const box=$("k-hist");if(!box)return;const pode=gPerm("ce_gest")||ehAdm();box.hidden=!pode;if(!pode)return;const L=spkhLista(),tot=L.reduce((s,r)=>s+spkhQtd(r),0),hoje=todayISO();
-  box.innerHTML='<details class="block kh"'+(box.dataset.open?" open":"")+'><summary><b>Itens de dias anteriores ao app</b> <small>'+(L.length?L.length+' lançamento(s) · '+tot.toLocaleString("pt-BR")+' itens':'lançamento manual do gestor')+'</small></summary>'+
+function spkhUI(){const box=$("k-hist");if(!box)return;const pode=gPerm("ce_gest")||ehAdm(),bt=document.querySelector('#k-modo [data-km="hist"]');if(bt)bt.hidden=!pode;if(!pode){if(KS.modo==="hist"){KS.modo="cont";paintSPK();}return;}const L=spkhLista(),tot=L.reduce((s,r)=>s+spkhQtd(r),0),hoje=todayISO();
+  box.innerHTML='<div class="block kh"><h3 style="margin:0 0 2px">Histórico — itens de dias anteriores ao app</h3><small class="note">'+(L.length?L.length+' lançamento(s) · '+tot.toLocaleString("pt-BR")+' itens':'lançamento manual do gestor')+'</small>'+
     '<p class="note">Informe a quantidade de itens auditados em cada dia antes do aplicativo. Entra no fechamento do saldo de picking e no Painel de metas na data escolhida.</p>'+
     '<form class="kh-f" id="kh-f"><label>Data<input class="in" type="date" id="kh-d" max="'+hoje+'" required></label><label>Quantidade de itens<input class="in" type="number" id="kh-q" min="1" step="1" inputmode="numeric" required></label>'+
     '<label>Auditor <small>(opcional)</small><input class="in" id="kh-m" inputmode="numeric" placeholder="Matrícula"><small id="kh-mn" class="note"></small></label><label class="kh-w">Observação <small>(opcional)</small><input class="in" id="kh-o" maxlength="200"></label>'+
     '<button type="submit" class="save">Salvar quantidade do dia</button></form>'+
-    (L.length?'<div class="tw"><table class="gm-t"><thead><tr><th>Data</th><th>Itens</th><th>Auditor</th><th>Observação</th></tr></thead><tbody>'+L.slice(0,120).map(r=>'<tr><td>'+esc(fdISO(r.Data_Referencia)||r.Data_Referencia||"")+(r._pend?' <small>(enviando)</small>':'')+'</td><td><b>'+spkhQtd(r).toLocaleString("pt-BR")+'</b></td><td>'+esc(r.Nome_Colaborador||r.Matricula_Colaborador||"–")+'</td><td>'+esc(r.Observacao||"")+'</td></tr>').join("")+'</tbody></table></div><p class="note">Para corrigir, apague a linha na aba Saldo_Picking_Historico da planilha e lance de novo.</p>':'')+'</details>';
-  const d=box.querySelector("details");d.ontoggle=()=>{box.dataset.open=d.open?"1":"";};
+    (L.length?'<div class="tw"><table class="gm-t"><thead><tr><th>Data</th><th>Itens</th><th>Auditor</th><th>Observação</th></tr></thead><tbody>'+L.slice(0,120).map(r=>'<tr><td>'+esc(fdISO(r.Data_Referencia)||r.Data_Referencia||"")+(r._pend?' <small>(enviando)</small>':'')+'</td><td><b>'+spkhQtd(r).toLocaleString("pt-BR")+'</b></td><td>'+esc(r.Nome_Colaborador||r.Matricula_Colaborador||"–")+'</td><td>'+esc(r.Observacao||"")+'</td></tr>').join("")+'</tbody></table></div><p class="note">Para corrigir, apague a linha na aba Saldo_Picking_Historico da planilha e lance de novo.</p>':'')+'</div>';
   const m=$("kh-m");m.oninput=()=>{const n=gmNomeDe(m.value.trim());$("kh-mn").textContent=n?gmTitulo(n):(m.value.trim()?"Matrícula não encontrada no cadastro":"");};
   $("kh-f").onsubmit=async e=>{e.preventDefault();const dt=$("kh-d").value,q=Math.round(+$("kh-q").value);if(!dt||!(q>0)){toast("Informe a data e a quantidade.");return;}if(dt>todayISO()){toast("A data não pode ser futura.");return;}
     const dup=L.find(r=>String(r.Data_Referencia).slice(0,10)===dt||fdISO(r.Data_Referencia)===fdISO(dt));if(dup&&!confirm("Já existe um lançamento de "+spkhQtd(dup)+" itens em "+fdISO(dt)+". Lançar mais este também?"))return;
     const ref=new Date(dt+"T12:00:00"),now=new Date(),mat=m.value.trim();
     await saveRec({_aba:"spkh",ID_Auditoria:newId("SPH"),Data:fdISO(dt),DataHora:fmtDT(ref),ts:ref.getTime(),Data_Referencia:dt,Quantidade_Itens:q,Matricula_Colaborador:mat,Nome_Colaborador:mat?gmNomeDe(mat):"",Observacao:$("kh-o").value.trim(),Lancado_Em:fmtDT(now),Matricula_Auditor:meuMat(),Nome_Auditor:nomeAud()});
     toast(q.toLocaleString("pt-BR")+" itens lançados em "+fdISO(dt)+".");box.dataset.open="1";spkhUI();};}
-(function(){const s=document.createElement("style");s.textContent=`.kh{margin-top:14px}.kh summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.kh summary small{color:var(--muted)}
+(function(){const s=document.createElement("style");s.textContent=`.kh{margin-top:0}.kh summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.kh summary small{color:var(--muted)}
 .kh-f{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:10px 0}.kh-f label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600}.kh-f .kh-w{grid-column:span 2}.kh-f .save{grid-column:1/-1;margin:0}
-html.mob .kh-f .kh-w{grid-column:1/-1}`;document.head.appendChild(s);})();
+html.mob .kh-f .kh-w{grid-column:1/-1}
+html.desk #k-modo:has([data-km="hist"]:not([hidden])){grid-template-columns:repeat(3,1fr)}html.mob #k-modo [data-km="hist"]{grid-column:1/-1}`;document.head.appendChild(s);})();
 
 // ===== Notícias: carregamento automático, várias rotas de leitura e notícias novas a cada dia =====
 const NWS_CACHE="audcd_nw_cache",NWS_VISTOS="audcd_nw_vistos";
