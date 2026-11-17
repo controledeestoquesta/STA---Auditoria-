@@ -1,5 +1,5 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v119';
+const VERSION = 'sta-v120';
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png',
   './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './cesta.html', './liberacao.html', './devolucoes.html'];
 
@@ -24,7 +24,7 @@ self.addEventListener('fetch', e => {
   const u = new URL(req.url);
   if (u.hostname.endsWith('google.com') || u.hostname.endsWith('googleusercontent.com')) return;
   if (u.origin === location.origin) { e.respondWith(u.pathname.endsWith('sw.js') ? fetch(req) : fastFirst(req)); return; }
-  if (/cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(u.hostname)) e.respondWith(cacheFirst(req));
+  if (/cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com/.test(u.hostname)) e.respondWith(cacheFirst(req));
 });
 
 // Site: tenta a versão nova (até 4 s); sem internet ou rede lenta, usa a cópia salva.

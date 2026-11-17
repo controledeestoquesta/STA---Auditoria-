@@ -411,7 +411,7 @@ const SHEET_COLS=COLS.concat(["ID_Sessao"]);
 function toSheet(r){if(r._aba==="validade"){const x={_aba:"validade"};VLA_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);x.fotos=r.fotos||[];return x;}
   if(r._aba==="solicit"){const x={_aba:"solicit"};SOL_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}
   if(r._aba==="saldo"){const x={_aba:"saldo"};SPK_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}
-  if(r._aba==="contagem"){const x={_aba:"contagem"};CNT_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}
+  if(r._aba==="contagem"){const x={_aba:"contagem"};CNT_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);x.fotos=r.fotos||[];return x;}
   if(r._aba==="adega"){const x={_aba:"adega"};ADG_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*10000)/10000:r[c]));x.fotos=r.fotos||[];return x;}
   if(r._aba==="procura"){const x={_aba:"procura"};PRO_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*10000)/10000:r[c]));return x;}
   if(r._aba==="sac"){const x={_aba:"sac"};SAC_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*100)/100:r[c]));x.fotos=r.fotos||[];return x;}
@@ -2742,37 +2742,106 @@ details.rec.sel{outline:2px solid var(--brand);outline-offset:1px}
 `;document.head.appendChild(s);})();
 
 // ===== Contagem de ruas auditadas (rua inicial → rua final) =====
-const CNT_COLS=["Data","Rua_Inicial","Rua_Final","Ruas","Qtd_Ruas","Qtd_Enderecos","Observacao","Matricula_Auditor","Nome_Auditor","ID_Auditoria","DataHora"];
+const CNT_COLS=["Data","Rua_Inicial","Rua_Final","Ruas","Qtd_Ruas","Qtd_Enderecos","Observacao","Matricula_Auditor","Nome_Auditor","ID_Auditoria","DataHora","Metodo","Enderecos","Data_Relatorio"];
 const cntRuas=(a,b)=>{a=parseInt(a,10);b=parseInt(b,10);if(!(a>0)||!(b>0))return [];if(b<a)[a,b]=[b,a];const out=[];for(let r=a;r<=b;r++)if(RUA_ENDS[r]!=null)out.push(String(r));return out;};
 const cntEnd=L=>L.reduce((s,r)=>s+(RUA_ENDS[r]||0),0);
-function paintCNT(){if(!$("n-prev"))return;if(!$("n-data").value)$("n-data").value=todayISO();const L=cntRuas($("n-ini").value,$("n-fim").value);
-  const fora=[];const a=parseInt($("n-ini").value,10),b=parseInt($("n-fim").value,10);if(a>0&&b>0)for(let r=Math.min(a,b);r<=Math.max(a,b);r++)if(RUA_ENDS[r]==null)fora.push(r);
-  $("n-prev").innerHTML=L.length?'<div><span>Ruas</span><b>'+L.length+'</b><small>'+L[0]+(L.length>1?" a "+L[L.length-1]:"")+'</small></div><div><span>Endereços</span><b>'+cntEnd(L).toLocaleString("pt-BR")+'</b><small>pela base de cada rua</small></div>'+(fora.length?'<p class="note" style="grid-column:1/-1;margin:0">Fora da base (não contam): rua '+fora.join(", ")+'.</p>':''):'<p class="note" style="margin:0">Informe a rua inicial e a final para ver as ruas e os endereços.</p>';
-  listaCNT();}
-["n-ini","n-fim"].forEach(id=>$(id).addEventListener("input",e=>{const v=e.target.value.replace(/\D/g,"");if(v!==e.target.value)e.target.value=v;paintCNT();}));$("n-data").addEventListener("change",paintCNT);
-function listaCNT(){const d=$("n-data").value||todayISO(),br=fdISO(d);const L=allRecs().filter(r=>r._aba==="contagem"&&r.Data===br).sort((a,b)=>(b._lanc||b.ts)-(a._lanc||a.ts));
-  const uni=new Set();L.forEach(r=>String(r.Ruas||"").split(",").filter(Boolean).forEach(x=>uni.add(x)));
-  $("n-list").innerHTML=L.length?'<div class="block"><h3>Registrado em '+br+' <small>'+uni.size+' rua(s) · '+cntEnd([...uni]).toLocaleString("pt-BR")+' endereços (sem repetir rua)</small></h3>'+
-    L.map(r=>'<div class="li"><div><div class="d"><b>Ruas '+esc(r.Rua_Inicial)+' a '+esc(r.Rua_Final)+'</b></div><div class="tags"><span class="tag">'+esc(r.Qtd_Ruas)+' ruas</span><span class="tag">'+(+r.Qtd_Enderecos||0).toLocaleString("pt-BR")+' end.</span><span class="tag">'+esc(curto(r.Nome_Auditor||""))+'</span>'+(r.Observacao?'<span class="tag">'+esc(r.Observacao)+'</span>':'')+'</div></div>'+
-      '<div><div class="act"><button type="button" class="btn sm" data-cnx="'+esc(r.ID_Auditoria)+'">Excluir</button></div></div></div>').join("")+'</div>':"";
-  $("n-list").querySelectorAll("[data-cnx]").forEach(b=>b.onclick=()=>delRec(b.dataset.cnx).then(()=>paintCNT()));}
-$("n-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login primeiro.");return;}const L=cntRuas($("n-ini").value,$("n-fim").value),dt=$("n-data").value;
-  setErr("n-ini-f",$("n-ini").value?"":"Informe a rua inicial.");setErr("n-fim-f",$("n-fim").value?"":"Informe a rua final.");
-  if(!dt||!L.length){toast(L.length?"Informe a data.":"Nenhuma rua da base nesse intervalo.");return;}
-  const now=new Date(),[y,m,d]=dt.split("-").map(Number),quando=new Date(y,m-1,d,now.getHours(),now.getMinutes(),now.getSeconds());
-  const a=Math.min(+$("n-ini").value,+$("n-fim").value),b=Math.max(+$("n-ini").value,+$("n-fim").value);
-  const rec={_aba:"contagem",ID_Auditoria:newId("CNT"),Data:fdISO(dt),DataHora:fmtDT(quando),ts:quando.getTime(),_lanc:now.getTime(),Rua_Inicial:String(a),Rua_Final:String(b),Ruas:L.join(","),Qtd_Ruas:L.length,Qtd_Enderecos:cntEnd(L),
-    Observacao:$("n-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:false};
-  $("n-save").disabled=true;const ok=await saveRec(rec);$("n-save").disabled=false;$("n-ini").value="";$("n-fim").value="";$("n-obs").value="";paintCNT();
-  toast((ok||dbState==="off"?"Registrado":"Salvo neste aparelho, envio pendente")+": "+rec.Qtd_Ruas+" ruas · "+rec.Qtd_Enderecos.toLocaleString("pt-BR")+" endereços.");});
-function cardCNT(r){return '<details class="rec ok"><summary><div class="top"><span>'+esc(r.Data)+' · Contagem de ruas</span><span>'+esc(curto(r.Nome_Auditor||""))+'</span></div><div class="addr">Ruas '+esc(r.Rua_Inicial)+' a '+esc(r.Rua_Final)+'</div><div class="tags"><span class="tag">'+esc(r.Qtd_Ruas)+' ruas</span><span class="tag">'+(+r.Qtd_Enderecos||0).toLocaleString("pt-BR")+' endereços</span></div></summary></details>';}
+function paintCNT(){if(!$("n-fotos"))return;cntFotoUI();listaCNT();}
+function listaCNT(){const br=fdISO(todayISO());const L=allRecs().filter(r=>r._aba==="contagem"&&r.Data===br&&(ehAdm()||String(r.Matricula_Auditor)===String(auditor))).sort((a,b)=>(b._lanc||b.ts)-(a._lanc||a.ts));
+  $("n-list").innerHTML=L.length?'<div class="block"><h3>Folhas contadas hoje <small>'+L.length+'</small></h3>'+
+    L.map(r=>'<div class="li"><div><div class="d"><b>'+(r.Metodo==="Foto"?'Rua '+esc(String(r.Ruas||"").split(",").join(", ")):'Ruas '+esc(r.Rua_Inicial)+' a '+esc(r.Rua_Final)+' (digitadas)')+'</b> <small>'+esc(String(r.DataHora||"").slice(11,16))+'</small></div><div class="tags"><span class="tag">'+(+r.Qtd_Enderecos||0).toLocaleString("pt-BR")+' end.</span>'+(r.Data_Relatorio?'<span class="tag'+(r.Data_Relatorio!==br?' nc':'')+'">relatório '+esc(r.Data_Relatorio)+'</span>':'')+'<span class="tag">'+esc(curto(r.Nome_Auditor||""))+'</span>'+(r.Observacao?'<span class="tag">'+esc(r.Observacao)+'</span>':'')+'</div></div>'+
+      (ehAdm()?'<div><div class="act"><button type="button" class="btn sm" data-cnx="'+esc(r.ID_Auditoria)+'">Excluir</button></div></div>':'')+'</div>').join("")+'</div>':"";
+  $("n-list").querySelectorAll("[data-cnx]").forEach(b=>b.onclick=()=>{if(confirm("Excluir esta folha da contagem?"))delRec(b.dataset.cnx).then(()=>paintCNT());});}
+["n-cam","n-gal"].forEach(id=>$(id).addEventListener("change",e=>{const f=[...e.target.files];e.target.value="";if(!auditor){toast("Faça login primeiro.");return;}if(f.length)cntAddFotos(f);}));
+function cardCNT(r){return '<details class="rec ok"><summary><div class="top"><span>'+esc(r.Data)+' · Contagem de ruas'+(r.Metodo==="Foto"?' (foto)':'')+'</span><span>'+esc(curto(r.Nome_Auditor||""))+'</span></div><div class="addr">'+(r.Metodo==="Foto"?'Rua '+esc(String(r.Ruas||"").split(",").join(", ")):'Ruas '+esc(r.Rua_Inicial)+' a '+esc(r.Rua_Final))+'</div><div class="tags"><span class="tag">'+esc(r.Qtd_Ruas)+' rua(s)</span><span class="tag">'+(+r.Qtd_Enderecos||0).toLocaleString("pt-BR")+' endereços</span>'+(r.Data_Relatorio?'<span class="tag">relatório '+esc(r.Data_Relatorio)+'</span>':'')+'</div></summary></details>';}
+
+// ===== Contagem de ruas por FOTO do "Relatório de produtos por endereço" (leitura no aparelho, Tesseract) =====
+const OCR_JS="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js",OCR_LANG="https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int";
+let OCRW=null;
+async function ocrWorker(prog){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript(OCR_JS);
+  OCRW=await Tesseract.createWorker("eng",1,{langPath:OCR_LANG,gzip:true,logger:m=>{if(prog&&m&&m.status)prog(m);}});return OCRW;}
+/* lê as linhas do relatório: [Cod.End.] Dep Rua Prédio Nível Apto Bloq(N/S)… */
+function cntParse(txt){const out=[];String(txt||"").split(/\n/).forEach(l=>{let t=l.trim().split(/\s+/);const i0=t.findIndex(x=>/\d/.test(x));if(i0<0)return;t=t.slice(i0);const k=t.findIndex((x,i)=>i>=3&&/^[NS]{1,3}$/.test(x));if(k<3)return;
+    let a=t.slice(0,k).map(x=>x.replace(/\D/g,"")).filter(Boolean);
+    /* "18" = Dep 1 + Rua 8 colados pela leitura */
+    if(a.length>=5&&a[a.length-5]!=="1"&&/^1\d{1,2}$/.test(a[a.length-4]))a=a.slice(0,a.length-4).concat(["1",a[a.length-4].slice(1)],a.slice(-3));
+    else if(a.length===4&&/^1\d{1,2}$/.test(a[0]))a=["1",a[0].slice(1)].concat(a.slice(1));
+    const nums=a;
+    if(nums.length<5)return;const cod=nums.length>=6?nums[nums.length-6]:"",[dep,rua,pre,niv,apt]=nums.slice(-5).map(x=>parseInt(x,10));
+    if(!(dep>=1&&dep<=9&&rua>=1&&rua<=99&&pre>=1&&pre<=250&&niv>=1&&niv<=12&&apt>=1&&apt<=20))return;
+    const pr=(t.slice(k).find(x=>/^\d{3,7}$/.test(x))||"");
+    out.push({cod:cod.length>=6?cod:"",cs:cod.length>=3?cod.slice(-3):"",prod:pr,rua:String(rua),pre,k:rua+"-"+pre+"-"+niv+"-"+apt,na:niv+"-"+apt});});
+  return out;}
+/* descarta leituras fora de lugar: o relatório vem em ordem de prédio, então um prédio muito distante dos outros da mesma rua é erro de leitura (ex.: "4" no lugar de "44") */
+/* identidade da linha impressa: final do Cod.End. ou código do produto + nível/apto (a mesma linha lida duas vezes não conta duas vezes) */
+const cntIds=x=>[x.cs?"c"+x.cs:"",x.prod?"p"+x.prod+"|"+x.na:""].filter(Boolean);
+function cntJunta(A,Bv){const ids=new Set(),ks=new Set(),out=[];A.concat(Bv||[]).forEach(x=>{const I=cntIds(x);if(ks.has(x.k)||I.some(i=>ids.has(i)))return;ks.add(x.k);I.forEach(i=>ids.add(i));out.push(x);});return out;}
+/* descarta leituras fora de lugar: prédio muito distante dos outros da mesma rua (ex.: "4" no lugar de "44") e rua minoritária que continua a sequência de prédios da rua principal (ex.: "38" ou "3" no lugar de "8") */
+function cntLimpa(L){const por={};L.forEach(x=>{(por[x.rua]=por[x.rua]||[]).push(x.pre);});const ok={};
+  Object.entries(por).forEach(([r,P])=>{const o=P.slice().sort((a,b)=>a-b);if(o.length<4){ok[r]=new Set(o);return;}const cl=[[o[0]]];for(let i=1;i<o.length;i++){if(o[i]-o[i-1]>5)cl.push([]);cl[cl.length-1].push(o[i]);}
+    ok[r]=new Set(cl.filter(c=>c.length>=Math.max(2,o.length*.25)).flat());});
+  let M=L.filter(x=>ok[x.rua].has(x.pre));const cont={};M.forEach(x=>cont[x.rua]=(cont[x.rua]||0)+1);const dom=Object.entries(cont).sort((a,b)=>b[1]-a[1])[0];
+  if(dom){const dp=M.filter(x=>x.rua===dom[0]).map(x=>x.pre),mn=Math.min(...dp),mx=Math.max(...dp);M=M.filter(x=>x.rua===dom[0]||cont[x.rua]>Math.max(2,dom[1]*.25)||x.pre<mn-2||x.pre>mx+2);}
+  return M;}
+function cntCanvas(img,rot,crop){const w=img.width,h=img.height,rw=rot%180?h:w,rh=rot%180?w:h;const c=document.createElement("canvas");c.width=rw;c.height=rh;const g=c.getContext("2d");
+  g.translate(rw/2,rh/2);g.rotate(rot*Math.PI/180);g.drawImage(img,-w/2,-h/2);g.setTransform(1,0,0,1,0,0);
+  const [x0,y0,x1,y1]=crop,cx=Math.round(rw*x0),cy=Math.round(rh*y0),cw=Math.round(rw*(x1-x0)),ch=Math.round(rh*(y1-y0));const o=document.createElement("canvas");o.width=cw;o.height=ch;o.getContext("2d").drawImage(c,cx,cy,cw,ch,0,0,cw,ch);return o;}
+/* fundo uniforme (divide pelo fundo borrado), contraste automático e ampliação 2x; modo "bin" binariza */
+function cntPrep(src,modo){const w=src.width,h=src.height,g=src.getContext("2d"),D=g.getImageData(0,0,w,h),p=D.data;
+  const s=document.createElement("canvas"),sw=Math.max(8,Math.round(w/24)),sh=Math.max(8,Math.round(h/24));s.width=sw;s.height=sh;const sg=s.getContext("2d");sg.imageSmoothingEnabled=true;sg.imageSmoothingQuality="high";sg.drawImage(src,0,0,sw,sh);
+  const b=document.createElement("canvas");b.width=w;b.height=h;const bg=b.getContext("2d");bg.imageSmoothingEnabled=true;bg.imageSmoothingQuality="high";bg.filter="blur(6px)";bg.drawImage(s,0,0,w,h);const B=bg.getImageData(0,0,w,h).data;
+  const v=new Uint8ClampedArray(w*h),hist=new Uint32Array(256);for(let i=0,j=0;i<p.length;i+=4,j++){const y=.299*p[i]+.587*p[i+1]+.114*p[i+2],by=.299*B[i]+.587*B[i+1]+.114*B[i+2]+1;const q=Math.min(255,y/by*255);v[j]=q;hist[v[j]]++;}
+  let lo=0,hi=255,acc=0,n=w*h;for(;lo<255;lo++){acc+=hist[lo];if(acc>n*.01)break;}acc=0;for(;hi>0;hi--){acc+=hist[hi];if(acc>n*.01)break;}const k=255/Math.max(1,hi-lo);
+  for(let i=0,j=0;i<p.length;i+=4,j++){let q=(v[j]-lo)*k;if(modo==="bin")q=q>150?255:0;p[i]=p[i+1]=p[i+2]=q<0?0:q>255?255:q;p[i+3]=255;}g.putImageData(D,0,0);
+  const o=document.createElement("canvas");o.width=w*2;o.height=h*2;const og=o.getContext("2d");og.imageSmoothingQuality="high";og.drawImage(src,0,0,w*2,h*2);return o;}
+async function cntImg(file){const url=URL.createObjectURL(file);try{const im=await new Promise((ok,er)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>er(new Error("Não consegui abrir a imagem."));i.src=url;});
+  const mx=2400,sc=Math.min(1,mx/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement("canvas");c.width=Math.round(im.naturalWidth*sc);c.height=Math.round(im.naturalHeight*sc);c.getContext("2d").drawImage(im,0,0,c.width,c.height);return c;}finally{URL.revokeObjectURL(url);}}
+/** lê uma foto: tenta as orientações, faz 2ª leitura se faltar linha, lê a data do relatório */
+async function cntLerFoto(file,prog){const img=await cntImg(file),W=await ocrWorker(),rots=img.height>img.width?[90,270,0,180]:[0,180,90,270];
+  await W.setParameters({tessedit_char_whitelist:"0123456789NS ",tessedit_pageseg_mode:"6"});let best=null;
+  for(const r of rots){prog&&prog("Lendo a foto ("+(rots.indexOf(r)+1)+"/4)…");const cv=cntPrep(cntCanvas(img,r,[0,0,.5,1]),"norm");const {data}=await W.recognize(cv);const L=cntParse(data.text);
+    if(!best||L.length>best.L.length)best={r,L};if(L.length>=3)break;}
+  if(!best||!best.L.length)return {linhas:[],rot:null};best.L=cntJunta(best.L);
+  const c0=best.L.map(x=>parseInt(x.cod,10)).filter(n=>n>99999).sort((a,b)=>a-b),md=c0[c0.length>>1],cods=c0.filter(n=>Math.abs(n-md)<=60),esp=cods.length>=2?Math.max(...cods)-Math.min(...cods)+1:0;
+  {prog&&prog("Conferindo a leitura (2ª passada)…");const cv=cntPrep(cntCanvas(img,best.r,[0,0,.5,1]),"bin");const {data}=await W.recognize(cv);const L2=cntParse(data.text),ks=new Set(best.L.map(x=>x.k));best.L=cntJunta(best.L,L2);}
+  best.L=cntLimpa(best.L);
+  let dataRel="";try{await W.setParameters({tessedit_char_whitelist:"0123456789/: ",tessedit_pageseg_mode:"6"});const cv=cntPrep(cntCanvas(img,best.r,[.55,0,1,.16]),"norm");const {data}=await W.recognize(cv);const m=data.text.match(/(\d{2})\/(\d{2})\/(20\d{2})/);if(m)dataRel=m[1]+"/"+m[2]+"/"+m[3];}catch(e){}
+  return {linhas:best.L,rot:best.r,dataRel,esp};}
+/* agregação por dia: endereços lidos das fotos (sem repetir) + ruas digitadas no método antigo (pela base) */
+function cntAgrega(rows,keyFn){const dias={};rows.forEach(r=>{const k=keyFn(r);const x=dias[k]=dias[k]||{ts:r.ts,ruas:new Set(),ends:new Set(),man:new Set(),aud:new Set()};
+    if(r.Metodo==="Foto"){String(r.Enderecos||"").split(",").filter(Boolean).forEach(e=>{x.ends.add(e);x.ruas.add(e.split("-")[0]);});}
+    else String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(rr=>{x.man.add(rr);x.ruas.add(rr);});if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
+  Object.values(dias).forEach(x=>{const fr=new Set([...x.ends].map(e=>e.split("-")[0]));x.end=x.ends.size+cntEnd([...x.man].filter(r=>!fr.has(r)));});return dias;}
+const CNT={fila:[],busy:false};
+function cntFotoUI(){const box=$("n-fotos");if(!box)return;const hoje=fdISO(todayISO());
+  const recs=allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto"&&String(r.Matricula_Auditor)===String(auditor));
+  const ag=cntAgrega(recs,()=>"d")["d"]||{ruas:new Set(),end:0};
+  box.innerHTML='<div class="cnt-prev"><div><span>Ruas lidas hoje</span><b>'+ag.ruas.size+'</b><small>'+([...ag.ruas].sort((a,b)=>a-b).join(", ")||"nenhuma ainda")+'</small></div><div><span>Endereços lidos hoje</span><b>'+(ag.end||0).toLocaleString("pt-BR")+'</b><small>sem repetir endereço</small></div></div>'+
+    (CNT.fila.length?'<div class="cnt-fila">'+CNT.fila.map(f=>'<div class="cnt-f '+(f.st||"")+'"><img src="'+f.th+'" alt=""><div><b>'+esc(f.titulo||"Foto")+'</b><small>'+esc(f.msg||"")+'</small></div></div>').join("")+'</div>':'');}
+async function cntProcessar(){if(CNT.busy)return;CNT.busy=true;try{for(const f of CNT.fila.filter(x=>!x.st)){f.st="lendo";f.msg="Preparando a leitura…";cntFotoUI();
+      try{const R=await cntLerFoto(f.file,m=>{f.msg=typeof m==="string"?m:(m.status==="recognizing text"?"Lendo… "+Math.round((m.progress||0)*100)+"%":"Carregando o leitor…");cntFotoUI();});
+        if(!R.linhas.length){f.st="erro";f.titulo="Não consegui ler esta foto";f.msg="Tire outra foto mais de perto, com boa luz, a folha inteira e reta. Ela não foi contada.";cntFotoUI();continue;}
+        const hoje=fdISO(todayISO()),ja=new Set();allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto").forEach(r=>String(r.Enderecos||"").split(",").forEach(e=>ja.add(e)));
+        const novos=[...new Set(R.linhas.map(x=>x.k))].filter(k=>!ja.has(k)),ruas=[...new Set(R.linhas.map(x=>x.rua))].sort((a,b)=>a-b);
+        if(!novos.length){f.st="aviso";f.titulo="Foto repetida";f.msg="Os "+R.linhas.length+" endereços desta folha já foram contados hoje. Nada foi somado.";cntFotoUI();continue;}
+        const now=new Date(),rn=[...new Set(novos.map(k=>k.split("-")[0]))].sort((a,b)=>a-b);const velho=R.dataRel&&R.dataRel!==hoje;
+        const rec={_aba:"contagem",ID_Auditoria:newId("CNT"),Data:hoje,DataHora:fmtDT(now),ts:now.getTime(),_lanc:now.getTime(),Metodo:"Foto",Rua_Inicial:rn[0],Rua_Final:rn[rn.length-1],Ruas:rn.join(","),Qtd_Ruas:rn.length,Qtd_Enderecos:novos.length,
+          Enderecos:novos.join(","),Data_Relatorio:R.dataRel||"",Observacao:(velho?"Relatório emitido em "+R.dataRel+". ":"")+(R.esp>R.linhas.length&&R.esp-R.linhas.length<=30?"Linhas na folha (pelo Cod.End.): "+R.esp+", lidas: "+R.linhas.length+".":""),
+          Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:false,fotos:[f.foto]};
+        await saveRec(rec);f.st="ok";f.titulo="Rua "+ruas.join(", ")+" · "+novos.length+" endereço(s) contado(s)";
+        f.msg=(R.linhas.length>novos.length?(R.linhas.length-novos.length)+" já contado(s) antes. ":"")+(R.dataRel?"Relatório de "+R.dataRel+(velho?" (não é de hoje)":"")+".":"")+(R.esp>R.linhas.length&&R.esp-R.linhas.length<=30?" Atenção: a folha parece ter "+R.esp+" linhas e li "+R.linhas.length+"; se faltou alguma, tire outra foto mais de perto.":"");}
+      catch(e){f.st="erro";f.titulo="Erro na leitura";f.msg=(e&&e.message)||String(e);}
+      cntFotoUI();}}finally{CNT.busy=false;paintCNT();}}
+async function cntAddFotos(files){for(const file of files){const th=await fotoMini(file,160).catch(()=>""),foto=await fotoMini(file,1400).catch(()=>"");CNT.fila.unshift({file,th,foto,titulo:file.name||"Foto",msg:"Na fila de leitura…"});}cntFotoUI();cntProcessar();}
+async function fotoMini(file,max){const c=await cntImg(file),s=Math.min(1,max/Math.max(c.width,c.height)),o=document.createElement("canvas");o.width=Math.round(c.width*s);o.height=Math.round(c.height*s);o.getContext("2d").drawImage(c,0,0,o.width,o.height);return o.toDataURL("image/jpeg",.72);}
+(function(){const s=document.createElement("style");s.textContent=".cnt-fila{display:grid;gap:8px;margin-top:10px}.cnt-f{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--surface)}.cnt-f img{width:56px;height:56px;object-fit:cover;border-radius:8px}.cnt-f b{display:block;font-size:.95rem}.cnt-f small{color:var(--muted)}.cnt-f.ok{border-color:#16A34A;background:#F0FDF4}.cnt-f.erro{border-color:#DC2626;background:#FEF2F2}.cnt-f.aviso{border-color:#F59E0B;background:#FFFBEB}.cnt-f.lendo{border-color:#2563EB}.cnt-cam{display:flex;gap:8px;flex-wrap:wrap}.cnt-cam label{flex:1 1 200px;text-align:center;cursor:pointer}";document.head.appendChild(s);})();
+
 /* resumo do período: ruas únicas por dia, endereços pela base */
 function cntPeriodo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.contagem),dias={},porRua={};
-  rows.forEach(r=>{const k=fxDiaKey(r.ts);const x=dias[k]=dias[k]||{ts:r.ts,ruas:new Set(),aud:new Set()};String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(rr=>{x.ruas.add(rr);porRua[rr]=(porRua[rr]||0)+1;});if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
-  const L=Object.keys(dias).sort().map(k=>{const x=dias[k];return {k,ts:x.ts,ruas:x.ruas.size,end:cntEnd([...x.ruas]),aud:[...x.aud]};});
+  Object.assign(dias,cntAgrega(rows,r=>fxDiaKey(r.ts)));Object.values(dias).forEach(x=>x.ruas.forEach(rr=>{porRua[rr]=(porRua[rr]||0)+1;}));
+  const L=Object.keys(dias).sort().map(k=>{const x=dias[k];return {k,ts:x.ts,ruas:x.ruas.size,end:x.end,aud:[...x.aud]};});
   const ruasUni=new Set(Object.keys(porRua)),totEnd=L.reduce((s,x)=>s+x.end,0);
   return {L,ruasUni,porRua,totRuasDia:L.reduce((s,x)=>s+x.ruas,0),totEnd,dias:L.length,medEnd:L.length?totEnd/L.length:0,medRuas:L.length?L.reduce((s,x)=>s+x.ruas,0)/L.length:0};}
-function cntBloco(){const C=cntPeriodo();if(!C.dias)return fxCard("Contagem de ruas auditadas","<p class=\"fx-e\">Nenhuma contagem registrada no período. Os auditores registram em <b>Contagem de ruas</b> (rua inicial e final).</p>");
+function cntBloco(){const C=cntPeriodo();if(!C.dias)return fxCard("Contagem de ruas auditadas","<p class=\"fx-e\">Nenhuma contagem registrada no período. Os auditores registram em <b>Contagem de ruas</b> (foto do relatório por endereço).</p>");
   return '<div class="fx-row" style="grid-template-columns:1fr 1.3fr">'+fxCard("Ruas e endereços auditados por dia",fxTable([{t:"Data"},{t:"Ruas",n:1},{t:"Endereços",n:1},{t:"Auditor(es)"}],C.L.slice().reverse().slice(0,10).map(x=>[fxDia(x.ts),x.ruas,x.end.toLocaleString("pt-BR"),esc(x.aud.join(", "))]).concat([['<b>Total</b>','<b>'+C.totRuasDia+'</b>','<b>'+C.totEnd.toLocaleString("pt-BR")+'</b>','<b>'+C.dias+' dia(s)</b>']])))+
     fxCard("Endereços auditados por dia",fxLine(C.L.map(x=>({l:fxDia(x.ts),v:x.end,txt:x.end>=1000?(x.end/1000).toFixed(1).replace(".",",")+" mil":String(x.end)})),"#0EA5E9",null,150))+'</div>';}
 function cntGraf(){const C=cntPeriodo();if(!C.dias)return '<p class="fx-e">Nenhuma contagem de ruas registrada no período.</p>';
@@ -3032,7 +3101,7 @@ function rotAuto(de,ate){const C=rotCfg(),A={},add=(mat,atv,qtd,det)=>{const a=r
   const a0=new Date(de+"T00:00:00").getTime(),b0=new Date(ate+"T23:59:59").getTime(),D=FECH.dados||{};
   const porDia=(L,fn)=>{const o={};fxRows(L).filter(r=>r.ts>=a0&&r.ts<=b0).forEach(r=>{const k=fxDiaKey(r.ts);(o[k]=o[k]||new Set());fn(r).forEach(x=>o[k].add(x));});return o;};
   const sp=porDia(D.saldo,r=>[String(r.Codigo_Produto||"")].filter(Boolean)),nSp=Object.values(sp).reduce((s,x)=>s+x.size,0);add(C.autoSpk,"Saldo de Picking",nSp,nSp+" itens auditados (saldo de picking)");
-  const ct=porDia(D.contagem,r=>String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean)),nEnd=Object.values(ct).reduce((s,x)=>s+cntEnd([...x]),0);add(C.autoAero,"Auditoria de Aero",nEnd,nEnd+" endereços auditados (contagem de ruas)");
+  const ct=cntAgrega(fxRows(D.contagem).filter(r=>r.ts>=a0&&r.ts<=b0),r=>fxDiaKey(r.ts)),nEnd=Object.values(ct).reduce((s,x)=>s+x.end,0);add(C.autoAero,"Auditoria de Aero",nEnd,nEnd+" endereços auditados (contagem de ruas)");
   if(C.resp1350){const notas=new Set(rotTab("r1350").filter(r=>{const d=ceIso(r.Data_Emissao);return d>=de&&d<=ate;}).map(r=>r.Nota+"|"+(r.Fornecedor||"")));add(C.resp1350,"Recebimento",notas.size,notas.size+" notas emitidas (1350) × valor de Recebimento");}
   return A;}
 function rotAj(){const k=CE.cAte.slice(0,7);return ((CE.aj||{})[k])||{};}
@@ -3192,7 +3261,7 @@ async function ceAutoSync(){if(!ceCom()||!CE.cfg||!CE.lanc||!FECH.dados)return;c
   // saldo de picking: itens (códigos únicos) por dia
   Object.entries(dias(D.saldo,(r,k,o)=>{(o[k]=o[k]||new Set()).add(String(r.Codigo_Produto||""));})).forEach(([k,s])=>put("SPK",C.autoSpk,k,"Saldo de Picking",s.size));
   // aéreo: endereços das ruas contadas por dia (rua única no dia)
-  Object.entries(dias(D.contagem,(r,k,o)=>{const s=o[k]=o[k]||new Set();String(r.Ruas||"").split(",").map(x=>x.trim()).filter(Boolean).forEach(x=>s.add(x));})).forEach(([k,s])=>put("AERO",C.autoAero,k,"Auditoria de Aero",cntEnd([...s])));
+  {const rs=[];dias(D.contagem,(r)=>{rs.push(r);});Object.entries(cntAgrega(rs,r=>fxDiaKey(r.ts))).forEach(([k,x])=>put("AERO",C.autoAero,k,"Auditoria de Aero",x.end));}
   // Validação BOX: ocorrências lançadas na auditoria de cargas por auditor
   Object.entries(dias(D.cargas,(r,k,o)=>{const m=String(r.Matricula_Auditor||"").trim();if(!BOX_AUD.includes(m))return;const x=o[k+"|"+m]=o[k+"|"+m]||0;o[k+"|"+m]=x+1;})).forEach(([km,n])=>{const [k,m]=km.split("|");put("BOX",m,k,"Validação BOX",n);});
   // 1350: notas emitidas por dia × Recebimento

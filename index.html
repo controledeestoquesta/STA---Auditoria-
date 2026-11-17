@@ -305,16 +305,12 @@
   </section>
 
   <section class="view" id="v-cnt" hidden>
-    <p class="note" style="margin:0 0 10px">Registre as ruas auditadas no dia (de uma rua inicial até uma rua final). A quantidade de endereços é calculada pela base de endereços por rua e aparece no <b>Mapa de ruas</b> e no fechamento do <b>Aéreo</b>.</p>
+    <p class="note" style="margin:0 0 10px">Fotografe cada folha do <b>Relatório de produtos por endereço</b>. O app lê a coluna <b>Rua</b> e os endereços (Rua-Prédio-Nível-Apto) e conta sozinho as ruas e os endereços. Pode enviar quantas fotos quiser: endereço repetido não conta duas vezes.</p>
     <div class="block">
-      <div class="cnt-g">
-        <div class="field" id="n-data-f"><label for="n-data">Data</label><input class="in" id="n-data" type="date"></div>
-        <div class="field" id="n-ini-f"><label for="n-ini">Rua inicial</label><input class="in" id="n-ini" inputmode="numeric" placeholder="Ex.: 22"></div>
-        <div class="field" id="n-fim-f"><label for="n-fim">Rua final</label><input class="in" id="n-fim" inputmode="numeric" placeholder="Ex.: 30"></div>
-      </div>
-      <div class="cnt-prev" id="n-prev"></div>
-      <div class="field" id="n-obs-f"><label for="n-obs">Observação <small>(opcional)</small></label><input class="in" id="n-obs" placeholder="Ex.: ruas do bloco B, turno da manhã"></div>
-      <button type="button" class="save" id="n-save">Registrar ruas auditadas</button>
+      <div class="cnt-cam"><label class="save" for="n-cam" style="margin:0">📷 Tirar foto da folha</label><label class="btn" for="n-gal">🖼 Escolher fotos</label></div>
+      <input type="file" id="n-cam" accept="image/*" capture="environment" hidden><input type="file" id="n-gal" accept="image/*" multiple hidden>
+      <p class="note" style="margin:8px 0 0">Para a leitura não falhar: folha inteira na foto, reta, com boa luz e sem sombra ou dedo sobre os números.</p>
+      <div id="n-fotos" style="margin-top:10px"></div>
     </div>
     <div id="n-list" style="margin-top:12px"></div>
   </section>
