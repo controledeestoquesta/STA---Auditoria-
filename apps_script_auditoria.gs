@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 58)
+ * Auditoria STA – Santa Therezinha (versão 61)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -93,8 +93,8 @@ ABAS.adega = {
 const TIPOS_ADEGA = ['Falta', 'Sobra', 'Avaria'];
 ABAS.contagem = {
   nome: 'Contagem_Ruas', perm: ['aud_ret', 'aud_aer', 'aud_rua'],
-  colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em'],
-  texto: ['Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Matricula_Auditor', 'ID_Auditoria']
+  colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos'],
+  texto: ['Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Enderecos', 'Data_Relatorio', 'Matricula_Auditor', 'ID_Auditoria']
 };
 ABAS.saldo = {
   nome: 'Auditoria_Saldo_Picking', perm: 'aud_spk',
@@ -169,6 +169,30 @@ function vlcMinhas(sessao, todos) {
   itens.sort(function (a, b) { return num(a.rua) - num(b.rua) || num(a.predio) - num(b.predio) || num(a.nivel) - num(b.nivel) || num(a.apto) - num(b.apto); });
   const pend = {}; itens.forEach(function (i) { pend[i.id] = 1; });
   return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(todos && adm ? null : sessao.matricula).filter(function (x) { return pend[x.id]; }) };
+}
+/* ---- Metas da validade: itens da convocação por auditor (data da atribuição/operação, data da conclusão, status) ---- */
+function vlcData(x) {
+  if (x instanceof Date) return x.getTime();
+  const t = String(x || ''), m = t.match(/(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime();
+  const n = t.match(/(\d{4})-(\d{2})-(\d{2})/);
+  return n ? new Date(+n[1], +n[2] - 1, +n[3]).getTime() : 0;
+}
+function vlcMetas() {
+  const ss = SpreadsheetApp.openById(VALIDADE_ID), O = vlcTab(ss, 'OPERACOES'), I = vlcTab(ss, 'OPERACAO_ITENS'), U = vlcTab(ss, 'USUARIOS').linhas;
+  const achar = function (cab, re, fora) { for (let i = 0; i < cab.length; i++) if (re.test(cab[i]) && !(fora && fora.test(cab[i]))) return cab[i]; return ''; };
+  const cOp = achar(O.cab, /DATA|CRIAD|ABERT|INICIO/i, /STATUS|FIM|FECH|ENCERR/i), cIt = achar(I.cab, /ATRIB.*(DATA|EM|DT)|(DATA|DT).*ATRIB/i);
+  const dOp = {}; O.linhas.forEach(function (o) { dOp[o.ID_OPERACAO] = vlcData(o[cOp]); });
+  const nomes = {}; U.forEach(function (u) { const l = String(u.LOGIN || '').trim().toLowerCase(); if (l) nomes[l] = String(u.NOME || '').trim(); });
+  const corte = Date.now() - 150 * 864e5, itens = [];
+  I.linhas.forEach(function (i) {
+    const st = String(i.STATUS_ITEM || '').toUpperCase(), t0 = (cIt && vlcData(i[cIt])) || dOp[i.ID_OPERACAO] || 0, tf = st === 'AUDITADO' ? vlcData(i.DATA_STATUS) : 0;
+    if (st !== 'PENDENTE' && st !== 'AUDITADO') return;
+    if (st === 'AUDITADO' && tf && tf < corte) return;
+    const quem = st === 'AUDITADO' && i.AUDITOR ? [String(i.AUDITOR).trim().toLowerCase()] : String(i.ATRIBUIDO_A || '').toLowerCase().split(/[,;\/|]+/).map(function (x) { return x.trim(); }).filter(String);
+    quem.forEach(function (l) { itens.push([l, t0, tf, st === 'AUDITADO' ? 'A' : 'P']); });
+  });
+  return { ok: true, itens: itens, nomes: nomes, colunaOperacao: cOp, colunaItem: cIt };
 }
 /* ---- Endereços pulados na convocação (aba Validade_Pulados da planilha da auditoria) ---- */
 const ABA_VPUL = 'Validade_Pulados';
@@ -305,15 +329,30 @@ function solResponder(id, qtd, resultado, sessao) {
   set('Respondido_Por', (sessao.nome || '') + ' (' + sessao.matricula + ')'); set('Tempo_Resposta_Min', min);
   return { ok: true, em: em, min: min };
 }
+ABAS.ncaud = {
+  nome: 'NC_Auditores', perm: ['ce_gest', 'aud_adm'],
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Nome_Auditor', 'Matricula_Colaborador', 'Nome_Colaborador', 'Tipo', 'Meta', 'Periodo', 'Meta_Valor', 'Realizado', 'Percentual', 'Descricao', 'Medida', 'Prazo', 'Status', 'Recebido_Em'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Matricula_Colaborador', 'Prazo']
+};
+ABAS.spkh = {
+  nome: 'Saldo_Picking_Historico', perm: ['ce_gest', 'aud_adm'],
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Data_Referencia', 'Quantidade_Itens', 'Matricula_Colaborador', 'Nome_Colaborador', 'Observacao', 'Lancado_Em', 'Matricula_Auditor', 'Nome_Auditor', 'Recebido_Em'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Data_Referencia', 'Lancado_Em', 'Matricula_Auditor', 'Matricula_Colaborador']
+};
+ABAS.feedback = {
+  nome: 'Feedback_Auditores', perm: ['ce_gest', 'aud_adm'],
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Nome_Auditor', 'Matricula_Colaborador', 'Nome_Colaborador', 'Periodo', 'Resumo', 'Status', 'Recebido_Em'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Matricula_Colaborador']
+};
 ABAS.validade = {
   nome: 'Auditoria_Validade_App', perm: 'aud_vld',
   colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
-    'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em', 'Vl_Unitario', 'Valor_Divergencia'],
+    'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Recebido_Em', 'Vl_Unitario', 'Valor_Divergencia', 'Matricula_Encarregado', 'Nome_Encarregado'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Numero_OS', 'Codigo_Produto', 'Endereco', 'Rua', 'Validade', 'Matricula_Colaborador_NC', 'Matricula_Auditor']
 };
 const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
-  'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Vl_Unitario', 'Valor_Divergencia'];
-const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor'];
+  'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Vl_Unitario', 'Valor_Divergencia', 'Matricula_Encarregado', 'Nome_Encarregado'];
+const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
 const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado', 'Produto cortado'];
@@ -373,6 +412,10 @@ function doPost(e) {
       const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
       try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
+  if (dados.acao === 'vlc_metas') {
+    if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
+    try { return resposta(vlcMetas()); } catch (err) { return resposta({ ok: false, erro: 'Planilha de validade: ' + String(err.message || err) }); }
   }
   if (dados.acao === 'val_ler') {
     if (['aud_adm', 'aud_com', 'aud_fch', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para o fechamento de validade (aud_vld ou aud_fch).' });
@@ -531,6 +574,9 @@ function doGet(e) {
         validade: !(tem('aud_vld') || tem('aud_rua')) ? vazio : lerAba(ss, ABAS.validade.nome, CAMPOS_VLA),
         chep: !(tem('aud_chp') || tem('aud_com')) ? vazio : lerTab(ABA_CHEP, COLS_CHEP),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
+        spkh: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0 || s.permissoes.indexOf('aud_spk') >= 0) ? lerAba(ss, ABAS.spkh.nome, ABAS.spkh.colunas) : vazio,
+        ncaud: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas) : vazio,
+        feedback: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.feedback.nome, ABAS.feedback.colunas) : vazio,
         quadro: lerQuadro(ss)
       };
       return resposta(out);
@@ -540,7 +586,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 58, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 61, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -575,8 +621,14 @@ const PERMISSOES_CONHECIDAS = {
   aud_adg: 'Acesso a aba de ocorrencias ADEGA',
   aud_com: 'Acesso a comissao do controle de estoque (equipes, metas, valores)',
   aud_cha: 'Acesso a chamada (presenca) do controle de estoque',
+  ce_est: 'Acesso ao Controle de Estoque (rotinas e liberacao de mercadorias)',
+  ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
+  ce_bas: 'Acesso a Bases e planilha',
   aud_adm: 'Acesso a tela de administracao'
 };
+/* gestores do Controle de Estoque: acesso completo automático (precisam ter uma linha com senha no Permissionamento) */
+const GESTORES_CE = ['10002001', '10002939'];
+const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
 
 /** Lê a aba Permissionamento (cria a coluna Status se não existir). */
 function tabelaPermissoes() {
@@ -608,6 +660,7 @@ function lerPermissoes() {
     if (sen && m.senhas.indexOf(sen) < 0) m.senhas.push(sen);
     if (m.permissoes.indexOf(per) < 0) m.permissoes.push(per);
   });
+  GESTORES_CE.forEach(function (g) { if (mapa[g]) PERMS_GESTOR.forEach(function (x) { if (mapa[g].permissoes.indexOf(x) < 0) mapa[g].permissoes.push(x); }); });
   return mapa;
 }
 
