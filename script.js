@@ -154,7 +154,8 @@ async function fazerLogin(){
   }finally{bt.disabled=false;bt.textContent="Entrar";}
 }
 function sair(){$("menu").hidden=true;if(!confirm("Sair da conta de "+curtoNome(nomeAud())+"?"))return;LOGIN=null;store.set("audcd_login",null);auditor=null;mostrarLogin();}
-const curtoNome=n=>{const p=String(n||"").trim().split(/\s+/);return p.length>1?p[0]+" "+p[p.length-1]:String(n||"");};
+/* nome e sobrenome (primeiros nomes; "MARIA DA SILVA" fica inteiro) */
+const curtoNome=n=>{const p=String(n||"").trim().split(/\s+/).filter(Boolean);if(p.length<3)return p.join(" ");const L=["DE","DA","DO","DOS","DAS","E","DI","DU"];return L.includes(p[1].toUpperCase())?p.slice(0,3).join(" "):p[0]+" "+p[1];};
 function mostrarLogin(){const hl=document.querySelector("header img");if(hl&&hl.src)$("lg-logo").src=hl.src;$("login").hidden=false;setTimeout(()=>$("lg-mat").focus(),50);}
 $("lg-go").onclick=fazerLogin;
 $("lg-mat").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("lg-sen").focus();}});
@@ -546,7 +547,7 @@ function aplicarQuadroPlanilha(q){if(!Array.isArray(q)||!q.length)return;const L
 function saveQuadro(){store.set("audcd_quadro",QUADRO);}
 function repsDaRua(rua){rua=String(rua);return QUADRO.filter(q=>q.ruas.includes(rua)).map(q=>q.mat);}
 const nomeC=m=>{if(cIdx.has(m))return C.nome[cIdx.get(m)];const q=QUADRO.find(x=>x.mat===m);return q&&q.nome?q.nome:m;};
-const curto=n=>{const p=String(n).trim().split(/\s+/);return p.length>1?p[0]+" "+p[p.length-1]:String(n);};
+const curto=n=>{const p=String(n||"").trim().split(/\s+/).filter(Boolean);if(p.length<3)return p.join(" ");const L=["DE","DA","DO","DOS","DAS","E","DI","DU"];return L.includes(p[1].toUpperCase())?p.slice(0,3).join(" "):p[0]+" "+p[1];};
 let RUA_TOT=null;
 function ruaTotMap(){if(RUA_TOT&&RUA_TOT._n===E.id.length)return RUA_TOT;const m={};E.pt.forEach((a,i)=>{if(!RUAS_FORA.has(a[0]))m[a[0]]=(m[a[0]]||0)+1;});Object.defineProperty(m,"_n",{value:E.id.length,enumerable:false});RUA_TOT=m;return m;}
 const pbool=v=>v===true||/^(TRUE|VERDADEIRO|SIM|1)$/i.test(String(v==null?"":v).trim());
@@ -2145,7 +2146,7 @@ const ceCfg0=()=>({v:3,repasses:JSON.parse(JSON.stringify(CE_REP0)),equipe:CE_TE
 const ceCom=()=>ehAdm()||temPerm("aud_com");
 const ceEq=()=>(CE.cfg&&CE.cfg.equipe)||[];
 const ceFunc=m=>ceEq().find(f=>f.mat===m);
-const ceCurto=n=>{const p=String(n||"").split(" ").filter(Boolean);return p.length>1?ceCap(p[0].toLowerCase())+" "+ceCap(p[p.length-1].toLowerCase()):ceCap(String(p[0]||"").toLowerCase());};
+const ceCurto=n=>curto(n).split(" ").map(w=>/^(DE|DA|DO|DOS|DAS|E)$/i.test(w)?w.toLowerCase():ceCap(w.toLowerCase())).join(" ");
 const ceSubs=()=>[...new Set(ceEq().map(f=>f.subsetor).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
 async function ceCarregar(forcar){if(CE.busy)return;if(DEMO||!SHEET_URL){CE.msg="Chamada e comissão usam a planilha: faça login com internet.";ceRender();return;}
   CE.busy=true;CE.msg="Carregando da planilha…";ceRender();
@@ -3329,16 +3330,13 @@ function fxVal(){if(!VAL.dados){if(!VAL.busy)valCarregar().then(()=>{if(FECH.tip
       '<div class="vx-mini"><div><b style="color:#7F1D1D">'+venc.length+'</b><span>vencidos em estoque</span><small>'+BRL0(soma(venc))+'</small></div><div><b style="color:#DC2626">'+c20.length+'</b><span>vencem em até 20 dias</span><small>'+BRL0(soma(c20))+'</small></div><div><b style="color:#D97706">'+c45.length+'</b><span>vencem em 21 a 45 dias</span><small>'+BRL0(soma(c45))+'</small></div><div><b>'+(med==null?"—":med+" d")+'</b><span>shelf life mediano</span><small>'+it(S.length)+' com validade lida</small></div></div></div>'+
     '<div class="vx-tps">'+tipo("Auditorias de validade",all,"#0F172A")+tipo("AUDITORIA_AE",ae,"#2563EB")+tipo("AUDITORIA_AP",ap,"#7C3AED")+
       '<div class="vx-tp" style="border-left-color:#D97706"><span>Endereços pulados</span><b>'+pul.length+'</b><small>no período</small><div><em style="color:#D97706">'+pul.filter(x=>x.Status==="Pulado").length+'</em> pendente(s) · <em style="color:#16A34A">'+pul.filter(x=>x.Status!=="Pulado").length+'</em> auditado(s) depois</div></div></div>'+
-    '<div class="fx-c">'+termo+'</div>'+
     '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Ruas com mais valor em risco (até 45 dias)",fxCols(rTop.map(([k,x])=>({l:"Rua "+k,v:temV?x.v:x.n,txt:temV?BRLk(x.v):it(x.n),c:"#B91C1C",t:"Rua "+k+": "+it(x.n)+" · "+BRL0(x.v)}))))+
       fxCard("Itens com mais valor em risco (até 45 dias)",fxBars(iTop.map(([k,x])=>({l:String(x.desc||k).split(/\s+/).slice(0,3).join(" "),v:temV?x.v:x.q,txt:temV?BRL0(x.v):x.q+" un",c:"#DC2626"}))))+'</div>'+
-    '<div class="fx-row" style="grid-template-columns:1fr 1.4fr">'+fxCard("Validade do sistema × encontrada",'<div class="vx-acc"><b style="color:'+(cmp.length?FXC[fxCls(igual.length/cmp.length)]:"#64748B")+'">'+pc(igual.length,cmp.length)+'</b><span>das validades do sistema conferem com o endereço</span></div>'+fxBars([{l:"Confere",v:igual.length,txt:it(igual.length),c:"#16A34A"},{l:"Sistema maior que a física",v:cmp.filter(o=>o.vs>o.vf).length,txt:it(cmp.filter(o=>o.vs>o.vf).length),c:"#DC2626"},{l:"Sistema menor que a física",v:cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length,txt:it(cmp.filter(o=>o.vs<o.vf&&rotIso(o.vs)!==rotIso(o.vf)).length),c:"#F59E0B"}])+'<p class="fx-e" style="margin-top:6px">"Sistema maior" é o caso mais perigoso: o produto vence antes do que o sistema mostra.</p>')+
+    '<div class="fx-row" style="grid-template-columns:1fr">'+
       fxCard("Itens com inconsistência"+(inc.length>6?" (6 de "+inc.length+")":""),inc.length?fxTable([{t:"Tipo"},{t:"Data"},{t:"Código"},{t:"Descrição"},{t:"Situação"}],inc.slice(0,6).map(x=>[x.aba.replace("AUDITORIA_",""),esc(x.data?ceBr(x.data):""),esc(x.cod),esc(String(x.desc).slice(0,26)),'<b style="color:#B91C1C">'+esc(String(x.st||"Inconsistente").slice(0,22))+'</b>'])):'<p class="fx-e">Nenhuma inconsistência no período.</p>')+'</div>'+
-    (pul.length?'<div class="fx-row" style="grid-template-columns:1fr 1fr">'+fxCard("Pulados por auditor",fxBars(Object.entries(pul.reduce((o,x)=>{const k=curto(x.Nome||x.Matricula||"—");o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>({l:k,v:n,txt:n+" pulado(s)",c:"#D97706"}))))+
-      fxCard("Motivo dos pulos",fxBars(Object.entries(pul.reduce((o,x)=>{const k=x.Motivo||"Sem motivo";o[k]=(o[k]||0)+1;return o;},{})).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,n])=>({l:k,v:n,txt:String(n),c:"#B45309"}))))+'</div>':'')+
     (()=>{const C={};risco.forEach(o=>{const n=compradorDe(o.cod)||"Sem comprador na 286";const x=C[n]=C[n]||{v:0,n:0,q:0,venc:0};x.v+=o.val;x.n++;x.q+=o.q;if(o.d<0)x.venc+=o.val;});
       const L=Object.entries(C).sort((a,b)=>(temV?b[1].v-a[1].v:b[1].n-a[1].n)).slice(0,10);if(!L.length)return "";
-      return fxFull("Compradores — valor divergente (vencido ou vencendo em até 45 dias)",fxBars(L.map(([k,x])=>({l:curto(k),v:temV?x.v:x.n,txt:BRL0(x.v)+" · "+it(x.n)+(x.venc?" · vencido "+BRL0(x.venc):""),c:k.startsWith("Sem ")?"#94A3B8":"#7C3AED"})))+'<p class="fx-e" style="margin-top:6px">Comprador do item pela rotina 286 (coluna Comprador). Valor = quantidade encontrada × valor da última entrada.</p>');})()+
+      return fxFull("Compradores — valor divergente (vencido ou vencendo em até 45 dias)",fxBars(L.map(([k,x])=>({l:curto(k),v:temV?x.v:x.n,txt:BRL0(x.v)+" · "+it(x.n)+(x.venc?" · vencido "+BRL0(x.venc):""),c:k.startsWith("Sem ")?"#94A3B8":"#1E3A8A"})))+'<p class="fx-e" style="margin-top:6px">Comprador do item pela rotina 286 (coluna Comprador). Valor = quantidade encontrada × valor da última entrada.</p>');})()+
     fxFull("Auditorias de validade por dia",fxLine(linha,"#0369A1",null,110))+fxFoot("Auditoria de validade");}
 (function(){const s=document.createElement("style");s.textContent=
  ".vx-bar button:first-child,.vx-bar button:nth-child(2){background:#1D4ED8;color:#fff}.vx-bar button[disabled]{opacity:.45;cursor:default}"+
