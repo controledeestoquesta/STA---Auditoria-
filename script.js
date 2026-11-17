@@ -4313,10 +4313,10 @@ Object.assign(APP_NOME,{metas:"Painel de metas",feedback:"Feedback",ncaud:"NC do
 (function(){const s=document.createElement("style");s.textContent=`
 #gate{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:16px}#gate[hidden]{display:none}.gt-bg{position:absolute;inset:0;background:rgba(2,6,23,.6);backdrop-filter:blur(3px)}
 .gt-box{position:relative;background:var(--surface);color:var(--ink);border-radius:18px;padding:24px;width:min(380px,100%);box-shadow:0 20px 50px rgba(0,0,0,.3);text-align:center}
-.gt-ic{width:56px;height:56px;margin:0 auto 8px;border-radius:16px;display:grid;place-items:center;background:#E0E7FF;color:#4C4CFF}.gt-ic svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.gt-ic{width:56px;height:56px;margin:0 auto 8px;border-radius:16px;display:grid;place-items:center;background:#E0E7FF;color:#103F79}.gt-ic svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
 .gt-box h2{margin:4px 0}.gt-box p{color:var(--muted);margin:0 0 12px}.gt-e{color:#DC2626!important;font-weight:700}.gt-b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.gt-b .save{margin:0}
 .gm-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.gm-nav{display:flex;align-items:center;gap:8px}.gm-nav b{min-width:220px;text-align:center}
-.gm-hero{display:grid;grid-template-columns:repeat(3,auto) 1fr;gap:12px;align-items:center;background:linear-gradient(135deg,#4C4CFF,#2F2FD9);color:#fff;border-radius:16px;padding:14px 18px;margin-bottom:14px}
+.gm-hero{display:grid;grid-template-columns:repeat(3,auto) 1fr;gap:12px;align-items:center;background:linear-gradient(135deg,#103F79,#0B2D57);color:#fff;border-radius:16px;padding:14px 18px;margin-bottom:14px}
 .gm-hero span{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;opacity:.8}.gm-hero b{font-size:1.15rem}.gm-leg{justify-self:end;font-size:.85rem;text-align:right}.gm-leg small{display:block;opacity:.8}
 .gm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .gm-c{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;border-top:5px solid var(--st);text-align:center;transition:transform .15s,box-shadow .15s}.gm-c:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.1)}
@@ -4334,13 +4334,13 @@ Object.assign(APP_NOME,{metas:"Painel de metas",feedback:"Feedback",ncaud:"NC do
 .gm-nf{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.gm-nf h3{grid-column:1/-1;margin:0}.gm-nf label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600}.gm-nf .gm-w{grid-column:1/-1}.gm-nf label[hidden]{display:none}
 .pd .gm-lin{border-bottom:1px solid #94A3B8;height:22px;margin:4px 0}.pd .gm-fbg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.pd .gm-fbg>div{text-align:center;font-size:10px;color:#475569;border:1px solid #E2E8F0;border-radius:8px;padding:4px}
 .pd .gm-fbg .gm-g{max-width:150px}.pd .gm-nd{animation:none;transform:rotate(var(--deg))}.pd .sg3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.hm-eql>div{display:grid;grid-template-columns:24px 1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:.9rem}.hm-eqn{width:22px;height:22px;border-radius:50%;background:#E0E7FF;color:#4C4CFF;display:grid;place-items:center;font-size:.72rem;font-weight:800}.hm-eql .nc{color:#DC2626;font-weight:700}.hm-eql span{color:var(--muted);font-size:.8rem}
+.hm-eql>div{display:grid;grid-template-columns:24px 1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:.9rem}.hm-eqn{width:22px;height:22px;border-radius:50%;background:#E0E7FF;color:#103F79;display:grid;place-items:center;font-size:.72rem;font-weight:800}.hm-eql .nc{color:#DC2626;font-weight:700}.hm-eql span{color:var(--muted);font-size:.8rem}
 html.mob .gm-hero{grid-template-columns:1fr 1fr}html.mob .gm-leg{grid-column:1/-1;justify-self:start;text-align:left}html.mob .gm-nav b{min-width:0;font-size:.85rem}html.mob .gm-fi{grid-template-columns:40px 1fr}html.mob .gm-fa{grid-column:1/-1;flex-direction:row}
 /* barra lateral mais clara (paleta #0000FF) */
-html.desk nav{background:#4C4CFF!important}
+html.desk nav{background:#103F79!important}
 html.desk .dk-brand{border-bottom-color:rgba(255,255,255,.22)!important}html.desk .dk-brand span,html.desk .dk-gh,html.desk nav .dk-gh{color:#D6DCFF!important}
 html.desk nav button[data-v]{color:#fff!important}html.desk nav button[data-v]:hover{background:rgba(255,255,255,.16)!important}
-html.desk nav button[data-v][aria-current="page"]{background:#fff!important;color:#4C4CFF!important;box-shadow:0 4px 12px rgba(0,0,40,.25)}html.desk nav button[data-v][aria-current="page"] .dk-i{color:#4C4CFF!important}
+html.desk nav button[data-v][aria-current="page"]{background:#fff!important;color:#103F79!important;box-shadow:0 4px 12px rgba(0,0,40,.25)}html.desk nav button[data-v][aria-current="page"] .dk-i{color:#103F79!important}
 html.desk nav button[data-v]:hover .dk-i{color:#fff!important}html.desk nav .dk-foot small{color:#D6DCFF!important}html.desk nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3)}
 `;document.head.appendChild(s);})();
 
@@ -4401,7 +4401,7 @@ NWS_FONTES.df="Google Notícias (logística, centros de distribuição, atacado 
 
 // ===== Início: tela de apresentação após o login =====
 BAND.inicio=["Início","Seu dia no CD Santa Therezinha."];
-const HM_GR=[["Lançamentos de auditoria","#4C4CFF",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas","#0EA5E9",["adega","sac","pp","vales","sol"]],["Controle de Estoque","#0D9488",["rot","lib"]],["Setores","#D97706",["dev","cesta"]],["Gestão Controle de Estoque","#7C3AED",["metas","feedback","ncaud","cha","com","fechamento","registros","painel"]],["Informação","#64748B",["noticias"]],["Sistema","#475569",["bases","admin"]]];
+const HM_GR=[["Lançamentos de auditoria","#103F79",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas","#0EA5E9",["adega","sac","pp","vales","sol"]],["Controle de Estoque","#0D9488",["rot","lib"]],["Setores","#D97706",["dev","cesta"]],["Gestão Controle de Estoque","#7C3AED",["metas","feedback","ncaud","cha","com","fechamento","registros","painel"]],["Informação","#64748B",["noticias"]],["Sistema","#475569",["bases","admin"]]];
 const HM={i:0,t:null};
 function hmSaud(){const h=new Date().getHours();return h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";}
 function hmCena(){/* ilustração animada do CD: porta-paletes, empilhadeira e caminhão */
