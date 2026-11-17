@@ -4147,7 +4147,8 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   const A={};const aud=(mat,nome)=>{const k=mat?"m"+String(mat):"n"+gmNk(nome);if(!k||k==="n")return null;const x=A[k]=A[k]||{k,mat:String(mat||""),nome:nome||"",perms:[],spk:0,ret:0,aeroRuas:0,aeroEnd:0,cc:0,corte:0,vld:null,dias:new Set()};if(nome&&!x.nome)x.nome=nome;if(mat&&!x.mat)x.mat=String(mat);return x;};
   (GM.users||[]).forEach(u=>{if(gestMats().indexOf(u.mat)>=0)return;if(!u.perms.some(p=>["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro"].indexOf(p)>=0))return;const x=aud(u.mat,u.nome||gmNomeDe(u.mat));x.perms=u.perms;});
   const byNome={};Object.values(A).forEach(x=>{byNome[gmNk(x.nome)]=x;});
-  const quem=r=>{if(r.Matricula_Auditor&&A["m"+r.Matricula_Auditor])return A["m"+r.Matricula_Auditor];const n=byNome[gmNk(r.Nome_Auditor)];if(n)return n;if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;};
+  const quem0=r=>{if(r.Matricula_Auditor&&A["m"+r.Matricula_Auditor])return A["m"+r.Matricula_Auditor];const n=byNome[gmNk(r.Nome_Auditor)];if(n)return n;if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;},quem=r=>{const x=quem0(r);if(x)x.part=(x.part||0)+1;return x;};
+  ["validade","cargas","aero"].forEach(a=>fxRows(D[a]).filter(noP).forEach(r=>quem(r)));
   const spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
   const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;if(r.Matricula_Colaborador){const x=quem({Matricula_Auditor:r.Matricula_Colaborador,Nome_Auditor:r.Nome_Colaborador});if(x)x.spk+=q;}});
   const ret=fxRows(D.retorno).filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
@@ -4162,10 +4163,10 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
     GM.vm.itens.forEach(([lg,t0,tf,st])=>{const nm=nome[lg]||lg;let x=byNome[gmNk(nm)];if(!x){x=aud("",nm);byNome[gmNk(nm)]=x;}const v=vA[x.k]=vA[x.k]||{dev:0,ok:0,atr:0,pend:0,feitos:0};
       if(st==="P"){v.pend++;if(t0&&now-t0>pr){v.atr++;vT.atr++;}}if(st==="A"&&tf>=P.de&&tf<P.ate)v.feitos++;
       if(t0){const dl=t0+pr;if(dl>=P.de&&dl<lim){v.dev++;vT.dev++;if(st==="A"&&tf&&tf<=dl){v.ok++;vT.ok++;}}}});
-    Object.entries(vA).forEach(([k,v])=>{A[k].vld=v;});}
+    Object.entries(vA).forEach(([k,v])=>{A[k].vld=v;if(v.feitos||v.ok)A[k].part=(A[k].part||0)+1;});}
   const porNm={};(GM.users||[]).forEach(u=>{porNm[gmNk(u.nome)]=porNm[gmNk(u.nome)]||{mat:u.mat,nome:u.nome};});try{C.mat.forEach((m,i)=>{const k=gmNk(C.nome[i]);if(k&&!porNm[k])porNm[k]={mat:String(m),nome:C.nome[i]};});}catch(e){}
   Object.values(A).forEach(x=>{if(!x.nome||/^\d+$/.test(String(x.nome).trim())){const n=gmNomeDe(x.mat||x.nome);if(n){if(!x.mat)x.mat=String(x.nome).trim();x.nome=n;}}const u=porNm[gmNk(x.nome)];if(u){if(!x.mat)x.mat=u.mat;if(String(u.nome).length>String(x.nome).length)x.nome=u.nome;}if(x.mat&&!x.nome){try{const i=cIdx.get(x.mat);if(i!=null)x.nome=C.nome[i];}catch(e){}}});
-  const L=Object.values(A).filter(x=>gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const L=Object.values(A).filter(x=>x.part>0&&gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
   const M={
     spk:{k:"spk",t:"Saldo de picking",esc:"Equipe",un:"itens",meta:c.spk*fat,real:spk.length+spkMan,sub:"Meta da equipe: "+c.spk.toLocaleString("pt-BR")+" itens auditados por semana"+(spkMan?" · inclui "+spkMan.toLocaleString("pt-BR")+" lançados manualmente":""),perm:"aud_spk",campo:"spk"},
     aero:{k:"aero",t:"Auditoria aéreo",esc:"Equipe",un:"ruas",meta:c.aeroRuas*fat,real:aeroRuas,sub:"Zerar o CD 2 vezes por semana: "+c.aeroRuas+" ruas ("+c.aeroEnd.toLocaleString("pt-BR")+" endereços) por semana",extra:"Equivalente a "+Math.round(aeroRuas/c.aeroRuas*c.aeroEnd).toLocaleString("pt-BR")+" de "+(c.aeroEnd*fat).toLocaleString("pt-BR")+" endereços",perm:"aud_aer",campo:"aeroRuas"},
@@ -4176,9 +4177,9 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   Object.values(M).forEach(m=>{if(m.k!=="vld"){m.pct=m.meta?m.real/m.meta:null;}m.rit=m.k==="vld"?1:rit;m.ref=m.pct==null?null:m.inv?(m.real>0?m.meta*Math.max(.05,m.rit)/m.real:2):m.pct/Math.max(.05,m.rit);});
   return {M,L,P,rit,du,fat};}
 /* resultado individual de um auditor numa meta */
-function gmInd(R,x,k){const m=R.M[k];if(k==="vld"){if(!x.vld||!x.vld.dev)return x.vld&&x.vld.pend?{real:null,meta:null,pct:null,txt:x.vld.pend+" pendente(s), nenhum prazo vencido no período"}:null;return {real:x.vld.ok,meta:x.vld.dev,pct:x.vld.ok/x.vld.dev,txt:x.vld.ok+" de "+x.vld.dev+" itens zerados no prazo"+(x.vld.atr?" · "+x.vld.atr+" atrasado(s) agora":"")};}
-  if(m.esc==="Individual"){const tem=x.perms.length?x.perms.indexOf(m.perm)>=0:x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.ind,pct:m.ind?x[m.campo]/m.ind:null};}
-  const tem=x.perms.length?x.perms.indexOf(m.perm)>=0:x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.meta,pct:m.pct,contrib:m.real?x[m.campo]/m.real:0,equipe:true};}
+function gmInd(R,x,k){const m=R.M[k];if(k==="vld"){if(!x.vld||!x.vld.dev)return x.vld&&x.vld.feitos?{real:null,meta:null,pct:null,txt:x.vld.feitos+" item(ns) auditado(s), nenhum prazo vencido no período"}:null;return {real:x.vld.ok,meta:x.vld.dev,pct:x.vld.ok/x.vld.dev,txt:x.vld.ok+" de "+x.vld.dev+" itens zerados no prazo"+(x.vld.atr?" · "+x.vld.atr+" atrasado(s) agora":"")};}
+  if(m.esc==="Individual"){const tem=x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.ind,pct:m.ind?x[m.campo]/m.ind:null};}
+  const tem=x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.meta,pct:m.pct,contrib:m.real?x[m.campo]/m.real:0,equipe:true};}
 function gmSit(ref,ab){if(ref==null)return {t:"Sem dados",c:"#64748B",n:-1};if(ref>=1)return {t:ab?"Dentro do ritmo":"Meta atingida",c:"#15803D",n:4};if(ref>=.9)return {t:ab?"Próximo do ritmo":"Próximo da meta",c:"#4D7C0F",n:3};if(ref>=.75)return {t:ab?"Abaixo do ritmo":"Abaixo da meta",c:"#A16207",n:2};if(ref>=.5)return {t:"Insatisfatório",c:"#C2410C",n:1};return {t:"Crítico",c:"#B91C1C",n:0};}
 function gmStatus(ref){if(ref==null)return {e:"⏳",t:"Sem dados",c:"#64748B",n:-1};if(ref>=1)return {e:"🤩",t:"Excelente",c:"#15803D",n:4};if(ref>=.9)return {e:"🙂",t:"Bom",c:"#65A30D",n:3};if(ref>=.75)return {e:"😐",t:"Atenção",c:"#CA8A04",n:2};if(ref>=.5)return {e:"😟",t:"Ruim",c:"#EA580C",n:1};return {e:"😡",t:"Crítico",c:"#DC2626",n:0};}
 const gmFmt=(m,v)=>v==null?"–":m.un==="R$"?BRL.format(v).replace(",00",""):m.un==="%"?Math.round(v*100)+"%":Math.round(v).toLocaleString("pt-BR");
@@ -4282,7 +4283,7 @@ function ncaLista(){const s=fxRows(FECH.dados&&FECH.dados.ncaud),ids=new Set(s.m
 function paintNCA(){const box=$("gm-nc");if(!box)return;gmPrep(paintNCA);
   const P=gmPeriodo("semana",-1),R=FECH.dados?gmCalc(P):null,pre=GM.ncPre;GM.ncPre=null;
   const sug=R?R.L.map(x=>({x,it:gmFbDados(R,x).filter(i=>i.si.n>=0&&i.si.n<=1)})).filter(o=>o.it.length):[];
-  const users=(GM.users||[]).filter(u=>gestMats().indexOf(u.mat)<0).map(u=>({mat:u.mat,nome:u.nome||gmNomeDe(u.mat)||u.mat})).concat(R?R.L.filter(x=>!x.perms.length).map(x=>({mat:x.mat,nome:x.nome})):[]);
+  const users=FECH.dados?gmCalc({de:Date.now()-60*864e5,ate:Date.now()+864e5,lab:"últimos 60 dias",per:"x"}).L.map(x=>({mat:x.mat,nome:x.nome})):[];
   const H=ncaLista();
   box.innerHTML='<div class="fx-c"><h3>Sugestões automáticas — '+esc(P.lab)+'</h3>'+(R?(sug.length?'<div class="gm-fbl">'+sug.map((o,i)=>'<div class="gm-fi" style="--st:'+o.it[0].si.c+'"><div class="gm-fe gm-pc">'+(o.it[0].pct==null?'–':Math.round(o.it[0].pct*100)+'%')+'</div><div class="gm-fn"><b>'+esc(gmTitulo(o.x.nome))+'</b><small>'+o.it.map(t=>esc(t.m.t)+': '+(t.pct==null?'–':Math.round(t.pct*100)+'%')+' — '+t.si.t+(t.equipe?' (meta da equipe)':'')).join(" · ")+'</small></div><div class="gm-fa"><button type="button" class="btn sm" data-ncs="'+i+'">Preencher NC</button></div></div>').join("")+'</div>':'<p class="fx-e">Nenhum auditor com indicador abaixo de 75% na semana encerrada.</p>'):'<p class="fx-e">Lendo a planilha…</p>')+'</div>'+
     '<form class="fx-c gm-nf" id="nca-f" style="margin-top:14px"><h3>Registrar não conformidade</h3>'+
