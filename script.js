@@ -2760,7 +2760,7 @@ let OCRW=null;
 async function ocrWorker(prog){if(OCRW)return OCRW;if(!window.Tesseract)await loadScript(OCR_JS);
   OCRW=await Tesseract.createWorker("eng",1,{langPath:OCR_LANG,gzip:true,logger:m=>{if(prog&&m&&m.status)prog(m);}});return OCRW;}
 /* lê as linhas do relatório: [Cod.End.] Dep Rua Prédio Nível Apto Bloq(N/S)… */
-function cntParse(txt){const out=[];String(txt||"").split(/\n/).forEach(l=>{let t=l.trim().split(/\s+/);const i0=t.findIndex(x=>/\d/.test(x));if(i0<0)return;t=t.slice(i0);const k=t.findIndex((x,i)=>i>=3&&/^[NS]{1,3}$/.test(x));if(k<3)return;
+function cntParse(txt,pp){const out=[];String(txt||"").split(/\n/).forEach(l=>{let t=l.trim().split(/\s+/);const i0=t.findIndex(x=>/\d/.test(x));if(i0<0)return;t=t.slice(i0);const k=t.findIndex((x,i)=>i>=3&&/^[NS]{1,3}$/.test(x));if(k<3)return;
     let a=t.slice(0,k).map(x=>x.replace(/\D/g,"")).filter(Boolean);
     /* "18" = Dep 1 + Rua 8 colados pela leitura */
     if(a.length>=5&&a[a.length-5]!=="1"&&/^1\d{1,2}$/.test(a[a.length-4]))a=a.slice(0,a.length-4).concat(["1",a[a.length-4].slice(1)],a.slice(-3));
@@ -2769,7 +2769,7 @@ function cntParse(txt){const out=[];String(txt||"").split(/\n/).forEach(l=>{let 
     if(nums.length<5)return;const cod=nums.length>=6?nums[nums.length-6]:"",[dep,rua,pre,niv,apt]=nums.slice(-5).map(x=>parseInt(x,10));
     if(!(dep>=1&&dep<=9&&rua>=1&&rua<=99&&pre>=1&&pre<=250&&niv>=1&&niv<=12&&apt>=1&&apt<=20))return;
     const pr=(t.slice(k).find(x=>/^\d{3,7}$/.test(x))||"");
-    out.push({cod:cod.length>=6?cod:"",cs:cod.length>=3?cod.slice(-3):"",prod:pr,rua:String(rua),pre,k:rua+"-"+pre+"-"+niv+"-"+apt,na:niv+"-"+apt});});
+    out.push({cod:cod.length>=6?cod:"",cs:cod.length>=3?cod.slice(-3):"",prod:pr,rua:String(rua),pre,k:rua+"-"+pre+"-"+niv+"-"+apt,na:niv+"-"+apt,i:out.length,p:pp||"A"});});
   return out;}
 /* descarta leituras fora de lugar: o relatório vem em ordem de prédio, então um prédio muito distante dos outros da mesma rua é erro de leitura (ex.: "4" no lugar de "44") */
 /* identidade da linha impressa: final do Cod.End. ou código do produto + nível/apto (a mesma linha lida duas vezes não conta duas vezes) */
@@ -2780,7 +2780,11 @@ function cntLimpa(L){const por={};L.forEach(x=>{(por[x.rua]=por[x.rua]||[]).push
   Object.entries(por).forEach(([r,P])=>{const o=P.slice().sort((a,b)=>a-b);if(o.length<4){ok[r]=new Set(o);return;}const cl=[[o[0]]];for(let i=1;i<o.length;i++){if(o[i]-o[i-1]>5)cl.push([]);cl[cl.length-1].push(o[i]);}
     ok[r]=new Set(cl.filter(c=>c.length>=Math.max(2,o.length*.25)).flat());});
   let M=L.filter(x=>ok[x.rua].has(x.pre));const cont={};M.forEach(x=>cont[x.rua]=(cont[x.rua]||0)+1);const dom=Object.entries(cont).sort((a,b)=>b[1]-a[1])[0];
-  if(dom){const dp=M.filter(x=>x.rua===dom[0]).map(x=>x.pre),mn=Math.min(...dp),mx=Math.max(...dp);M=M.filter(x=>x.rua===dom[0]||cont[x.rua]>Math.max(2,dom[1]*.25)||x.pre<mn-2||x.pre>mx+2);}
+  /* rua secundária só vale se tiver 3+ linhas em bloco contínuo (o relatório é ordenado por rua); linha de outra rua no meio da rua principal é leitura errada (ex.: 15 lido como 16) */
+  if(dom){const D=dom[0],vale=r=>{if(r===D)return true;const RR=M.filter(x=>x.rua===r);if(RR.length<3)return false;
+      for(const ps of ["A","B"]){const id=RR.filter(x=>x.p===ps).map(x=>x.i);if(!id.length)continue;const a=Math.min(...id),b=Math.max(...id),P=M.filter(x=>x.p===ps);
+        if(P.some(x=>x.rua!==r&&x.i>a&&x.i<b))return false;if(P.some(x=>x.rua===D&&x.i<a)&&P.some(x=>x.rua===D&&x.i>b))return false;}
+      return true;};const okR={};Object.keys(cont).forEach(r=>okR[r]=vale(r));M=M.filter(x=>okR[x.rua]);}
   return M;}
 function cntCanvas(img,rot,crop){const w=img.width,h=img.height,rw=rot%180?h:w,rh=rot%180?w:h;const c=document.createElement("canvas");c.width=rw;c.height=rh;const g=c.getContext("2d");
   g.translate(rw/2,rh/2);g.rotate(rot*Math.PI/180);g.drawImage(img,-w/2,-h/2);g.setTransform(1,0,0,1,0,0);
@@ -2802,7 +2806,7 @@ async function cntLerFoto(file,prog){const img=await cntImg(file),W=await ocrWor
     if(!best||L.length>best.L.length)best={r,L};if(L.length>=3)break;}
   if(!best||!best.L.length)return {linhas:[],rot:null};best.L=cntJunta(best.L);
   const c0=best.L.map(x=>parseInt(x.cod,10)).filter(n=>n>99999).sort((a,b)=>a-b),md=c0[c0.length>>1],cods=c0.filter(n=>Math.abs(n-md)<=60),esp=cods.length>=2?Math.max(...cods)-Math.min(...cods)+1:0;
-  {prog&&prog("Conferindo a leitura (2ª passada)…");const cv=cntPrep(cntCanvas(img,best.r,[0,0,.5,1]),"bin");const {data}=await W.recognize(cv);const L2=cntParse(data.text),ks=new Set(best.L.map(x=>x.k));best.L=cntJunta(best.L,L2);}
+  {prog&&prog("Conferindo a leitura (2ª passada)…");const cv=cntPrep(cntCanvas(img,best.r,[0,0,.5,1]),"bin");const {data}=await W.recognize(cv);const L2=cntParse(data.text,"B"),ks=new Set(best.L.map(x=>x.k));best.L=cntJunta(best.L,L2);}
   best.L=cntLimpa(best.L);
   let dataRel="";try{await W.setParameters({tessedit_char_whitelist:"0123456789/: ",tessedit_pageseg_mode:"6"});const cv=cntPrep(cntCanvas(img,best.r,[.55,0,1,.16]),"norm");const {data}=await W.recognize(cv);const m=data.text.match(/(\d{2})\/(\d{2})\/(20\d{2})/);if(m)dataRel=m[1]+"/"+m[2]+"/"+m[3];}catch(e){}
   return {linhas:best.L,rot:best.r,dataRel,esp};}
