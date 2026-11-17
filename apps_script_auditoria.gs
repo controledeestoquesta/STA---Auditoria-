@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 61)
+ * Auditoria STA – Santa Therezinha (versão 62)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -170,6 +170,21 @@ function vlcMinhas(sessao, todos) {
   const pend = {}; itens.forEach(function (i) { pend[i.id] = 1; });
   return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(todos && adm ? null : sessao.matricula).filter(function (x) { return pend[x.id]; }) };
 }
+/* ---- NC dos auditores: muda a situação (Aplicada / Dispensada) ---- */
+function ncaudStatus(d) {
+  const sh = abrirPlanilha().getSheetByName(ABAS.ncaud.nome);
+  if (!sh || sh.getLastRow() < 2) return { ok: false, erro: 'A NC ainda não chegou na planilha. Tente de novo em instantes.' };
+  let cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  ['Status', 'Aplicada_Em', 'Aplicada_Por'].forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  const ci = cab.indexOf('ID_Auditoria'), ids = sh.getRange(2, ci + 1, sh.getLastRow() - 1, 1).getDisplayValues();
+  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]).trim() === String(d.id)) {
+    sh.getRange(i + 2, cab.indexOf('Status') + 1).setValue(String(d.status || ''));
+    sh.getRange(i + 2, cab.indexOf('Aplicada_Em') + 1).setNumberFormat('@').setValue(String(d.aplicadaEm || ''));
+    sh.getRange(i + 2, cab.indexOf('Aplicada_Por') + 1).setValue(String(d.aplicadaPor || ''));
+    return { ok: true };
+  }
+  return { ok: false, erro: 'A NC ainda não chegou na planilha. Tente de novo em instantes.' };
+}
 /* ---- Metas da validade: itens da convocação por auditor (data da atribuição/operação, data da conclusão, status) ---- */
 function vlcData(x) {
   if (x instanceof Date) return x.getTime();
@@ -331,7 +346,7 @@ function solResponder(id, qtd, resultado, sessao) {
 }
 ABAS.ncaud = {
   nome: 'NC_Auditores', perm: ['ce_gest', 'aud_adm'],
-  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Nome_Auditor', 'Matricula_Colaborador', 'Nome_Colaborador', 'Tipo', 'Meta', 'Periodo', 'Meta_Valor', 'Realizado', 'Percentual', 'Descricao', 'Medida', 'Prazo', 'Status', 'Recebido_Em'],
+  colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Nome_Auditor', 'Matricula_Colaborador', 'Nome_Colaborador', 'Tipo', 'Meta', 'Periodo', 'Meta_Valor', 'Realizado', 'Percentual', 'Descricao', 'Medida', 'Prazo', 'Status', 'Recebido_Em', 'Origem', 'Chave', 'Aplicada_Em', 'Aplicada_Por'],
   texto: ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Auditor', 'Matricula_Colaborador', 'Prazo']
 };
 ABAS.spkh = {
@@ -412,6 +427,10 @@ function doPost(e) {
       const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
       try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
+  if (dados.acao === 'ncaud_status') {
+    if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
+    try { return resposta(ncaudStatus(dados)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'vlc_metas') {
     if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
@@ -586,7 +605,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 61, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 62, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
