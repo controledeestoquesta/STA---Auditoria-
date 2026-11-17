@@ -2957,7 +2957,7 @@ function fxSaldo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r
   const top=conf.filter(r=>r.Situacao!=="OK").sort((a,b)=>Math.abs(pnum(b.Valor_Diferenca))-Math.abs(pnum(a.Valor_Diferenca))).slice(0,8);
   const nBloq=spkBloq(rows).length;
   return '<div class="fxq-cmp no-print"><button type="button" id="fxk-exp"'+(nBloq?"":" disabled")+'>Exportar lista de bloqueio das faltas ('+nBloq+' itens)</button></div>'+fxHead(tit,rows.length)+
-    fxKpis([{t:"Itens auditados",v:uni.size,c:"#0F172A",s:rows.length+" lançamentos · "+dias.length+" dia(s)"},
+    fxKpis([{t:"Total auditado",v:rows.length.toLocaleString("pt-BR"),c:"#0F172A",s:uni.size.toLocaleString("pt-BR")+" itens diferentes · "+dias.length+" dia(s)"},
       {t:"Itens × divergentes",v:uni.size+' <em class="kx">×</em> <em class="kd">'+divU.size+'</em>',c:"#0369A1",s:(uni.size?(divU.size/uni.size*100).toFixed(1).replace(".",","):"0")+"% dos itens com divergência"},
       {t:"Sem divergência",v:semDiv,c:"#16A34A",s:"acuracidade "+(uni.size?(semDiv/uni.size*100).toFixed(1).replace(".",",")+"%":"—")+" · "+conf.length+" conferência(s)"},
       {t:"Sobras",v:BRL.format(vv(so)),c:"#CA8A04",s:so.length+" item(ns) · "+un(so).toLocaleString("pt-BR")+" un"},
