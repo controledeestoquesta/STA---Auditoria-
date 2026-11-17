@@ -134,7 +134,7 @@ function aplicarPerms(){setTimeout(gestAplicar,0);try{paintXnc();}catch(e){}let 
   const fa=$("f-aba");if(fa){const pv=v=>podeVer(v==="validade"?"vla":v);[...fa.options].forEach(o=>o.hidden=!pv(o.value));if(!pv(fa.value)){const o=[...fa.options].find(x=>pv(x.value));if(o)fa.value=o.value;}}}
 async function sha256(s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}catch(e){return "";}}
 function lgMsg(m){$("lg-msg").textContent=m||"";}
-function entrar(){setTimeout(()=>carregarApoio(),500);store.set("audcd_login",LOGIN);auditor=LOGIN.mat;store.set("audcd_auditor",auditor);$("login").hidden=true;aplicarPerms();paintWho();go("inicio");renderRecords();store.set("audcd_ultmat",LOGIN.mat);toast("Olá, "+String(nomeAud()).split(" ")[0]+".");setTimeout(()=>sheetSync(),300);setTimeout(()=>novMostrar(),900);}
+function entrar(){setTimeout(()=>carregarApoio(),500);store.set("audcd_login",LOGIN);auditor=LOGIN.mat;store.set("audcd_auditor",auditor);$("login").hidden=true;aplicarPerms();paintWho();go("inicio");renderRecords();store.set("audcd_ultmat",LOGIN.mat);toast("Olá, "+String(nomeAud()).split(" ")[0]+".");setTimeout(()=>sheetSync(),300);setTimeout(()=>novMostrar(),900);setTimeout(()=>{if(!DEMO&&SHEET_URL&&navigator.onLine)carregarFech(false);},5000);}
 async function fazerLogin(){
   const mat=$("lg-mat").value.replace(/\D/g,""),sen=$("lg-sen").value.trim();lgMsg("");
   if(!mat||!sen){lgMsg("Informe matrícula e senha.");return;}
@@ -452,11 +452,11 @@ async function sheetSync(all){
         try{res=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:batch.map(toSheet)}));}
         catch(e){const m=(e&&e.message)||"";if(/sem internet|faça login|página de erro|não liberou|não confirmou/i.test(m))throw e;
           // erro só deste lote (ex.: setor novo sem a versão do Apps Script): envia um por um e segue com os demais
-          for(const r of batch){try{const r1=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:[toSheet(r)]}));if((r1.rejeitados||[]).length)throw new Error(r1.rejeitados[0].erro);r._sheet=SHEET_URL;r._sheetErr="";await histPut(r);sent++;}
+          for(const r of batch){try{const r1=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:[toSheet(r)]}));if((r1.rejeitados||[]).length)throw new Error(r1.rejeitados[0].erro);r._sheet=SHEET_URL;r._envEm=Date.now();r._sheetErr="";await histPut(r);sent++;}
             catch(x){r._sheetErr=(x&&x.message)||"erro";errSync=r._sheetErr+" (setor: "+(r._aba||"ruas")+")";}}
           continue;}
         const rej=new Map((res.rejeitados||[]).map(x=>[String(x.id),x.erro]));
-        for(const r of batch){if(rej.has(String(r.ID_Auditoria))){r._sheetErr=rej.get(String(r.ID_Auditoria));errSync=r._sheetErr+" (setor: "+(r._aba||"ruas")+")";continue;}r._sheet=SHEET_URL;r._sheetErr="";await histPut(r);sent++;}
+        for(const r of batch){if(rej.has(String(r.ID_Auditoria))){r._sheetErr=rej.get(String(r.ID_Auditoria));errSync=r._sheetErr+" (setor: "+(r._aba||"ruas")+")";continue;}r._sheet=SHEET_URL;r._envEm=Date.now();r._sheetErr="";await histPut(r);sent++;}
         if(res.confirmado){lastSheetOk=fmtDT(new Date()).slice(0,16);store.set("audcd_sheet_ok",lastSheetOk);}
       }
     }while(syncAgain);
@@ -956,12 +956,18 @@ function bindFech(){fxMobBind();document.querySelectorAll("[data-fx]").forEach(b
   $("fx-pr").onclick=()=>{if(!FECH.dados){toast("Carregue os dados primeiro.");return;}const tit=FX_TIT[FECH.tipo];
     const wide=FECH.tipo==="val";openDoc({html:'<div class="pd fx">'+fxRelatorio()+'</div>',multi:false,land:!wide,wide,name:"Fechamento_"+tit.replace(/\s+/g,"_")+"_"+FECH.de+"_a_"+FECH.ate+".pdf",title:"Fechamento – "+tit,
       short:"Fechamento – "+tit+" – "+fdISO(FECH.de)+" a "+fdISO(FECH.ate),text:"*FECHAMENTO – "+tit.toUpperCase()+"*\nPeríodo: "+fdISO(FECH.de)+" a "+fdISO(FECH.ate)});};}
+/* o que foi apagado na planilha Google sai também do aparelho (só lançamentos já enviados, com mais de 15 min) */
+function histReconciliar(j){if(!j||!j.ok)return 0;const ids={};
+  ["ruas","retorno","cargas","aero","pp","sac","procura","adega","contagem","saldo","solicit","validade","ncaud","feedback"].forEach(a=>{const b=j[a];if(!b||!Array.isArray(b.colunas)||b.colunas.length<2||!Array.isArray(b.registros))return;const i=b.colunas.indexOf("ID_Auditoria");if(i<0)return;ids[a]=new Set(b.registros.map(r=>String(r[i]==null?"":r[i]).trim()));});
+  const lim=Date.now()-15*6e4;let n=0;
+  [...HIST.values()].forEach(r=>{const a=r._aba||"ruas";if(!ids[a]||r._sheet!==SHEET_URL||(r.ts||0)>lim||(r._envEm||0)>lim)return;if(!ids[a].has(String(r.ID_Auditoria).trim())){HIST.delete(r.ID_Auditoria);IDB.del(r.ID_Auditoria).catch(()=>{});n++;}});
+  if(n){try{renderRecords();}catch(e){}try{if(!$("v-cnt").hidden)paintCNT();}catch(e){}}return n;}
 async function carregarFech(manual){if(FECH.busy)return;
   if(DEMO||!SHEET_URL){FECH.info="O fechamento lê a planilha pelo site, com login de administrador.";renderFech();return;}
   if(!navigator.onLine){FECH.info=FECH.dados?"Sem internet: mostrando a última cópia da planilha.":"Sem internet.";renderFech();return;}
   FECH.busy=true;if(!FECH.dados)renderFech();const inf=$("fx-info");if(inf)inf.textContent="Atualizando com a planilha…";
   try{const r=await fetch(SHEET_URL+(SHEET_URL.includes("?")?"&":"?")+"acao=fechamento&token="+encodeURIComponent((LOGIN&&LOGIN.token)||"")+"&t="+Date.now(),{cache:"no-store"});const j=await r.json();
-    if(j&&j.ok&&j.ruas){FECH.dados=j;aplicarQuadroPlanilha(j.quadro);FECH.info="Planilha Google · atualizado "+fmtDT(new Date()).slice(0,16)+" · Ruas "+((j.ruas.registros||[]).length)+" · Retorno "+((j.retorno&&j.retorno.registros||[]).length)+" · Cargas "+((j.cargas&&j.cargas.registros||[]).length)+" · Rotina "+((j.rotina||[]).length)+" linhas";
+    if(j&&j.ok&&j.ruas){FECH.dados=j;FECH.fresh=Date.now();try{histReconciliar(j);}catch(e){}aplicarQuadroPlanilha(j.quadro);FECH.info="Planilha Google · atualizado "+fmtDT(new Date()).slice(0,16)+" · Ruas "+((j.ruas.registros||[]).length)+" · Retorno "+((j.retorno&&j.retorno.registros||[]).length)+" · Cargas "+((j.cargas&&j.cargas.registros||[]).length)+" · Rotina "+((j.rotina||[]).length)+" linhas";
       IDB.set("fech_cache",{dados:j,info:FECH.info}).catch(()=>{});if(manual)toast("Fechamento atualizado.");}
     else FECH.info=(j&&j.erro)||"Atualize o Apps Script para a versão 12 para usar o fechamento.";
   }catch(e){FECH.info=FECH.dados?"Sem conexão com a planilha: mostrando a última cópia.":"Sem conexão com a planilha.";}
@@ -1017,7 +1023,7 @@ async function carregarReg(manual){if(REG.busy)return;if(DEMO||!SHEET_URL){REG.i
   if(!navigator.onLine){REG.info=REG.rows?"Sem internet: mostrando a última cópia da planilha.":"Sem internet.";renderRecords();return;}
   REG.busy=true;REG.info="Lendo a planilha Google…";renderRecords();
   try{const r=await fetch(SHEET_URL+(SHEET_URL.includes("?")?"&":"?")+"acao=fechamento&token="+encodeURIComponent((LOGIN&&LOGIN.token)||"")+"&t="+Date.now(),{cache:"no-store"});const j=await r.json();
-    if(j&&j.ok&&j.ruas){REG.rows=j;REG.info="Planilha Google · atualizado "+fmtDT(new Date()).slice(0,16);if(manual)toast("Registros atualizados com a planilha.");}else REG.info=(j&&j.erro)||"Atualize o Apps Script para a versão 14.";}
+    if(j&&j.ok&&j.ruas){REG.rows=j;try{histReconciliar(j);}catch(e){}REG.info="Planilha Google · atualizado "+fmtDT(new Date()).slice(0,16);if(manual)toast("Registros atualizados com a planilha.");}else REG.info=(j&&j.erro)||"Atualize o Apps Script para a versão 14.";}
   catch(e){REG.info="Sem conexão com a planilha.";}REG.busy=false;renderRecords();}
 function ncListaHTML(L,lab,tit){const ruas=L.filter(r=>(r._aba||"ruas")==="ruas").sort((a,b)=>a.ts-b.ts),ret=L.filter(r=>r._aba==="retorno").sort((a,b)=>a.ts-b.ts),car=L.filter(r=>r._aba==="cargas").sort((a,b)=>a.ts-b.ts),aer=L.filter(r=>r._aba==="aero").sort((a,b)=>a.ts-b.ts);
   const oc=r=>[pbool(r.Erro_Produto)?"Lugar errado"+(r.Endereco_Correto?" (correto "+fmtAddr(r.Endereco_Correto)+")":""):"",pbool(r.Prox_Vencimento)?"Vencimento"+(r.Data_Vencimento?" "+r.Data_Vencimento:""):"",pbool(r.Sem_Saldo)?"Sem saldo":"",pbool(r.Avaria)?"Avaria"+(r.Tipo_Avaria?" ("+r.Tipo_Avaria+")":""):""].filter(Boolean).join("; ")||"Conforme";
@@ -4161,7 +4167,7 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   const M={
     spk:{k:"spk",t:"Saldo de picking",esc:"Equipe",un:"itens",meta:c.spk*fat,real:spk.length,sub:"Meta da equipe: "+c.spk.toLocaleString("pt-BR")+" itens auditados por semana",perm:"aud_spk",campo:"spk"},
     aero:{k:"aero",t:"Auditoria aéreo",esc:"Equipe",un:"ruas",meta:c.aeroRuas*fat,real:aeroRuas,sub:"Zerar o CD 2 vezes por semana: "+c.aeroRuas+" ruas ("+c.aeroEnd.toLocaleString("pt-BR")+" endereços) por semana",extra:"Equivalente a "+Math.round(aeroRuas/c.aeroRuas*c.aeroEnd).toLocaleString("pt-BR")+" de "+(c.aeroEnd*fat).toLocaleString("pt-BR")+" endereços",perm:"aud_aer",campo:"aeroRuas"},
-    corte:{k:"corte",t:"Corte logístico",esc:"Equipe",un:"R$",inv:true,meta:c.corte*fat,real:corte,sub:"Limite máximo (quanto menor, melhor): "+BRL.format(c.corte).replace(",00","")+" por semana · valor não encontrado na Procura",perm:"aud_pro",campo:"corte"},
+    corte:{k:"corte",t:"Corte logístico",esc:"Equipe",un:"R$",inv:true,meta:c.corte*fat,real:corte,sub:"Valor final do corte (Procura) · limite máximo de "+BRL.format(c.corte).replace(",00","")+" por semana — quanto menor, melhor",perm:"aud_pro",campo:"corte"},
     cc:{k:"cc",t:"Cara crachá — ruas",esc:"Equipe",un:"ruas",meta:c.ccDia*du,real:cc,sub:"Auditoria de ruas: "+c.ccDia+" ruas por dia útil · "+du+" dias úteis",perm:"aud_rua",campo:"cc"},
     ret:{k:"ret",t:"Auditoria de retorno",esc:"Equipe",un:"auditorias",meta:c.retDia*du,real:ret.length,sub:"Total de auditorias: "+c.retDia+" por dia útil · "+du+" dias úteis",perm:"aud_ret",campo:"ret"},
     vld:{k:"vld",t:"Validade — convocação ativa",esc:"Individual",un:"%",meta:1,real:vT.dev?vT.ok/vT.dev:null,pct:vT.dev?vT.ok/vT.dev:null,sub:"Atribuições zeradas em até "+c.vldDias+" dias · "+vT.ok+" de "+vT.dev+" no prazo"+(vT.atr?" · "+vT.atr+" atrasados agora":""),perm:"aud_vld",campo:"vld",semDados:!GM.vm?(GM.vmErr||"Carregando a planilha de validade…"):(!vT.dev?"Nenhum prazo de convocação venceu neste período.":"")}};
@@ -4198,8 +4204,8 @@ function gmPerBar(){return '<div class="gm-bar"><div class="seg" role="group"><b
   '<button type="button" class="btn sm" id="gm-upd">Atualizar</button></div>';}
 function gmBindBar(fn){document.querySelectorAll("[data-gper]").forEach(b=>b.onclick=()=>{GM.per=b.dataset.gper;GM.off=0;fn();});document.querySelectorAll("[data-goff]").forEach(b=>b.onclick=()=>{GM.off=Math.min(0,GM.off+ +b.dataset.goff);fn();});
   const u=$("gm-upd");if(u)u.onclick=async()=>{u.disabled=true;u.textContent="Atualizando…";GM.users=null;await Promise.all([carregarFech(true),gmUsuarios(),gmValidade(true)]);fn();};}
-async function gmPrep(fn){if(GM.busy)return;const falta=!FECH.dados||!GM.cfg||!GM.users||!GM.vm;if(!falta)return;GM.busy=true;
-  await Promise.all([FECH.dados?0:carregarFech(false),gmCarregarCfg(),gmUsuarios(),gmValidade()]);GM.busy=false;fn();}
+async function gmPrep(fn){if(GM.busy)return;const falta=!FECH.dados||!FECH.fresh||!GM.cfg||!GM.users||!GM.vm;if(!falta)return;GM.busy=true;
+  await Promise.all([FECH.fresh?0:carregarFech(false),gmCarregarCfg(),gmUsuarios(),gmValidade()]);GM.busy=false;fn();}
 function paintMetas(){const box=$("gm-metas");if(!box)return;gmPrep(paintMetas);
   if(!FECH.dados){box.innerHTML=gmPerBar()+'<div class="nw-sk">'+'<div></div>'.repeat(6)+'</div><p class="note">Lendo a planilha Google…</p>';gmBindBar(paintMetas);return;}
   const P=gmPeriodo(GM.per,GM.off),R=gmCalc(P),Ms=Object.values(R.M),c=gmCfg();
