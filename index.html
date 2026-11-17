@@ -25,6 +25,7 @@
 <div class="band"><div class="band-in"><h1 id="band-t">Auditoria de ruas</h1><p id="band-p">Inicie a rua e lance os endereços em sequência.</p></div></div>
 
 <main>
+  <section class="view" id="v-inicio" hidden><div id="home"></div></section>
   <section class="view" id="v-ruas">
     <div class="block sess" id="sess-box"></div>
     <div class="block">
@@ -535,6 +536,7 @@
 </main>
 
 <nav aria-label="Seções">
+  <button type="button" data-v="inicio">Início</button>
   <button type="button" data-v="ruas" aria-current="page">Ruas</button>
   <button type="button" data-v="retorno" hidden>Retorno</button>
   <button type="button" data-v="cnt" hidden>Contagem</button>
