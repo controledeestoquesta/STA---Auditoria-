@@ -2808,27 +2808,30 @@ async function cntLerFoto(file,prog){const img=await cntImg(file),W=await ocrWor
   return {linhas:best.L,rot:best.r,dataRel,esp};}
 /* agregação por dia: endereços lidos das fotos (sem repetir) + ruas digitadas no método antigo (pela base) */
 function cntAgrega(rows,keyFn){const dias={};rows.forEach(r=>{const k=keyFn(r);const x=dias[k]=dias[k]||{ts:r.ts,ruas:new Set(),ends:new Set(),man:new Set(),aud:new Set()};
-    if(r.Metodo==="Foto"){String(r.Enderecos||"").split(",").filter(Boolean).forEach(e=>{x.ends.add(e);x.ruas.add(e.split("-")[0]);});}
-    else String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(rr=>{x.man.add(rr);x.ruas.add(rr);});if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
-  Object.values(dias).forEach(x=>{const fr=new Set([...x.ends].map(e=>e.split("-")[0]));x.end=x.ends.size+cntEnd([...x.man].filter(r=>!fr.has(r)));});return dias;}
+    String(r.Ruas||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(rr=>{x.man.add(rr);x.ruas.add(rr);});if(r.Nome_Auditor)x.aud.add(curto(r.Nome_Auditor));});
+  Object.values(dias).forEach(x=>{x.end=cntEnd([...x.ruas]);});return dias;}
 const CNT={fila:[],busy:false};
 function cntFotoUI(){const box=$("n-fotos");if(!box)return;const hoje=fdISO(todayISO());
   const recs=allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto"&&String(r.Matricula_Auditor)===String(auditor));
   const ag=cntAgrega(recs,()=>"d")["d"]||{ruas:new Set(),end:0};
-  box.innerHTML='<div class="cnt-prev"><div><span>Ruas lidas hoje</span><b>'+ag.ruas.size+'</b><small>'+([...ag.ruas].sort((a,b)=>a-b).join(", ")||"nenhuma ainda")+'</small></div><div><span>Endereços lidos hoje</span><b>'+(ag.end||0).toLocaleString("pt-BR")+'</b><small>sem repetir endereço</small></div></div>'+
+  box.innerHTML='<div class="cnt-prev"><div><span>Ruas auditadas hoje</span><b>'+ag.ruas.size+'</b><small>'+([...ag.ruas].sort((a,b)=>a-b).join(", ")||"nenhuma ainda")+'</small></div><div><span>Endereços auditados hoje</span><b>'+(ag.end||0).toLocaleString("pt-BR")+'</b><small>pela base de cada rua</small></div></div>'+
     (CNT.fila.length?'<div class="cnt-fila">'+CNT.fila.map(f=>'<div class="cnt-f '+(f.st||"")+'"><img src="'+f.th+'" alt=""><div><b>'+esc(f.titulo||"Foto")+'</b><small>'+esc(f.msg||"")+'</small></div></div>').join("")+'</div>':'');}
 async function cntProcessar(){if(CNT.busy)return;CNT.busy=true;try{for(const f of CNT.fila.filter(x=>!x.st)){f.st="lendo";f.msg="Preparando a leitura…";cntFotoUI();
       try{const R=await cntLerFoto(f.file,m=>{f.msg=typeof m==="string"?m:(m.status==="recognizing text"?"Lendo… "+Math.round((m.progress||0)*100)+"%":"Carregando o leitor…");cntFotoUI();});
         if(!R.linhas.length){f.st="erro";f.titulo="Não consegui ler esta foto";f.msg="Tire outra foto mais de perto, com boa luz, a folha inteira e reta. Ela não foi contada.";cntFotoUI();continue;}
-        const hoje=fdISO(todayISO()),ja=new Set();allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto").forEach(r=>String(r.Enderecos||"").split(",").forEach(e=>ja.add(e)));
-        const novos=[...new Set(R.linhas.map(x=>x.k))].filter(k=>!ja.has(k)),ruas=[...new Set(R.linhas.map(x=>x.rua))].sort((a,b)=>a-b);
-        if(!novos.length){f.st="aviso";f.titulo="Foto repetida";f.msg="Os "+R.linhas.length+" endereços desta folha já foram contados hoje. Nada foi somado.";cntFotoUI();continue;}
-        const now=new Date(),rn=[...new Set(novos.map(k=>k.split("-")[0]))].sort((a,b)=>a-b);const velho=R.dataRel&&R.dataRel!==hoje;
-        const rec={_aba:"contagem",ID_Auditoria:newId("CNT"),Data:hoje,DataHora:fmtDT(now),ts:now.getTime(),_lanc:now.getTime(),Metodo:"Foto",Rua_Inicial:rn[0],Rua_Final:rn[rn.length-1],Ruas:rn.join(","),Qtd_Ruas:rn.length,Qtd_Enderecos:novos.length,
-          Enderecos:novos.join(","),Data_Relatorio:R.dataRel||"",Observacao:(velho?"Relatório emitido em "+R.dataRel+". ":"")+(R.esp>R.linhas.length&&R.esp-R.linhas.length<=30?"Linhas na folha (pelo Cod.End.): "+R.esp+", lidas: "+R.linhas.length+".":""),
+        const hoje=fdISO(todayISO()),ja=new Set();allRecs().filter(r=>r._aba==="contagem"&&r.Data===hoje&&r.Metodo==="Foto").forEach(r=>String(r.Ruas||"").split(",").forEach(e=>e&&ja.add(e.trim())));
+        /* rua reconhecida = aparece em pelo menos 2 linhas da folha (ou é a única lida) e existe na base */
+        const qt={};R.linhas.forEach(x=>qt[x.rua]=(qt[x.rua]||0)+1);
+        const ruas=Object.keys(qt).filter(r=>RUA_ENDS[r]&&(qt[r]>=2||Object.keys(qt).length===1)).sort((a,b)=>a-b);
+        if(!ruas.length){f.st="erro";f.titulo="Não reconheci a rua";f.msg="Tire outra foto mais de perto, com boa luz, a folha inteira e reta. Ela não foi contada.";cntFotoUI();continue;}
+        const rn=ruas.filter(r=>!ja.has(r));
+        if(!rn.length){f.st="aviso";f.titulo="Rua "+ruas.join(", ")+" já contada hoje";f.msg="Nada foi somado.";cntFotoUI();continue;}
+        const now=new Date(),velho=R.dataRel&&R.dataRel!==hoje,nEnd=cntEnd(rn);
+        const rec={_aba:"contagem",ID_Auditoria:newId("CNT"),Data:hoje,DataHora:fmtDT(now),ts:now.getTime(),_lanc:now.getTime(),Metodo:"Foto",Rua_Inicial:rn[0],Rua_Final:rn[rn.length-1],Ruas:rn.join(","),Qtd_Ruas:rn.length,Qtd_Enderecos:nEnd,
+          Enderecos:[...new Set(R.linhas.filter(x=>rn.includes(x.rua)).map(x=>x.k))].join(","),Data_Relatorio:R.dataRel||"",Observacao:(velho?"Relatório emitido em "+R.dataRel+". ":"")+"Endereços pela base da rua.",
           Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:false,fotos:[f.foto]};
-        await saveRec(rec);f.st="ok";f.titulo="Rua "+ruas.join(", ")+" · "+novos.length+" endereço(s) contado(s)";
-        f.msg=(R.linhas.length>novos.length?(R.linhas.length-novos.length)+" já contado(s) antes. ":"")+(R.dataRel?"Relatório de "+R.dataRel+(velho?" (não é de hoje)":"")+".":"")+(R.esp>R.linhas.length&&R.esp-R.linhas.length<=30?" Atenção: a folha parece ter "+R.esp+" linhas e li "+R.linhas.length+"; se faltou alguma, tire outra foto mais de perto.":"");}
+        await saveRec(rec);f.st="ok";f.titulo="Rua "+rn.join(", ")+" auditada · "+nEnd.toLocaleString("pt-BR")+" endereços";
+        f.msg=(rn.length<ruas.length?"Rua "+ruas.filter(r=>ja.has(r)).join(", ")+" já contada hoje. ":"")+(R.dataRel?"Relatório de "+R.dataRel+(velho?" (não é de hoje)":"")+".":"");}
       catch(e){f.st="erro";f.titulo="Erro na leitura";f.msg=(e&&e.message)||String(e);}
       cntFotoUI();}}finally{CNT.busy=false;paintCNT();}}
 async function cntAddFotos(files){for(const file of files){const th=await fotoMini(file,160).catch(()=>""),foto=await fotoMini(file,1400).catch(()=>"");CNT.fila.unshift({file,th,foto,titulo:file.name||"Foto",msg:"Na fila de leitura…"});}cntFotoUI();cntProcessar();}
