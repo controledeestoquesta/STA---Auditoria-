@@ -1,12 +1,13 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v136';
+const VERSION = 'sta-v137';
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png',
   './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './cesta.html', './liberacao.html', './devolucoes.html'];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(VERSION);
-    await c.addAll(CORE);
+    // cache:'reload' ignora o cache do navegador: a versão nova nunca guarda arquivos antigos
+    await c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })));
     await self.skipWaiting();
   })());
 });
@@ -44,7 +45,7 @@ async function fastFirst(req) {
   const c = await caches.open(VERSION);
   const cached = (await c.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? await c.match('./index.html') : undefined);
   if (cached) return cached;
-  try { const r = await fetch(req); if (r && r.ok) c.put(req, r.clone()); return r; } catch (e) { return networkFirst(req); }
+  try { const r = await fetch(req, { cache: 'no-cache' }); if (r && r.ok) c.put(req, r.clone()); return r; } catch (e) { return networkFirst(req); }
 }
 
 // Bibliotecas e fontes: usa a cópia salva; baixa só na primeira vez.
