@@ -29,6 +29,7 @@
   <section class="view" id="v-metas" hidden><div id="gm-metas"></div></section>
   <section class="view" id="v-feedback" hidden><div id="gm-fb"></div></section>
   <section class="view" id="v-ncaud" hidden><div id="gm-nc"></div></section>
+  <section class="view" id="v-desemp" hidden><div id="gm-desemp"></div></section>
   <section class="view" id="v-ocio" hidden><div id="gm-ocio"></div></section>
   <section class="view" id="v-spkh" hidden><div id="k-hist2"></div></section>
   <section class="view" id="v-ruas">
@@ -322,7 +323,8 @@
   </section>
 
   <section class="view" id="v-spk" hidden>
-    <div class="seg" role="group" aria-label="Modo" id="k-modo" style="margin-bottom:12px"><button type="button" data-km="cont" aria-pressed="true">Contagem de itens (só código)</button><button type="button" data-km="conf" aria-pressed="false">Sistema × auditado</button><button type="button" data-km="hist" aria-pressed="false" hidden>Histórico (dias anteriores)</button></div>
+    <div class="block" id="k-gest" hidden style="border:2px solid #103F79"><h3 style="margin:0 0 4px">Gestor: lançar por data</h3><div class="field" style="margin:0"><label for="k-dt">Data dos lançamentos <small>(vazio = hoje)</small></label><input class="in" type="date" id="k-dt" style="max-width:220px"><small class="note" id="k-dt-n">Os códigos entram na data de hoje.</small></div><div id="k-hist"></div></div>
+    <div class="seg" role="group" aria-label="Modo" id="k-modo" style="margin-bottom:12px"><button type="button" data-km="cont" aria-pressed="true">Contagem de itens (só código)</button><button type="button" data-km="conf" aria-pressed="false">Sistema × auditado</button></div>
     <div class="block" id="k-cont">
       <h3 style="margin:0 0 4px">Itens auditados no saldo de picking</h3><p class="note" style="margin:0 0 10px">Digite ou bipe o código e tecle Enter. Cada código entra na contagem do dia (comissão) e no mapa de calor das ruas.</p>
       <div class="field" id="k-cod-f"><div class="ph-row" style="gap:8px"><input class="in" id="k-cod" inputmode="numeric" placeholder="Código do item" autocomplete="off" style="flex:1"><button type="button" class="save" id="k-add" style="margin:0;width:auto;padding:0 22px">Adicionar</button></div><small class="note" id="k-cod-h" style="display:block;margin-top:4px"></small></div>
@@ -341,7 +343,6 @@
       <button type="button" class="save" id="k-save">Salvar conferência</button>
     </div>
     <div id="k-list" style="margin-top:12px"></div>
-    <div id="k-hist" hidden></div>
   </section>
 
   <section class="view" id="v-rot" hidden>
@@ -384,6 +385,7 @@
           <div class="field" id="q-qtd-f"><label for="q-qtd">Quantidade *</label><input class="in" id="q-qtd" type="number" inputmode="numeric" min="1" placeholder="0"></div>
         </div>
         <div class="field" id="q-mtv-f"><span class="lbl">Motivo *</span><div class="mot" id="q-mtv" role="radiogroup" aria-label="Motivo"><button type="button" role="radio" aria-checked="false" data-m="Mercadoria Invertida">Mercadoria Invertida</button><button type="button" role="radio" aria-checked="false" data-m="Falta de Mercadoria">Falta de Mercadoria</button><button type="button" role="radio" aria-checked="false" data-m="Mercadoria Avariada" style="grid-column:1/-1">Mercadoria Avariada</button></div></div>
+        <div class="field" id="q-inv-f" hidden><label>Item que veio no lugar (mercadoria invertida) *</label><div id="q-inv"></div><small class="note">Informe o código do item que foi entregue no lugar do item da ocorrência.</small></div>
         <button type="button" class="save" id="q-save">Registrar solicitação de contagem</button>
         </div>
       </div>
@@ -572,8 +574,8 @@
   <button type="button" data-v="metas" hidden>Metas</button>
   <button type="button" data-v="feedback" hidden>Feedback</button>
   <button type="button" data-v="ncaud" hidden>NC auditores<span class="badge" id="nav-nca" hidden></span></button>
+  <button type="button" data-v="desemp" hidden>Desempenho</button>
   <button type="button" data-v="ocio" hidden>Ociosidade</button>
-  <button type="button" data-v="spkh" hidden>Histórico saldo de picking</button>
 </nav>
 
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sh-t">

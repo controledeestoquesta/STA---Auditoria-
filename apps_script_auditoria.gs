@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 62)
+ * Auditoria STA – Santa Therezinha (versão 63)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -106,10 +106,10 @@ const CAMPOS_SPK = ['ID_Auditoria', 'Data', 'DataHora', 'Modo', 'Codigo_Produto'
 ABAS.solicit = {
   nome: 'Solicitacao_Contagens', perm: 'aud_sol',
   colunas: ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo',
-    'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Recebido_Em'],
-  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Codigo_Produto', 'NF', 'Matricula_Solicitante', 'DataHora_Resposta']
+    'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Recebido_Em', 'Codigo_Invertido', 'Descricao_Invertido'],
+  texto: ['ID_Auditoria', 'Data', 'DataHora', 'Carregamento', 'Codigo_Produto', 'NF', 'Matricula_Solicitante', 'DataHora_Resposta', 'Codigo_Invertido']
 };
-const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min'];
+const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Codigo_Invertido', 'Descricao_Invertido'];
 /* ===================== Setor Chep: PDFs de notas de paletes e ajustes de inventário ===================== */
 const ABA_CHEP = 'Chep_Documentos', PASTA_CHEP = 'Auditoria_Chep';
 const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em', 'Paletes_CHEP', 'Paletes_PBR'];
@@ -605,7 +605,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 62, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 63, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
