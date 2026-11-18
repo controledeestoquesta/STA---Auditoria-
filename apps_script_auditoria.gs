@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 65)
+ * Auditoria STA – Santa Therezinha (versão 66)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -463,7 +463,7 @@ function doPost(e) {
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
   if (['mot_ler', 'mot_salvar'].indexOf(dados.acao) >= 0) {
-    if (['aud_adm', 'aud_sol', 'aud_lib'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
+    if (['aud_adm', 'aud_sol', 'aud_lib', 'ce_est'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
     try {
       const M = abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']);
       if (dados.acao === 'mot_ler') return resposta(Object.assign({ ok: true }, lerTab('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em'])));
@@ -523,7 +523,7 @@ function doPost(e) {
   if (['rot_salvar', 'rot_ler', 'rot_status'].indexOf(dados.acao) >= 0) {
     const podeR = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
     if (dados.acao === 'rot_ler' && !podeR('aud_com')) return resposta({ ok: false, erro: 'Sem permissão de comissão (aud_com).' });
-    if (dados.acao !== 'rot_ler' && !podeR('aud_rot') && !podeR('aud_com')) return resposta({ ok: false, erro: 'Sem permissão de rotinas (aud_rot).' });
+    if (dados.acao !== 'rot_ler' && !podeR('aud_rot') && !podeR('aud_com') && !podeR('ce_est')) return resposta({ ok: false, erro: 'Sem permissão de rotinas (aud_rot).' });
     try {
       if (dados.acao === 'rot_status') return resposta(rotStatus());
       if (dados.acao === 'rot_ler') return resposta(rotLer());
@@ -533,7 +533,7 @@ function doPost(e) {
   }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar') {
     const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
     if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
     const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
@@ -678,7 +678,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 65, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 66, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
