@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 63)
+ * Auditoria STA – Santa Therezinha (versão 64)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -170,6 +170,44 @@ function vlcMinhas(sessao, todos) {
   const pend = {}; itens.forEach(function (i) { pend[i.id] = 1; });
   return { ok: true, login: login, total: itens.length, itens: itens.slice(0, 5000), pulados: vlcPuladosAbertos(todos && adm ? null : sessao.matricula).filter(function (x) { return pend[x.id]; }) };
 }
+/* ---- NC dos auditores: abas da planilha ----
+   NC_Auditores           → cada não conformidade (automática ou manual), solicitações de advertência, situação e datas
+   Resumo_NC_Auditores    → um resumo por colaborador, atualizado sozinho a cada NC gravada ou aplicada
+   Rode criarAbasNC uma vez no editor para criar as duas abas agora. */
+const ABA_RESUMO_NC = 'Resumo_NC_Auditores';
+const CAB_RESUMO_NC = ['Matricula', 'Colaborador', 'Total_NCs', 'NCs_Meta', 'NCs_Outros_Motivos', 'Pendentes_Aplicacao', 'Aplicadas', 'Dispensadas', 'Advertencias_Solicitadas', 'NCs_Meta_Sem_Advertencia', 'Primeira_NC', 'Ultima_NC', 'Atualizado_Em'];
+function criarAbasNC() {
+  const ss = abrirPlanilha(), sh = abaComCabecalho(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas);
+  const cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
+  ABAS.ncaud.colunas.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+  sh.getRange(1, 1, 1, cab.length).setFontWeight('bold'); sh.setFrozenRows(1);
+  atualizarResumoNC(ss);
+  Logger.log('Abas prontas: ' + ABAS.ncaud.nome + ' e ' + ABA_RESUMO_NC);
+}
+function atualizarResumoNC(ss) {
+  const L = lerAba(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas);
+  const cols = L.colunas || [], regs = L.registros || [], ix = function (c) { return cols.indexOf(c); };
+  const dt = function (s) { const m = String(s || '').match(/(\d{2})\/(\d{2})\/(\d{4})/); return m ? m[3] + m[2] + m[1] : ''; };
+  const P = {};
+  regs.forEach(function (r) {
+    const mat = String(r[ix('Matricula_Colaborador')] || '').trim(), nome = String(r[ix('Nome_Colaborador')] || '').trim(), k = mat || nome.toUpperCase();
+    if (!k) return;
+    const x = P[k] = P[k] || { mat: mat, nome: nome, tot: 0, meta: 0, out: 0, pend: 0, apl: 0, dis: 0, adv: 0, ultAdv: '', datas: [], metaDatas: [] };
+    const tipo = String(r[ix('Tipo')] || ''), st = String(r[ix('Status')] || ''), d = dt(r[ix('DataHora')]);
+    if (tipo === 'Solicitação de advertência') { x.adv++; if (d > x.ultAdv) x.ultAdv = d; return; }
+    x.tot++; if (d) x.datas.push(d);
+    if (tipo.indexOf('Meta não atingida') === 0) { x.meta++; if (st !== 'Dispensada' && st !== 'Pendente de aplicação') x.metaDatas.push(d); } else x.out++;
+    if (st === 'Pendente de aplicação') x.pend++; else if (st === 'Aplicada') x.apl++; else if (st === 'Dispensada') x.dis++;
+  });
+  const br = function (s) { return s ? s.slice(6, 8) + '/' + s.slice(4, 6) + '/' + s.slice(0, 4) : ''; }, agora = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+  const linhas = Object.keys(P).map(function (k) { const x = P[k]; x.datas.sort();
+    return [x.mat, x.nome, x.tot, x.meta, x.out, x.pend, x.apl, x.dis, x.adv, x.metaDatas.filter(function (d) { return d > x.ultAdv; }).length, br(x.datas[0]), br(x.datas[x.datas.length - 1]), agora]; })
+    .sort(function (a, b) { return b[2] - a[2]; });
+  const sh = abaComCabecalho(ss, ABA_RESUMO_NC, CAB_RESUMO_NC);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, Math.max(sh.getLastColumn(), CAB_RESUMO_NC.length)).clearContent();
+  sh.getRange(1, 1, 1, CAB_RESUMO_NC.length).setValues([CAB_RESUMO_NC]).setFontWeight('bold');
+  if (linhas.length) { sh.getRange(2, 1, linhas.length, 1).setNumberFormat('@'); sh.getRange(2, 1, linhas.length, CAB_RESUMO_NC.length).setValues(linhas); }
+}
 /* ---- NC dos auditores: muda a situação (Aplicada / Dispensada) ---- */
 function ncaudStatus(d) {
   const sh = abrirPlanilha().getSheetByName(ABAS.ncaud.nome);
@@ -181,6 +219,7 @@ function ncaudStatus(d) {
     sh.getRange(i + 2, cab.indexOf('Status') + 1).setValue(String(d.status || ''));
     sh.getRange(i + 2, cab.indexOf('Aplicada_Em') + 1).setNumberFormat('@').setValue(String(d.aplicadaEm || ''));
     sh.getRange(i + 2, cab.indexOf('Aplicada_Por') + 1).setValue(String(d.aplicadaPor || ''));
+    try { atualizarResumoNC(abrirPlanilha()); } catch (e2) {}
     return { ok: true };
   }
   return { ok: false, erro: 'A NC ainda não chegou na planilha. Tente de novo em instantes.' };
@@ -544,7 +583,7 @@ function doPost(e) {
       let erro = '';
       if (!cfg) erro = 'Tipo de auditoria desconhecido: ' + aba + '. Atualize o Apps Script.';
       else if (!ehAdm && ![].concat(cfg.perm).some(function (pp) { return sessao.permissoes.indexOf(pp) >= 0; })) erro = 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + [].concat(cfg.perm).join(' ou ') + ' na aba Permissionamento.';
-      if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); } catch (e) { erro = String(e && e.message || e); } }
+      if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); if (aba === 'ncaud') { try { atualizarResumoNC(ss); } catch (e2) {} } } catch (e) { erro = String(e && e.message || e); } }
       if (erro) grupos[aba].forEach(function (r) { rejeitados.push({ id: r && r.ID_Auditoria, aba: aba, erro: erro }); });
     }
     return resposta({ ok: true, adicionados: adicionados, rejeitados: rejeitados });
@@ -605,7 +644,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 63, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 64, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
