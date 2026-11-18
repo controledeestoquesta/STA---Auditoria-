@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 67)
+ * Auditoria STA – Santa Therezinha (versão 68)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 67, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 68, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -934,13 +934,20 @@ function gravar(ss, cfg, registros) {
     if (cfg === ABAS.adega) validarListas(sh, cab, [['Tipo', TIPOS_ADEGA]]);
   }
   const colId = cab.indexOf('ID_Auditoria');
-  const existentes = new Set(sh.getLastRow() > 1
-    ? sh.getRange(2, colId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); })
-    : []);
+  const idsArr = sh.getLastRow() > 1 ? sh.getRange(2, colId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); }) : [];
+  const existentes = new Set(idsArr);
 
   const linhas = [];
   registros.forEach(function (r) {
-    if (!r || !r.ID_Auditoria || existentes.has(String(r.ID_Auditoria))) return;
+    if (!r || !r.ID_Auditoria) return;
+    if (existentes.has(String(r.ID_Auditoria))) {
+      /* saldo de picking: a conferência (sistema × auditado) completa a MESMA linha do código já lançado */
+      if (cfg === ABAS.saldo && r._upd) {
+        const row = idsArr.lastIndexOf(String(r.ID_Auditoria)) + 2, c0 = cab.indexOf('Modo'), c1 = cab.indexOf('Valor_Diferenca');
+        if (row > 1 && c0 >= 0 && c1 >= c0) sh.getRange(row, c0 + 1, 1, c1 - c0 + 1).setValues([cab.slice(c0, c1 + 1).map(function (h) { const v = r[h]; return v === undefined || v === null ? '' : v; })]);
+      }
+      return;
+    }
     try {
       if (cfg === ABAS.retorno) {
         const fr = salvarFoto(r.foto_retorno, r.ID_Auditoria + '_retorno');

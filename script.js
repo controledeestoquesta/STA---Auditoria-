@@ -413,7 +413,7 @@ let syncing=false,syncAgain=false,lastSheetErr="",lastSheetOk=store.get("audcd_s
 const SHEET_COLS=COLS.concat(["ID_Sessao"]);
 function toSheet(r){if(r._aba==="ncaud"||r._aba==="feedback"||r._aba==="spkh"){const x={_aba:r._aba};(r._aba==="ncaud"?NCA_COLS:r._aba==="spkh"?SPKH_COLS:FBK_COLS).forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}if(r._aba==="validade"){const x={_aba:"validade"};VLA_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);x.fotos=r.fotos||[];return x;}
   if(r._aba==="solicit"){const x={_aba:"solicit"};SOL_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}
-  if(r._aba==="saldo"){const x={_aba:"saldo"};SPK_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);return x;}
+  if(r._aba==="saldo"){const x={_aba:"saldo"};SPK_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);if(r._upd)x._upd=1;return x;}
   if(r._aba==="contagem"){const x={_aba:"contagem"};CNT_COLS.forEach(c=>x[c]=r[c]==null?"":r[c]);x.fotos=r.fotos||[];return x;}
   if(r._aba==="adega"){const x={_aba:"adega"};ADG_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*10000)/10000:r[c]));x.fotos=r.fotos||[];return x;}
   if(r._aba==="procura"){const x={_aba:"procura"};PRO_COLS.forEach(c=>x[c]=r[c]==null?"":(typeof r[c]==="number"?Math.round(r[c]*10000)/10000:r[c]));return x;}
@@ -2934,11 +2934,17 @@ let SPK_RUA=null;function spkItensRua(){if(SPK_RUA)return SPK_RUA;const o={};for
 const kProd=picker($("k-prod"),{ph:"Código ou descrição do item",search:searchProd,describe:descProd,onPick:k=>{KS.prod=k;paintSPK();if(k!=null)setTimeout(()=>$("k-sis").focus(),50);}});
 document.querySelectorAll("#k-modo button").forEach(b=>b.addEventListener("click",()=>{KS.modo=b.dataset.km;paintSPK();}));
 ["k-sis","k-aud"].forEach(id=>$(id).addEventListener("input",paintSPK));
+/* um código por dia: o mesmo código lançado de novo no mesmo dia não vira outra linha */
+function spkDia(r){return String(r.Data||String(r.DataHora||"").slice(0,10)||fmtDT(new Date(r.ts||0)).slice(0,10)).slice(0,10);}
+function spkDedup(rows){const m=new Map();rows.forEach(r=>{const k=spkDia(r)+"|"+String(r.Codigo_Produto||"");const o=m.get(k);if(!o||(r.Modo==="Conferência"&&o.Modo!=="Conferência")||(r.Modo===o.Modo&&(r.ts||0)>=(o.ts||0)))m.set(k,r);});return [...m.values()];}
+function spkAchar(cod,dia){cod=String(cod);const H=[...HIST.values()].filter(r=>r._aba==="saldo"&&String(r.Codigo_Produto)===cod&&spkDia(r)===dia);
+  if(H.length)return H.sort((a,b)=>(b.Modo==="Conferência")-(a.Modo==="Conferência")||(b.ts||0)-(a.ts||0))[0];
+  const F=fxRows(FECH.dados&&FECH.dados.saldo).filter(r=>String(r.Codigo_Produto)===cod&&spkDia(r)===dia);return F.length?Object.assign({_aba:"saldo"},F.sort((a,b)=>(b.ts||0)-(a.ts||0))[0]):null;}
 function spkRes(sis,aud){const d=aud-sis;return {d,sit:d===0?"OK":d>0?"Sobra":"Falta"};}
 function paintSPK(){if(!$("k-list"))return;document.querySelectorAll("#k-modo button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.km===KS.modo)));$("k-cont").hidden=KS.modo!=="cont";$("k-conf").hidden=KS.modo!=="conf";if($("k-gest")){const pg=gPerm("ce_gest")||ehAdm();$("k-gest").hidden=!pg;if(KS.modo==="hist")KS.modo="cont";if(pg){try{spkhUI();}catch(e){}const d=$("k-dt");if(d&&!d.max)d.max=todayISO();}}
   const s=$("k-sis").value,a=$("k-aud").value;if(KS.prod!=null&&s!==""&&a!==""){const x=spkRes(+s,+a),vl=P.vl[KS.prod];$("k-res").innerHTML='<span class="k-b '+x.sit.toLowerCase()+'">'+(x.sit==="OK"?"Sem divergência":x.sit+" de "+Math.abs(x.d)+" un")+'</span><small>'+BRL.format(Math.abs(x.d)*vl)+'</small>';}else $("k-res").textContent="—";
   listaSPK();}
-function spkHoje(){const t0=new Date();t0.setHours(0,0,0,0);return allRecs().filter(r=>r._aba==="saldo"&&r.ts>=t0.getTime()&&r.Matricula_Auditor===auditor).sort((a,b)=>b.ts-a.ts);}
+function spkHoje(){const t0=new Date();t0.setHours(0,0,0,0);return spkDedup(allRecs().filter(r=>r._aba==="saldo"&&r.ts>=t0.getTime()&&r.Matricula_Auditor===auditor)).sort((a,b)=>b.ts-a.ts);}
 function listaSPK(){const L=spkHoje(),uni=new Set(L.map(r=>r.Codigo_Produto)),conf=L.filter(r=>r.Modo==="Conferência"),div=conf.filter(r=>r.Situacao!=="OK");
   const fHoje=spkBloq(L).length;
   $("k-list").innerHTML=L.length?'<div class="block">'+(fHoje?'<div class="ph-row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><b style="color:#B91C1C">'+fHoje+' item(ns) com falta hoje</b><button type="button" class="btn sm" id="k-exp">Exportar lista de bloqueio</button></div>':'')+'<div class="k-kpi"><div><b>'+uni.size+'</b><span>itens únicos hoje</span></div><div><b>'+L.length+'</b><span>lançamentos</span></div><div><b>'+conf.length+'</b><span>conferências</span></div><div class="'+(div.length?"bad":"")+'"><b>'+div.length+'</b><span>com divergência</span></div></div>'+
@@ -2953,26 +2959,33 @@ function spkRec(k,modo,sis,aud){const now=spkAgora(),cod=P.cod[k],e=spkEnd(cod),
     Qtd_Sistema:x?sis:"",Qtd_Auditada:x?aud:"",Diferenca:x?x.d:0,Situacao:x?x.sit:"OK",Vl_Unitario:vl,Valor_Diferenca:x?Math.round(x.d*vl*100)/100:"",Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),Possui_NC:!!(x&&x.d)};}
 async function spkAdd(){if(!auditor){toast("Faça login primeiro.");return;}const c=$("k-cod").value.replace(/\D/g,"");const k=pIdx.get(c);
   if(!c){$("k-cod").focus();return;}if(k==null){$("k-cod-h").textContent="Código "+c+" não está na base 286.";$("k-cod").select();return;}
-  const rec=spkRec(k,"Contagem");$("k-cod").value="";$("k-cod-h").textContent="✔ "+rec.Codigo_Produto+" – "+rec.Descricao_Produto+(rec.Rua?" · rua "+rec.Rua:" · fora da 8022");await saveRec(rec);paintSPK();$("k-cod").focus();}
+  const rec=spkRec(k,"Contagem");if(spkAchar(rec.Codigo_Produto,rec.Data)){$("k-cod").value="";$("k-cod-h").textContent="Código "+rec.Codigo_Produto+" já foi lançado em "+rec.Data+" — não repetido.";$("k-cod").focus();return;}$("k-cod").value="";$("k-cod-h").textContent="✔ "+rec.Codigo_Produto+" – "+rec.Descricao_Produto+(rec.Rua?" · rua "+rec.Rua:" · fora da 8022");await saveRec(rec);paintSPK();$("k-cod").focus();}
 async function spkLote(){if(!auditor){toast("Faça login primeiro.");return;}const txt=$("k-lote").value,cods=(txt.match(/\d+/g)||[]);if(!cods.length){toast("Cole ou digite os códigos.");return;}
   const ok=[],ruim=[];cods.forEach(c=>{const k=pIdx.get(c);if(k==null)ruim.push(c);else ok.push(k);});if(!ok.length){$("k-lote-h").textContent="Nenhum código encontrado na base 286: "+ruim.slice(0,15).join(", ");return;}
-  if(ok.length>300&&!confirm(ok.length+" códigos. Lançar todos?"))return;$("k-lote-go").disabled=true;let n=0;
-  for(const k of ok){await saveRec(spkRec(k,"Contagem"));n++;if(n%20===0)$("k-lote-h").textContent="Lançando "+n+" de "+ok.length+"…";}
-  $("k-lote-go").disabled=false;$("k-lote").value="";const dup=ok.length-new Set(ok).size;
-  $("k-lote-h").textContent="✔ "+ok.length+" código(s) lançados"+(dup?" ("+dup+" repetido(s) na lista)":"")+(ruim.length?" · fora da base 286: "+ruim.slice(0,15).join(", ")+(ruim.length>15?"…":""):"")+".";paintSPK();toast(ok.length+" itens lançados na contagem.");}
+  const dia=fmtDT(spkAgora()).slice(0,10),uniq=[...new Set(ok)],dup=ok.length-uniq.length,novos=uniq.filter(k=>!spkAchar(P.cod[k],dia)),ja=uniq.length-novos.length;
+  if(!novos.length){$("k-lote-h").textContent="Nada novo: "+(ja?ja+" código(s) já lançado(s) em "+dia:"")+(dup?" · "+dup+" repetido(s) na lista":"")+".";return;}
+  if(novos.length>300&&!confirm(novos.length+" códigos. Lançar todos?"))return;$("k-lote-go").disabled=true;let n=0;
+  for(const k of novos){await saveRec(spkRec(k,"Contagem"));n++;if(n%20===0)$("k-lote-h").textContent="Lançando "+n+" de "+novos.length+"…";}
+  $("k-lote-go").disabled=false;$("k-lote").value="";
+  $("k-lote-h").textContent="✔ "+novos.length+" código(s) lançados"+(dup?" · "+dup+" repetido(s) na lista ignorado(s)":"")+(ja?" · "+ja+" já lançado(s) em "+dia+" ignorado(s)":"")+(ruim.length?" · fora da base 286: "+ruim.slice(0,15).join(", ")+(ruim.length>15?"…":""):"")+".";paintSPK();toast(novos.length+" itens lançados na contagem.");}
 $("k-lote-go").addEventListener("click",spkLote);$("k-lote").addEventListener("input",()=>{const n=($("k-lote").value.match(/\d+/g)||[]).length;$("k-lote-n").textContent=n?n+" código(s)":"";});
 $("k-add").addEventListener("click",spkAdd);$("k-dt")&&$("k-dt").addEventListener("change",()=>{const v=$("k-dt").value,n=$("k-dt-n");if(v>todayISO()){$("k-dt").value="";toast("A data não pode ser futura.");}n.textContent=v&&v<todayISO()?"Os códigos lançados agora entram em "+fdISO(v)+" (não aparecem na lista de hoje).":"Os códigos entram na data de hoje.";n.style.color=v&&v<todayISO()?"#B45309":"";});
 $("k-cod").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();spkAdd();}});
 $("k-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login primeiro.");return;}const s=$("k-sis").value,a=$("k-aud").value;
   setErr("k-prod-f",KS.prod==null?"Informe o item.":"");setErr("k-sis-f",s===""?"Informe a quantidade do sistema.":"");setErr("k-aud-f",a===""?"Informe a quantidade auditada.":"");if(KS.prod==null||s===""||a==="")return;
-  const rec=spkRec(KS.prod,"Conferência",+s,+a);await saveRec(rec);kProd.clear();KS.prod=null;$("k-sis").value="";$("k-aud").value="";paintSPK();
-  toast(rec.Situacao==="OK"?"Conferido sem divergência.":rec.Situacao+" de "+Math.abs(rec.Diferenca)+" un ("+BRL.format(Math.abs(rec.Valor_Diferenca))+").");});
+  let rec=spkRec(KS.prod,"Conferência",+s,+a);const ex=spkAchar(rec.Codigo_Produto,rec.Data);
+  if(ex){/* código já lançado (importado ou contado) nesse dia: preenche a mesma linha com sistema × auditado e a situação */
+    ["Modo","Qtd_Sistema","Qtd_Auditada","Diferenca","Situacao","Vl_Unitario","Valor_Diferenca","Possui_NC"].forEach(c=>ex[c]=rec[c]);ex._upd=1;delete ex._sheet;delete ex._envEm;if(!ex.ts)ex.ts=rec.ts;
+    await histPut(ex);setTimeout(()=>sheetSync(),100);try{const b=FECH.dados&&FECH.dados.saldo;if(b&&b.colunas){const ic=b.colunas.indexOf("ID_Auditoria");b.registros.forEach(l=>{if(String(l[ic])===String(ex.ID_Auditoria))["Modo","Qtd_Sistema","Qtd_Auditada","Diferenca","Situacao","Valor_Diferenca"].forEach(c=>{const j=b.colunas.indexOf(c);if(j>=0)l[j]=ex[c];});});}}catch(e){}
+    rec=ex;}
+  else await saveRec(rec);kProd.clear();KS.prod=null;$("k-sis").value="";$("k-aud").value="";paintSPK();
+  toast((ex?"Linha do código atualizada: ":"")+(rec.Situacao==="OK"?"conforme, sem divergência.":"não conforme — "+rec.Situacao+" de "+Math.abs(rec.Diferenca)+" un ("+BRL.format(Math.abs(rec.Valor_Diferenca))+")."));});
 function cardSPK(r){return '<details class="rec '+(r.Situacao&&r.Situacao!=="OK"?"nc":"ok")+'"><summary><div class="top"><span>'+esc(r.DataHora||r.Data)+' · Saldo de picking</span><span>'+esc(r.Modo||"")+'</span></div><div class="desc">'+esc(r.Codigo_Produto)+' – '+esc(r.Descricao_Produto||"")+'</div><div class="tags">'+(r.Rua?'<span class="tag">Rua '+esc(r.Rua)+'</span>':'')+(r.Situacao?'<span class="tag '+(r.Situacao==="OK"?"":"nc")+'">'+esc(r.Situacao==="OK"?"Sem divergência":r.Situacao)+(r.Diferenca&&r.Situacao!=="OK"?" "+Math.abs(+r.Diferenca)+" un":"")+'</span>':'')+'</div></summary></details>';}
 // fechamento
 FX_TAB.spk="Saldo de picking";FX_TIT.spk="Saldo_de_Picking";
 function spkCor(p){if(p==null)return "#F1F5F9";if(p<=0)return "#F8FAFC";const s=Math.sqrt(Math.min(1,p));return "hsl("+Math.round(200+s*20)+","+Math.round(70+s*20)+"%,"+Math.round(90-s*52)+"%)";}
 const spkTx=p=>p!=null&&Math.sqrt(Math.min(1,p))>.55?"#fff":"#0F172A";
-function fxSaldo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r=>r.Codigo_Produto),tit="Auditoria de saldo de picking — Fechamento";
+function fxSaldo(){const rows=spkDedup(fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r=>r.Codigo_Produto)),tit="Auditoria de saldo de picking — Fechamento";
   const uni=new Set(rows.map(r=>String(r.Codigo_Produto))),conf=rows.filter(r=>r.Modo==="Conferência"),stItem=(()=>{const u={};conf.forEach(r=>{const c=String(r.Codigo_Produto),t=r.ts||0;if(!u[c]||t>=u[c].ts)u[c]=r;});const o={};uni.forEach(c=>o[c]=u[c]&&u[c].Situacao&&u[c].Situacao!=="OK"?u[c].Situacao:"OK");return o;})(),semDiv=Object.values(stItem).filter(s=>s==="OK").length,divU=(()=>{const u={};conf.forEach(r=>{const c=String(r.Codigo_Produto),t=r.ts||0;if(!u[c]||t>=u[c].ts)u[c]=r;});return new Set(Object.values(u).filter(r=>r.Situacao&&r.Situacao!=="OK").map(r=>String(r.Codigo_Produto)));})(),ok=conf.filter(r=>r.Situacao==="OK"),so=conf.filter(r=>r.Situacao==="Sobra"),fa=conf.filter(r=>r.Situacao==="Falta");
   const un=L=>L.reduce((s,r)=>s+Math.abs(pnum(r.Diferenca)),0),vv=L=>L.reduce((s,r)=>s+Math.abs(pnum(r.Valor_Diferenca)),0);
   const IR=spkItensRua(),audRua={};rows.forEach(r=>{const c=String(r.Codigo_Produto);let rua=String(r.Rua||"");if(!rua)rua=spkEnd(c).rua;if(!rua)return;(audRua[rua]=audRua[rua]||new Set()).add(c);});
@@ -2988,11 +3001,9 @@ function fxSaldo(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.saldo).filter(r
   if(man.length){const all={};Object.keys(porD).forEach(k=>all[k]={ts:porD[k].ts,v:porD[k].u.size});man.forEach(r=>{const k=fxDiaKey(r.ts);all[k]=all[k]||{ts:r.ts,v:0};all[k].v+=spkhQtd(r);});dias.length=0;Object.keys(all).sort().forEach(k=>dias.push({l:fxDia(all[k].ts),v:all[k].v,txt:String(all[k].v)}));}
   return '<div class="fxq-cmp no-print"><button type="button" id="fxk-exp"'+(nBloq?"":" disabled")+'>Exportar lista de bloqueio das faltas ('+nBloq+' itens)</button></div>'+fxHead(tit,rows.length)+
     fxKpis([{t:"Total auditado",v:(rows.length+manT).toLocaleString("pt-BR"),c:"#0F172A",s:uni.size.toLocaleString("pt-BR")+" itens diferentes · "+dias.length+" dia(s)"+(manT?" · inclui "+manT.toLocaleString("pt-BR")+" lançados manualmente":"")},
-      {t:"Itens × divergentes",v:uni.size+' <em class="kx">×</em> <em class="kd">'+divU.size+'</em>',c:"#0369A1",s:(uni.size?(divU.size/uni.size*100).toFixed(1).replace(".",","):"0")+"% dos itens com divergência"},
       {t:"Sem divergência",v:semDiv,c:"#16A34A",s:"acuracidade "+(uni.size?(semDiv/uni.size*100).toFixed(1).replace(".",",")+"%":"—")+" · "+conf.length+" conferência(s)"},
       {t:"Sobras",v:BRL.format(vv(so)),c:"#CA8A04",s:so.length+" item(ns) · "+un(so).toLocaleString("pt-BR")+" un"},
-      {t:"Faltas",v:BRL.format(vv(fa)),c:"#DC2626",s:fa.length+" item(ns) · "+un(fa).toLocaleString("pt-BR")+" un"},
-      {t:"Auditores",v:Object.keys(aud).length,c:"#7C3AED",s:Object.keys(aud).map(n=>curto(n)).slice(0,3).join(", ")||"—"}],true).replace('class="fx-k','class="fx-k spk-k')+
+      {t:"Faltas",v:BRL.format(vv(fa)),c:"#DC2626",s:fa.length+" item(ns) · "+un(fa).toLocaleString("pt-BR")+" un"}],true).replace('class="fx-k','class="fx-k spk-k')+
     '<div class="fx-row" style="grid-template-columns:1.55fr 1fr">'+fxCard("Mapa de calor — itens auditados × itens da rua (8022)",heat)+
       '<div class="fx-col">'+fxCard("Resultado dos itens auditados",fxDonut([{l:"Sem divergência",v:semDiv,c:"#16A34A"},{l:"Sobra",v:Object.values(stItem).filter(s=>s==="Sobra").length,c:"#CA8A04"},{l:"Falta",v:Object.values(stItem).filter(s=>s==="Falta").length,c:"#DC2626"}])+'<p class="fx-e" style="margin-top:6px">Itens só contados, sem falta ou sobra informada, entram como sem divergência.</p>')+
       fxCard("Itens auditados por auditor (comissão)",fxTable([{t:"Auditor"},{t:"Itens",n:1},{t:"Lanç.",n:1},{t:"Conf.",n:1},{t:"Diverg.",n:1}],Object.entries(aud).sort((a,b)=>b[1].u.size-a[1].u.size).map(([n,x])=>['<b>'+esc(curto(n))+'</b>','<b>'+x.u.size+'</b>',x.n,x.c,x.d?'<b style="color:#B91C1C">'+x.d+'</b>':"0"])))+'</div></div>'+
@@ -3806,7 +3817,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v157</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v158</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3895,7 +3906,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v157</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v158</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4219,7 +4230,7 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   const byNome={};Object.values(A).forEach(x=>{byNome[gmNk(x.nome)]=x;});
   const quem0=r=>{if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;},quem=r=>{const x=quem0(r);if(x)x.part=(x.part||0)+1;return x;};
   ["validade","cargas","aero"].forEach(a=>fxRows(D[a]).filter(noP).forEach(r=>quem(r)));
-  const GMx=gestMats(),spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(GMx.indexOf(String(r.Matricula_Auditor||"").trim())>=0?{Matricula_Auditor:SPK_HIST_MAT}:r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
+  const GMx=gestMats(),spk=spkDedup(fxRows(D.saldo).filter(noP));spk.forEach(r=>{const x=quem(GMx.indexOf(String(r.Matricula_Auditor||"").trim())>=0?{Matricula_Auditor:SPK_HIST_MAT}:r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
   const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;const x=quem({Matricula_Auditor:SPK_HIST_MAT});if(x)x.spk+=q;});
   const ret=fxRows(D.retorno).filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
   const cnt=fxRows(D.contagem).filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.nRuas;aeroEnd+=d.end;});}catch(e){}
@@ -4753,7 +4764,7 @@ function hmNews(){const box=$("hm-news"),tk=$("hm-tick");if(!box)return;const L=
   car.addEventListener("pointerdown",auto);auto();if(HM.i)setTimeout(()=>ir(HM.i),30);}
 function hmContar(el){const fim=+el.dataset.n||0,t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/700);el.textContent=Math.round(fim*(1-Math.pow(1-p,3))).toLocaleString("pt-BR");if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 /* aviso para gestores/ADM: o link do app ainda roda um Apps Script antigo */
-const GS_MIN=67;
+const GS_MIN=68;
 async function gsAviso(){if(DEMO||!SHEET_URL||!(ehAdm()||gPerm("ce_gest"))||!navigator.onLine)return;try{if(!GM.gsv||Date.now()-GM.gsvT>3e5){const j=await sheetVer(SHEET_URL);GM.gsv=j?(+j.versao||0):null;GM.gsvT=Date.now();}}catch(e){return;}
   const box=$("home");if(!box||GM.gsv==null||GM.gsv>=GS_MIN||$("gs-av"))return;
   box.insertAdjacentHTML("afterbegin",'<div id="gs-av" class="hm-card" style="border:1px solid #FCA5A5;background:#FEF2F2;color:#7F1D1D;margin-bottom:12px;text-align:left;padding:12px 14px"><b>Apps Script desatualizado: o link do app roda a versão '+GM.gsv+' e precisa da '+GS_MIN+'.</b><small style="display:block;margin-top:4px">Enquanto isso, NC dos auditores, exclusões e acessos novos não chegam à planilha. No editor do Apps Script: cole o código novo, salve e vá em Implantar → Gerenciar implantações → escolha a implantação com ID terminado em <b>'+esc(sheetIdCurto(SHEET_URL))+'</b> → lápis → Versão: Nova versão → Implantar.</small></div>');}
