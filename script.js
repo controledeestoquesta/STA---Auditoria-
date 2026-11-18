@@ -462,7 +462,7 @@ async function sheetSync(all){
     }while(syncAgain);
     lastSheetErr=errSync;
   }catch(e){lastSheetErr=(e&&e.message)||"falha de conexão.";}
-  syncing=false;paintSync();if(sent&&$("v-painel")&&!$("v-painel").hidden)setTimeout(()=>carregarPainel(),1500);return sent;
+  syncing=false;paintSync();if(sent){setTimeout(()=>{try{ncaStatusPend();if($("v-ncaud")&&!$("v-ncaud").hidden)paintNCA();}catch(e){}},500);}if(sent&&$("v-painel")&&!$("v-painel").hidden)setTimeout(()=>carregarPainel(),1500);return sent;
 }
 async function testSheet(){const bt=$("g-test");bt.disabled=true;bt.textContent="Testando…";
   try{const r=await fetch(SHEET_URL+"?t="+Date.now(),{cache:"no-store"});const txt=await r.text();let j=null;try{j=JSON.parse(txt);}catch(e){}
@@ -3789,7 +3789,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v147</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v148</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3878,7 +3878,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v147</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v148</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4322,7 +4322,7 @@ function paintNCA(){const box=$("gm-nc");if(!box)return;gmPrep(paintNCA);
   const sug=R?R.L.map(x=>({x,it:gmFbDados(R,x).filter(i=>i.si.n>=0&&i.si.n<=1)})).filter(o=>o.it.length):[];
   const users=FECH.dados?gmCalc({de:Date.now()-60*864e5,ate:Date.now()+864e5,lab:"últimos 60 dias",per:"x"}).L.map(x=>({mat:x.mat,nome:x.nome})):[];
   const H=ncaTodas();
-  box.innerHTML=ncaAlertaHTML()+'<form class="fx-c gm-nf" id="nca-f"><h3>Registrar não conformidade manual</h3>'+
+  box.innerHTML=ncaNaoEnviadas()+ncaAlertaHTML()+'<form class="fx-c gm-nf" id="nca-f"><h3>Registrar não conformidade manual</h3>'+
       '<label>Colaborador<select class="in" id="nca-c" required><option value="">Escolha…</option>'+users.map(u=>'<option value="'+esc(u.mat+"|"+u.nome)+'">'+esc(gmTitulo(u.nome))+(u.mat?' ('+esc(u.mat)+')':'')+'</option>').join("")+'</select></label>'+
       '<label>Tipo<select class="in" id="nca-t">'+NCA_TIPOS.map(t=>'<option>'+t+'</option>').join("")+'</select></label>'+
       '<label id="nca-ml">Meta<select class="in" id="nca-m"><option value="">—</option>'+Object.values(R?R.M:{}).map(m=>'<option value="'+m.k+'">'+esc(m.t)+'</option>').join("")+'</select></label>'+
@@ -4339,12 +4339,12 @@ function paintNCA(){const box=$("gm-nc");if(!box)return;gmPrep(paintNCA);
     if(it[0])mt.value=it[0].k;$("nca-d").value="No período "+RR.P.lab+", não foi atingido o resultado esperado no(s) indicador(es): "+it.map(t=>t.m.t+" — "+(t.k==="vld"?(t.real||0)+" de "+t.meta+" itens zerados no prazo":(t.equipe?"equipe "+gmFmt(t.m,t.m.real)+" de "+gmFmt(t.m,t.meta)+", contribuição individual "+gmFmt(t.m,t.real):gmFmt(t.m,t.real)+" de "+gmFmt(t.m,t.meta)))+" ("+(t.pct==null?"–":Math.round(t.pct*100)+"%")+", "+t.si.t.toLowerCase()+")").join("; ")+". Orientação: "+it.map(t=>GM_DICA[t.k]).join(" ");
     const d=new Date();d.setDate(d.getDate()+7);$("nca-p").value=d.toISOString().slice(0,10);f.scrollIntoView({block:"start",behavior:"smooth"});};
   if(pre&&pre.x){preencher(pre.x,gmFbDados(pre.R,pre.x).filter(i=>i.si.n>=0&&i.si.n<=1),pre.R);GM.ncR=pre.R;}
-  box.querySelectorAll("[data-ncp]").forEach(b=>b.onclick=()=>ncaAbrir(H[+b.dataset.ncp]));ncaAlertaBind(box);ncaAlertas();
+  box.querySelectorAll("[data-ncp]").forEach(b=>b.onclick=()=>ncaAbrir(H[+b.dataset.ncp]));{const ev=$("nca-env");if(ev)ev.onclick=async()=>{ev.disabled=true;ev.textContent="Enviando…";const n=await sheetSync();await ncaStatusPend();toast(n?n+" registro(s) enviados à planilha.":(lastSheetErr?"Não enviou: "+lastSheetErr:"Nada pendente para enviar."));paintNCA();};}ncaAlertaBind(box);ncaAlertas();
   f.onsubmit=async e=>{e.preventDefault();const [mat,nome]=(sel.value||"|").split("|");if(!nome){toast("Escolha o colaborador.");return;}const RR=GM.ncR||R,m=tp.value==="Meta não atingida"&&mt.value&&RR?RR.M[mt.value]:null;
     let mv="",rv="",pc="";if(m){const x=RR.L.find(y=>y.mat===mat||gmNk(y.nome)===gmNk(nome));const r=x?gmInd(RR,x,m.k):null;if(r){mv=m.k==="vld"?r.meta+" itens com prazo":gmFmt(m,r.meta);rv=m.k==="vld"?(r.real||0)+" no prazo":gmFmt(m,r.real);pc=r.pct==null?"":Math.round(r.pct*100)+"%";}}
     const now=new Date(),rec={_aba:"ncaud",ID_Auditoria:newId("NCA"),Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:meuMat(),Nome_Auditor:nomeAud(),Matricula_Colaborador:mat,Nome_Colaborador:nome,Tipo:tp.value,
       Meta:m?m.t:"",Periodo:m?RR.P.lab:"",Meta_Valor:mv,Realizado:rv,Percentual:pc,Descricao:$("nca-d").value.trim(),Medida:$("nca-me").value,Prazo:$("nca-p").value,Status:"Aberta"};
-    await saveRec(rec);toast("Não conformidade registrada.");GM.ncR=null;paintNCA();ncaAbrir(rec);};}
+    await saveRec(rec);setTimeout(()=>{const h=HIST.get(rec.ID_Auditoria);toast(h&&h._sheet===SHEET_URL?"Não conformidade salva na planilha (aba NC_Auditores).":"Não conformidade registrada no aparelho"+(lastSheetErr?" — a planilha não recebeu: "+lastSheetErr:"; enviando à planilha…"));if(!$("v-ncaud").hidden)paintNCA();},4000);toast("Não conformidade registrada. Enviando à planilha…");GM.ncR=null;paintNCA();ncaAbrir(rec);};}
 
 // ---------- Início dos gestores: indicadores da equipe ----------
 function gmHojeEquipe(){const D=FECH.dados;if(!D){if(!FECH.busy)carregarFech(false);return [{t:"Auditorias hoje (equipe)",v:0,c:"#2563EB"},{t:"Não conformidades hoje",v:0,c:"#DC2626"},{t:"Auditores ativos hoje",v:0,c:"#0D9488"},{t:"Metas no ritmo (semana)",v:0,c:"#7C3AED"}];}
@@ -4354,7 +4354,7 @@ function gmHojeEquipe(){const D=FECH.dados;if(!D){if(!FECH.busy)carregarFech(fal
   return [{t:"Auditorias hoje (equipe)",v:n,c:"#2563EB"},{t:"Não conformidades hoje",v:nc,c:"#DC2626"},{t:"Auditores ativos hoje",v:GM.hoje.length,c:"#0D9488"},{t:"% das metas no ritmo (semana: "+ok+" de "+tot+")",v:tot?Math.round(ok/tot*100):0,c:"#7C3AED"}];}
 function gmEquipeCard(){const L=GM.hoje||[];let al="";try{const S=ncaResumo();if(S.adv.length||S.pend.length)al='<button type="button" class="hm-card nca-al'+(S.adv.length?' nca-adv':'')+'" data-hgo="ncaud" style="text-align:left;cursor:pointer"><b>'+(S.adv.length?S.adv.length+' colaborador(es) para solicitar advertência':'')+(S.adv.length&&S.pend.length?' · ':'')+(S.pend.length?S.pend.length+' não conformidade(s) para aplicar':'')+'</b><small style="display:block;color:var(--muted)">Toque para abrir NC dos auditores</small></button>';}catch(e){}return al+'<div class="hm-card hm-eq"><div class="hm-ch"><h3 class="hm-h">Equipe hoje</h3>'+(podeVer("metas")?'<button type="button" class="hm-lk" data-hgo="metas">Painel de metas ›</button>':'')+'</div>'+
   (L.length?'<div class="hm-eql">'+L.slice(0,8).map((q,i)=>'<div><span class="hm-eqn">'+(i+1)+'</span><b>'+esc(gmTitulo(q.nome))+'</b><span>'+q.n+' lanç.</span><span class="'+(q.nc?"nc":"")+'">'+q.nc+' NC</span></div>').join("")+'</div>':'<p class="fx-e">'+(FECH.dados?"Nenhuma auditoria lançada hoje até agora.":"Lendo a planilha…")+'</p>')+'</div>';}
-function gestRefresh(){try{ncaGerarAuto();ncaAlertas();if(!$("v-ocio").hidden)paintOcio();if(!$("v-desemp").hidden)paintDesemp();}catch(e){}try{if(!$("v-inicio").hidden)paintInicio();if(!$("v-metas").hidden)paintMetas();if(!$("v-feedback").hidden)paintFeedback();if(!$("v-ncaud").hidden)paintNCA();}catch(e){}}
+function gestRefresh(){try{ncaStatusPend();ncaGerarAuto();ncaAlertas();if(!$("v-ocio").hidden)paintOcio();if(!$("v-desemp").hidden)paintDesemp();}catch(e){}try{if(!$("v-inicio").hidden)paintInicio();if(!$("v-metas").hidden)paintMetas();if(!$("v-feedback").hidden)paintFeedback();if(!$("v-ncaud").hidden)paintNCA();}catch(e){}}
 
 BAND.metas=["Painel de metas","Percentual das metas da equipe e de cada auditor, com velocímetros."];
 BAND.feedback=["Feedback","Feedback automático das metas de cada auditor, pronto para imprimir e assinar."];
@@ -4435,13 +4435,25 @@ function ncaResumo(){const T=ncaTodas(),pend=T.filter(r=>r.Status==="Pendente de
   T.forEach(r=>{const k=ncaKey(r);if(!k)return;const c=porC[k]=porC[k]||{k,mat:r.Matricula_Colaborador,nome:r.Nome_Colaborador,meta:[],adv:[],outras:[]};if(r.Tipo===NCA_TIPO_ADV)c.adv.push(r);else if(ncaEhMeta(r)&&r.Status!=="Dispensada"&&r.Status!=="Pendente de aplicação")c.meta.push(r);else c.outras.push(r);});
   const adv=Object.values(porC).map(c=>{const ult=c.adv.reduce((m,r)=>Math.max(m,r.ts||0),0),novas=c.meta.filter(r=>(r.ts||0)>ult).sort((a,b)=>(a.ts||0)-(b.ts||0));return Object.assign(c,{novas});}).filter(c=>c.novas.length>=2);
   return {T,pend,porC,adv};}
+/* situações (Aplicada/Dispensada) que não chegaram na planilha: tenta de novo */
+async function ncaStatusPend(){if(DEMO||!SHEET_URL||!navigator.onLine||GM.stBusy)return;const L=Object.entries(NCST).filter(([,v])=>v&&v._pend);if(!L.length)return;GM.stBusy=true;let ok=0;
+  for(const [id,v] of L){const h=HIST.get(id);if(h&&h._sheet!==SHEET_URL)continue;try{const j=await ppPost({acao:"ncaud_status",id,status:v.Status,aplicadaEm:v.Aplicada_Em,aplicadaPor:v.Aplicada_Por});if(j&&j.ok){delete v._pend;ok++;}}catch(e){}}
+  try{store.set("audcd_ncst",NCST);}catch(e){}GM.stBusy=false;if(ok&&$("v-ncaud")&&!$("v-ncaud").hidden)paintNCA();}
+/* NCs gravadas no aparelho que ainda não chegaram na planilha */
+function ncaNaoEnviadas(){const H=[...HIST.values()].filter(r=>r._aba==="ncaud"&&r._sheet!==SHEET_URL),S=Object.values(NCST).filter(v=>v&&v._pend).length;
+  if(DEMO||!SHEET_URL||(!H.length&&!S))return "";const err=(H.find(r=>r._sheetErr)||{})._sheetErr||lastSheetErr||"";
+  return '<div class="hm-card nca-al nca-adv" style="text-align:left"><b>'+(H.length?H.length+' não conformidade(s) ainda não salva(s) na planilha Google':'')+(H.length&&S?' · ':'')+(S?S+' situação(ões) aguardando envio':'')+'</b>'+
+    (err?'<small style="display:block;margin-top:4px">Motivo: '+esc(err)+(/desconhecido|Atualize o Apps Script/i.test(err)?' — cole o Apps Script novo e publique em Gerenciar implantações → lápis → Nova versão.':'')+'</small>':'')+
+    '<button type="button" class="btn" id="nca-env" style="margin-top:8px">Enviar agora</button></div>';}
 function ncaAlertas(){let n=0;try{if(gPerm("ce_gest")){const S=ncaResumo();n=S.pend.length+S.adv.length;}}catch(e){}const b=$("nav-nca");if(b){b.hidden=!n;b.textContent=n;}return n;}
 async function ncaStatus(r,st){const now=new Date(),upd={Status:st,Aplicada_Em:st==="Aplicada"?fmtDT(now):"",Aplicada_Por:nomeAud()};const id=String(r.ID_Auditoria);
   const q=queue.find(x=>x.rec&&String(x.rec.ID_Auditoria)===id);
   if(q){Object.assign(q.rec,upd);saveQueue();}
-  else if(!DEMO&&SHEET_URL){if(!navigator.onLine){toast("Sem internet: não dá para atualizar a planilha agora.");return false;}
-    try{const j=await ppPost({acao:"ncaud_status",id,status:upd.Status,aplicadaEm:upd.Aplicada_Em,aplicadaPor:upd.Aplicada_Por});if(!j||!j.ok)throw new Error((j&&j.erro)||"sem resposta");}catch(e){toast("Não atualizou na planilha: "+e.message);return false;}}
-  const h=HIST.get(id);if(h){Object.assign(h,upd);histPut(h);}NCST[id]=upd;try{store.set("audcd_ncst",NCST);}catch(e){}
+  const h=HIST.get(id),local=h&&h._sheet!==SHEET_URL;let pend=false;
+  if(local){Object.assign(h,upd);await histPut(h);sheetSync();}
+  else if(!DEMO&&SHEET_URL){try{if(!navigator.onLine)throw new Error("sem internet");const j=await ppPost({acao:"ncaud_status",id,status:upd.Status,aplicadaEm:upd.Aplicada_Em,aplicadaPor:upd.Aplicada_Por});if(!j||!j.ok)throw new Error((j&&j.erro)||"sem resposta");}
+    catch(e){pend=true;toast("Salvo no aparelho. A situação vai para a planilha assim que ela responder ("+e.message+").");}}
+  if(h&&!local){Object.assign(h,upd);histPut(h);}NCST[id]=Object.assign({},upd,pend?{_pend:1}:{});try{store.set("audcd_ncst",NCST);}catch(e){}
   try{const b=FECH.dados&&FECH.dados.ncaud;if(b&&b.colunas){const ci=b.colunas.indexOf("ID_Auditoria");b.registros.forEach(x=>{if(String(x[ci])===id)Object.entries(upd).forEach(([k,v])=>{const i=b.colunas.indexOf(k);if(i>=0)x[i]=v;});});}}catch(e){}
   Object.assign(r,upd);ncaAlertas();return true;}
 function ncaAdvDoc(c,rec){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v===""||v==null?"–":esc(v))+'</td></tr>';
