@@ -447,7 +447,8 @@ async function sheetSync(all){
   try{
     do{syncAgain=false;
       const list=[...HIST.values()].filter(r=>all||r._sheet!==SHEET_URL).sort((a,b)=>a.ts-b.ts);all=false;
-      for(let i=0;i<list.length;i+=3){const batch=list.slice(i,i+3);
+      const lotes=[];{let cur=[],tam=0;for(const r of list){const t=JSON.stringify(toSheet(r)).length;if(cur.length&&(cur.length>=40||tam+t>3.5e6)){lotes.push(cur);cur=[];tam=0;}cur.push(r);tam+=t;}if(cur.length)lotes.push(cur);}
+      for(const batch of lotes){
         if(!DEMO&&!(LOGIN&&LOGIN.token))throw new Error("faça login para enviar.");
         let res=null;
         try{res=await postSheet(JSON.stringify({token:LOGIN&&LOGIN.token,records:batch.map(toSheet)}));}
@@ -3636,10 +3637,9 @@ $("v-save").addEventListener("click",async()=>{if(!auditor){toast("Faça login p
     Matricula_Colaborador_NC:nc?C.mat[ci]:"",Nome_Colaborador_NC:nc?C.nome[ci]:"",Funcao_Colaborador_NC:nc?(C.fun[ci]||""):"",Observacao:$("v-obs").value.trim(),Matricula_Auditor:auditor,Nome_Auditor:nomeAud(),fotos:VA.fotos.slice()};
   $("v-save").disabled=true;const ok=await saveRec(rec);$("v-save").disabled=false;
   if(conv){const pl={acao:"vlc_registrar",idItem:conv.id,validade:ord[0].v,lotes:ord.map(l=>({validade:l.v,qtd:l.q})),qtd:rec.Quantidade,resultado:rec.Resultado,obs:rec.Observacao,idCliente:rec.ID_Auditoria,quando:rec.DataHora};
-    const guardar=()=>{vlcFilaGravar(vlcFilaLer().concat([Object.assign({auditor,desc:vlcEnd(conv)+" · "+conv.cod},pl)]));toast("Sem internet: baixa guardada no aparelho. Será enviada à planilha quando a conexão voltar.");};
-    if(!navigator.onLine)guardar();
-    else{try{const j=await ppPost(pl);toast("Endereço auditado"+(j.divergencia?" · divergência: "+j.divergencia:"")+".");}
-      catch(e){if(e instanceof TypeError||/não respondeu/i.test(e.message))guardar();else toast("Auditoria salva, mas não deu baixa na convocação: "+e.message);}}
+    vlcFilaGravar(vlcFilaLer().concat([Object.assign({auditor,desc:vlcEnd(conv)+" · "+conv.cod},pl)]));
+    if(!navigator.onLine)toast("Sem internet: baixa guardada no aparelho. Será enviada à planilha quando a conexão voltar.");
+    else{toast("Endereço auditado. Baixa enviada à planilha em segundo plano.");setTimeout(()=>vlcFlush(true),50);}
     VC.itens=(VC.itens||[]).filter(x=>x.id!==conv.id);VC.total=Math.max(0,(VC.total||1)-1);vlcPulTirar(conv.id);vlcCacheSalvar();paintVlcFila();}
   else toast((ok||dbState==="off"?"Auditoria salva":"Salva neste aparelho, envio pendente")+" – "+rec.Resultado+".");
   if(nc)vlaDoc(rec);vlaReset();if(conv){VC.feitos=(VC.feitos||0)+1;vlcProximo();}else paintVLA();});
@@ -3661,6 +3661,7 @@ function cardVLA(r){return '<details class="rec '+(pbool(r.Possui_NC)?"nc":"ok")
 const VC={itens:null,busy:false,msg:"",todos:false,conv:null,tela:"inicio",filtro:{op:"",tipo:"TODOS",rua:""},pulados:new Set(),pulInfo:{},soPul:false,feitos:0};
 /* offline: a lista de endereços fica guardada no aparelho e as baixas feitas sem internet entram numa fila enviada sozinha quando a conexão volta */
 const vlcCK=()=>"audcd_vlc_cache_"+(auditor||""),VLC_FILA="audcd_vlc_fila";
+let VLC_LOTE_OK=true;
 const vlcFilaLer=()=>{try{return JSON.parse(localStorage.getItem(VLC_FILA)||"[]")||[];}catch(e){return [];}};
 const vlcFilaGravar=L=>{try{localStorage.setItem(VLC_FILA,JSON.stringify(L));}catch(e){}};
 const vlcPend=()=>new Set(vlcFilaLer().filter(x=>x.auditor===auditor).map(x=>String(x.idItem)));
@@ -3687,11 +3688,22 @@ function vlcHist(){const box=$("v-phist");if(!box)return;if(VH.rows==null&&!VH.b
   const up=()=>{VH.de=$("vh-de").value;VH.ate=$("vh-ate").value;VH.st=$("vh-st").value;VH.q=$("vh-q").value;vlcHist();};["vh-de","vh-ate","vh-st"].forEach(id=>$(id).onchange=up);$("vh-q").onchange=up;
   $("vh-upd").onclick=()=>{VH.rows=null;VH.msg="";vlcHistCarregar();};
   box.querySelectorAll("[data-ph]").forEach(b=>b.onclick=()=>{const i=(VC.itens||[]).find(x=>String(x.id)===b.dataset.ph);if(!i)return;VC.pulInfo[i.id]=VC.pulInfo[i.id]||{m:"",em:"",v:1};VC.pulados.add(String(i.id));VC.soPul=true;VC.pulSessao=new Set();VC.tela="auditar";VC.itens=[i].concat(VC.itens.filter(x=>x!==i));vlcProximo();});}
-async function vlcFlush(silencioso){if(vlcEnviando||DEMO||!SHEET_URL||!LOGIN||!navigator.onLine)return 0;const L=vlcFilaLer();if(!L.length)return 0;vlcEnviando=true;let ok=0,perd=[];
-  for(const x of L){if(x.auditor!==auditor)continue;try{const p=Object.assign({},x);delete p.auditor;delete p.desc;await ppPost(p);ok++;vlcFilaGravar(vlcFilaLer().filter(y=>y.idCliente!==x.idCliente));}
+let vlcDeNovo=false;
+async function vlcFlush(silencioso){if(vlcEnviando){vlcDeNovo=true;return 0;}if(DEMO||!SHEET_URL||!LOGIN||!navigator.onLine)return 0;const L=vlcFilaLer();if(!L.length)return 0;vlcEnviando=true;let ok=0,perd=[],div=[];
+  const meus=L.filter(x=>x.auditor===auditor);let lote=VLC_LOTE_OK;
+  for(let i=0;lote&&i<meus.length;i+=25){const parte=meus.slice(i,i+25);
+    try{const j=await ppPost({acao:"vlc_lote",itens:parte.map(x=>{const p=Object.assign({},x);delete p.auditor;delete p.desc;delete p.acao;return p;})});
+      if(!Array.isArray(j.resultados))throw new Error("Ação desconhecida (Apps Script antigo)");
+      const res=new Map(j.resultados.map(r=>[String(r.idCliente),r]));const tirar=new Set();
+      parte.forEach(x=>{const r=res.get(String(x.idCliente));if(!r)return;if(r.ok){ok++;tirar.add(x.idCliente);if(r.divergencia)div.push((x.desc||x.idItem)+": "+r.divergencia);}
+        else if(/já foi auditado|não encontrado/i.test(r.erro||"")){perd.push((x.desc||x.idItem)+": "+r.erro);tirar.add(x.idCliente);}});
+      vlcFilaGravar(vlcFilaLer().filter(y=>!tirar.has(y.idCliente)));}
+    catch(e){if(/desconhecid|Ação|acao/i.test(e.message||"")){lote=false;VLC_LOTE_OK=false;break;}vlcEnviando=false;paintVlcFila();return ok;}}
+  if(!lote)for(const x of vlcFilaLer().filter(x=>x.auditor===auditor)){if(x.auditor!==auditor)continue;try{const p=Object.assign({},x);delete p.auditor;delete p.desc;await ppPost(p);ok++;vlcFilaGravar(vlcFilaLer().filter(y=>y.idCliente!==x.idCliente));}
     catch(e){if(e instanceof TypeError||/não respondeu/i.test(e.message))break;
       if(/já foi auditado|não encontrado/i.test(e.message)){perd.push((x.desc||x.idItem)+": "+e.message);vlcFilaGravar(vlcFilaLer().filter(y=>y.idCliente!==x.idCliente));}else continue;}}
-  vlcEnviando=false;if(ok&&!silencioso)toast(ok+" baixa(s) de validade feitas sem internet foram enviadas à planilha.");
+  vlcEnviando=false;if(ok&&!silencioso)toast(ok+" baixa(s) de validade feitas sem internet foram enviadas à planilha.");if(silencioso&&div.length===1&&ok===1)toast("Baixa enviada · divergência: "+div[0].split(": ").slice(1).join(": "));
+  if(vlcDeNovo){vlcDeNovo=false;setTimeout(()=>vlcFlush(true),100);}
   if(perd.length)alert("Baixas de validade não aceitas pela planilha:\n\n"+perd.join("\n"));paintVlcFila();return ok;}
 function paintVlcFila(){const n=vlcFilaLer().filter(x=>x.auditor===auditor).length;let el=$("v-cfila");if(!el){const box=$("v-conv");if(!box||!box.parentNode)return;el=document.createElement("p");el.id="v-cfila";el.className="note";el.style.cssText="margin:0 0 10px;font-weight:700;color:#B45309";box.parentNode.insertBefore(el,box);}
   el.hidden=!n;el.textContent=n?"⏳ "+n+" baixa(s) de validade guardada(s) no aparelho — serão enviadas à planilha quando houver internet.":"";}
@@ -3792,7 +3804,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v155</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v156</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3881,7 +3893,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v155</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v156</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4739,7 +4751,7 @@ function hmNews(){const box=$("hm-news"),tk=$("hm-tick");if(!box)return;const L=
   car.addEventListener("pointerdown",auto);auto();if(HM.i)setTimeout(()=>ir(HM.i),30);}
 function hmContar(el){const fim=+el.dataset.n||0,t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/700);el.textContent=Math.round(fim*(1-Math.pow(1-p,3))).toLocaleString("pt-BR");if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 /* aviso para gestores/ADM: o link do app ainda roda um Apps Script antigo */
-const GS_MIN=66;
+const GS_MIN=67;
 async function gsAviso(){if(DEMO||!SHEET_URL||!(ehAdm()||gPerm("ce_gest"))||!navigator.onLine)return;try{if(!GM.gsv||Date.now()-GM.gsvT>3e5){const j=await sheetVer(SHEET_URL);GM.gsv=j?(+j.versao||0):null;GM.gsvT=Date.now();}}catch(e){return;}
   const box=$("home");if(!box||GM.gsv==null||GM.gsv>=GS_MIN||$("gs-av"))return;
   box.insertAdjacentHTML("afterbegin",'<div id="gs-av" class="hm-card" style="border:1px solid #FCA5A5;background:#FEF2F2;color:#7F1D1D;margin-bottom:12px;text-align:left;padding:12px 14px"><b>Apps Script desatualizado: o link do app roda a versão '+GM.gsv+' e precisa da '+GS_MIN+'.</b><small style="display:block;margin-top:4px">Enquanto isso, NC dos auditores, exclusões e acessos novos não chegam à planilha. No editor do Apps Script: cole o código novo, salve e vá em Implantar → Gerenciar implantações → escolha a implantação com ID terminado em <b>'+esc(sheetIdCurto(SHEET_URL))+'</b> → lápis → Versão: Nova versão → Implantar.</small></div>');}

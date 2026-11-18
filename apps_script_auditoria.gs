@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 66)
+ * Auditoria STA – Santa Therezinha (versão 67)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -361,37 +361,75 @@ function vlcPuladosHist(sessao) {
 }
 /** Grava o resultado no sistema AE/AP (AUDITORIA_AE ou AUDITORIA_AP) e dá baixa no endereço convocado. */
 function vlcRegistrar(sessao, p) {
+  const r = vlcRegistrarLote(sessao, [p])[0];
+  if (!r.ok) throw new Error(r.erro);
+  return r;
+}
+/* várias baixas de uma vez (fila do aparelho sem internet): abre a planilha de validade e lê as abas uma única vez */
+function vlcRegistrarLote(sessao, lista) {
   const ss = SpreadsheetApp.openById(VALIDADE_ID), tz = Session.getScriptTimeZone(), recebido = Utilities.formatDate(new Date(), tz, "yyyy-MM-dd'T'HH:mm:ss");
-  /* auditoria feita sem internet: DATA_HORA = momento da auditoria no aparelho (dd/mm/aaaa hh:mm); DATA_RECEBIDO = chegada na planilha */
-  const agora = (function (q) { const m = String(q || '').match(/^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); return m ? m[3] + '-' + m[2] + '-' + m[1] + 'T' + m[4] + ':' + m[5] + ':' + (m[6] || '00') : recebido; })(p.quando);
-  const login = vlcLogin(ss, sessao) || String(sessao.matricula), I = vlcTab(ss, 'OPERACAO_ITENS'), it = I.linhas.find(function (x) { return String(x.ID_ITEM) === String(p.idItem); });
-  if (!it) throw new Error('Endereço convocado não encontrado (' + p.idItem + ').');
-  if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO' && String(it.AUDITOR) === String(login)) return { ok: true, repetido: true, divergencia: it.DIVERGENCIA || '' };
-  if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO') throw new Error('Este endereço já foi auditado por ' + it.AUDITOR + '.');
-  const tipo = String(it.TIPO).toUpperCase() === 'AP' ? 'AP' : 'AE', val = String(p.validade || ''), qtd = String(p.qtd || '');
-  const id = (tipo === 'AE' ? 'AE-' : 'AP-') + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
-  const dtv = (function (s) { s = String(s || '').trim(); const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : s.slice(0, 10); })(it.DTVAL);
-  let div = !it.DTVAL ? 'SEM VALIDADE NO SISTEMA' : (val && val !== dtv ? 'VALIDADE' : '');
-  if (tipo === 'AP' && qtd && it.QTDE && Number(qtd) !== Number(it.QTDE)) div = (div ? div + '; ' : '') + 'QTDE (' + qtd + ' x ' + it.QTDE + ')';
-  const obs = ('[App STA] ' + (p.resultado || '') + (p.obs ? ' — ' + p.obs : '')).slice(0, 500);
-  const base = { ID_REGISTRO: id, ID_OPERACAO: it.ID_OPERACAO, ID_ITEM: it.ID_ITEM, CHAVE_AE: it.CHAVE_AE, CHAVE_SEC: it.CHAVE_SEC, RUA: it.RUA, PREDIO: it.PREDIO, NIVEL: it.NIVEL, APTO: it.APTO,
-    CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: recebido,
-    ID_CLIENTE: p.idCliente || id, STATUS: 'CONCLUIDA', ORIGEM: 'APP STA' };
-  /* várias validades no mesmo endereço: AP grava uma linha por validade (LOTE_SEQ); AE grava a menor e anota as demais na observação */
-  const lotes = (Array.isArray(p.lotes) && p.lotes.length ? p.lotes : [{ validade: val, qtd: qtd }]).filter(function (l) { return l && l.validade; });
-  if (tipo === 'AE' && lotes.length > 1) base.OBS = (base.OBS + ' | outras validades: ' + lotes.slice(1).map(function (l) { return l.validade + (l.qtd ? ' x ' + l.qtd : ''); }).join(', ')).slice(0, 500);
-  if (lotes.length > 1 && dtv && lotes.some(function (l) { return l.validade !== dtv; }) && div.indexOf('VALIDADE') < 0) div = 'VALIDADE' + (div ? '; ' + div : '');
-  base.DIVERGENCIA = div;
-  const regs = tipo === 'AE' ? [Object.assign({}, base, { VALIDADE_FISICA: lotes[0] ? lotes[0].validade : val })] :
-    lotes.map(function (l, n) { return Object.assign({}, base, { ID_LINHA: id + '-' + (n + 1), LOTE_SEQ: n + 1, VALIDADE_ENCONTRADA: l.validade, QTDE_ENCONTRADA: l.qtd || '' }); });
-  const A = vlcTab(ss, tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP');
-  if (!A.sh) throw new Error('Aba ' + (tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP') + ' não encontrada na planilha de validade.');
-  A.sh.getRange(A.sh.getLastRow() + 1, 1, regs.length, A.cab.length).setValues(regs.map(function (reg) { return A.cab.map(function (k) { return reg[k] == null ? '' : reg[k]; }); }));
-  const upd = { STATUS_ITEM: 'AUDITADO', AUDITOR: login, DATA_STATUS: agora, ID_REGISTRO: id, DIVERGENCIA: div, RESERVADO_POR: '', RESERVADO_ATE: '', VERSAO: Number(it.VERSAO || 1) + 1 };
-  Object.keys(upd).forEach(function (k) { const j = I.cab.indexOf(k); if (j >= 0) I.sh.getRange(it._linha, j + 1).setValue(upd[k]); });
-  try { CacheService.getScriptCache().remove('painel_' + it.ID_OPERACAO); } catch (e) { }
-  vlcPuladoResolver(it.ID_ITEM, sessao.nome || sessao.matricula);
-  return { ok: true, idRegistro: id, divergencia: div, tipo: tipo };
+  const login = vlcLogin(ss, sessao) || String(sessao.matricula), I = vlcTab(ss, 'OPERACAO_ITENS'), porId = {};
+  I.linhas.forEach(function (x) { porId[String(x.ID_ITEM)] = x; });
+  const cabA = {}, novas = { AE: [], AP: [] }, mudou = [], resolvidos = [], out = [];
+  ['AE', 'AP'].forEach(function (t) { const sh = ss.getSheetByName(t === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP'); cabA[t] = sh ? { sh: sh, cab: sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getDisplayValues()[0].map(String) } : null; });
+  (lista || []).forEach(function (p) {
+    try {
+      /* auditoria feita sem internet: DATA_HORA = momento da auditoria no aparelho (dd/mm/aaaa hh:mm); DATA_RECEBIDO = chegada na planilha */
+      const agora = (function (q) { const m = String(q || '').match(/^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?/); return m ? m[3] + '-' + m[2] + '-' + m[1] + 'T' + m[4] + ':' + m[5] + ':' + (m[6] || '00') : recebido; })(p.quando);
+      const it = porId[String(p.idItem)];
+      if (!it) throw new Error('Endereço convocado não encontrado (' + p.idItem + ').');
+      if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO' && String(it.AUDITOR) === String(login)) { out.push({ ok: true, idCliente: p.idCliente, repetido: true, divergencia: it.DIVERGENCIA || '' }); return; }
+      if (String(it.STATUS_ITEM).toUpperCase() === 'AUDITADO') throw new Error('Este endereço já foi auditado por ' + it.AUDITOR + '.');
+      const tipo = String(it.TIPO).toUpperCase() === 'AP' ? 'AP' : 'AE', val = String(p.validade || ''), qtd = String(p.qtd || '');
+      const id = (tipo === 'AE' ? 'AE-' : 'AP-') + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000);
+      const dtv = (function (x) { x = String(x || '').trim(); const m = x.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : x.slice(0, 10); })(it.DTVAL);
+      let div = !it.DTVAL ? 'SEM VALIDADE NO SISTEMA' : (val && val !== dtv ? 'VALIDADE' : '');
+      if (tipo === 'AP' && qtd && it.QTDE && Number(qtd) !== Number(it.QTDE)) div = (div ? div + '; ' : '') + 'QTDE (' + qtd + ' x ' + it.QTDE + ')';
+      const obs = ('[App STA] ' + (p.resultado || '') + (p.obs ? ' — ' + p.obs : '')).slice(0, 500);
+      const base = { ID_REGISTRO: id, ID_OPERACAO: it.ID_OPERACAO, ID_ITEM: it.ID_ITEM, CHAVE_AE: it.CHAVE_AE, CHAVE_SEC: it.CHAVE_SEC, RUA: it.RUA, PREDIO: it.PREDIO, NIVEL: it.NIVEL, APTO: it.APTO,
+        CODPRODUTO: it.CODPRODUTO, DESCRICAO: it.DESCRICAO, QTDE_SISTEMA: it.QTDE, VALIDADE_SISTEMA: it.DTVAL, DIVERGENCIA: div, OBS: obs, AUDITOR: login, DATA_HORA: agora, DATA_RECEBIDO: recebido,
+        ID_CLIENTE: p.idCliente || id, STATUS: 'CONCLUIDA', ORIGEM: 'APP STA' };
+      /* várias validades no mesmo endereço: AP grava uma linha por validade (LOTE_SEQ); AE grava a menor e anota as demais na observação */
+      const lotes = (Array.isArray(p.lotes) && p.lotes.length ? p.lotes : [{ validade: val, qtd: qtd }]).filter(function (l) { return l && l.validade; });
+      if (tipo === 'AE' && lotes.length > 1) base.OBS = (base.OBS + ' | outras validades: ' + lotes.slice(1).map(function (l) { return l.validade + (l.qtd ? ' x ' + l.qtd : ''); }).join(', ')).slice(0, 500);
+      if (lotes.length > 1 && dtv && lotes.some(function (l) { return l.validade !== dtv; }) && div.indexOf('VALIDADE') < 0) div = 'VALIDADE' + (div ? '; ' + div : '');
+      base.DIVERGENCIA = div;
+      const regs = tipo === 'AE' ? [Object.assign({}, base, { VALIDADE_FISICA: lotes[0] ? lotes[0].validade : val })] :
+        lotes.map(function (l, n) { return Object.assign({}, base, { ID_LINHA: id + '-' + (n + 1), LOTE_SEQ: n + 1, VALIDADE_ENCONTRADA: l.validade, QTDE_ENCONTRADA: l.qtd || '' }); });
+      if (!cabA[tipo]) throw new Error('Aba ' + (tipo === 'AE' ? 'AUDITORIA_AE' : 'AUDITORIA_AP') + ' não encontrada na planilha de validade.');
+      regs.forEach(function (reg) { novas[tipo].push(cabA[tipo].cab.map(function (k) { return reg[k] == null ? '' : reg[k]; })); });
+      const upd = { STATUS_ITEM: 'AUDITADO', AUDITOR: login, DATA_STATUS: agora, ID_REGISTRO: id, DIVERGENCIA: div, RESERVADO_POR: '', RESERVADO_ATE: '', VERSAO: Number(it.VERSAO || 1) + 1 };
+      Object.assign(it, upd); mudou.push({ linha: it._linha, upd: upd, op: it.ID_OPERACAO }); resolvidos.push(it.ID_ITEM);
+      out.push({ ok: true, idCliente: p.idCliente, idRegistro: id, divergencia: div, tipo: tipo });
+    } catch (e) { out.push({ ok: false, idCliente: p && p.idCliente, erro: String(e.message || e) }); }
+  });
+  /* grava: uma escrita por aba de auditoria e uma por linha de item */
+  ['AE', 'AP'].forEach(function (t) { const L = novas[t]; if (L.length) cabA[t].sh.getRange(cabA[t].sh.getLastRow() + 1, 1, L.length, cabA[t].cab.length).setValues(L); });
+  if (mudou.length) {
+    const cols = Object.keys(mudou[0].upd).map(function (k) { return I.cab.indexOf(k); }).filter(function (j) { return j >= 0; });
+    if (cols.length) {
+      const c0 = Math.min.apply(null, cols), c1 = Math.max.apply(null, cols), larg = c1 - c0 + 1;
+      mudou.forEach(function (m) {
+        const rg = I.sh.getRange(m.linha, c0 + 1, 1, larg), v = rg.getValues()[0], fo = rg.getFormulas()[0];
+        const lin = v.map(function (x, k) { const nome = I.cab[c0 + k]; if (nome in m.upd) return m.upd[nome]; return fo[k] ? fo[k] : x; });
+        rg.setValues([lin]);
+      });
+    }
+    const ops = {}; mudou.forEach(function (m) { ops[m.op] = 1; });
+    try { const c = CacheService.getScriptCache(); Object.keys(ops).forEach(function (o) { c.remove('painel_' + o); }); } catch (e) { }
+  }
+  if (resolvidos.length) vlcPuladosResolverLote(resolvidos, sessao.nome || sessao.matricula);
+  return out;
+}
+/* pulados que acabaram de ser auditados: uma leitura da aba de pulados para o lote inteiro */
+function vlcPuladosResolverLote(ids, quem) {
+  try {
+    const A = abaRot(ABA_VPUL, COLS_VPUL), sh = A.sh, cab = A.cab, n = sh.getLastRow(); if (n < 2) return;
+    const set = {}; ids.forEach(function (x) { set[String(x)] = 1; });
+    const iI = cab.indexOf('ID_Item'), iS = cab.indexOf('Status'), v = sh.getRange(2, 1, n - 1, cab.length).getDisplayValues();
+    if (!v.some(function (l) { return set[String(l[iI])] && l[iS] === 'Pulado'; })) return;
+    ids.forEach(function (id) { vlcPuladoResolver(id, quem); });
+  } catch (e) { }
 }
 /** Rode uma vez no editor para autorizar o acesso à planilha de validade. */
 function testarValidade() { const r = valLer(); return Object.keys(r.abas).map(function (k) { return k + ': ' + r.abas[k].valores.length + ' linhas'; }).join(' | '); }
@@ -484,14 +522,14 @@ function doPost(e) {
       try { return resposta(chepSalvar(dados.doc || {}, dados.b64 || '', sessao)); } finally { lkc.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar' || dados.acao === 'vlc_pular' || dados.acao === 'vlc_pul_hist') {
+  if (dados.acao === 'vlc_minhas' || dados.acao === 'vlc_registrar' || dados.acao === 'vlc_lote' || dados.acao === 'vlc_pular' || dados.acao === 'vlc_pul_hist') {
     if (['aud_adm', 'aud_vld'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de auditoria de validade (aud_vld).' });
     try {
       if (dados.acao === 'vlc_minhas') return resposta(vlcMinhas(sessao, !!dados.todos));
       if (dados.acao === 'vlc_pul_hist') return resposta(vlcPuladosHist(sessao));
       if (dados.acao === 'vlc_pular') { const lkp = LockService.getScriptLock(); lkp.waitLock(30000); try { return resposta(vlcPular(sessao, dados)); } finally { lkp.releaseLock(); } }
       const lkv = LockService.getScriptLock(); lkv.waitLock(30000);
-      try { return resposta(vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
+      try { return resposta(dados.acao === 'vlc_lote' ? { ok: true, resultados: vlcRegistrarLote(sessao, (dados.itens || []).slice(0, 60)) } : vlcRegistrar(sessao, dados)); } finally { lkv.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'ncaud_status') {
@@ -678,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 66, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 67, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -885,11 +923,16 @@ function gravar(ss, cfg, registros) {
   cfg.colunas.forEach(function (c) {
     if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); }
   });
-  if (cfg === ABAS.cargas) validarMotivosCarga(sh);
-  if (cfg === ABAS.pp) validarListasPP(sh, cab);
-  if (cfg === ABAS.sac) validarListas(sh, cab, [['Motivo', MOTIVOS_SAC], ['Status_NC', STATUS_SAC]]);
-  if (cfg === ABAS.procura) { validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA], ['Motivo_Procura', ['Avaria', 'Qt inferior', 'Validade', 'E-commerce', 'Encontrado', 'Não encontrado']]]); preencherMotivoProcura(sh, cab); }
-  if (cfg === ABAS.adega) validarListas(sh, cab, [['Tipo', TIPOS_ADEGA]]);
+  /* listas suspensas e correções da aba inteira: no máximo 1x a cada 6 h por aba (deixa o envio rápido) */
+  let fazer = true;
+  try { const ch = CacheService.getScriptCache(), kk = 'valid_' + cfg.nome; if (ch.get(kk)) fazer = false; else ch.put(kk, '1', 21600); } catch (e) { }
+  if (fazer) {
+    if (cfg === ABAS.cargas) validarMotivosCarga(sh);
+    if (cfg === ABAS.pp) validarListasPP(sh, cab);
+    if (cfg === ABAS.sac) validarListas(sh, cab, [['Motivo', MOTIVOS_SAC], ['Status_NC', STATUS_SAC]]);
+    if (cfg === ABAS.procura) { validarListas(sh, cab, [['Motivo', MOTIVOS_PROCURA], ['Motivo_Procura', ['Avaria', 'Qt inferior', 'Validade', 'E-commerce', 'Encontrado', 'Não encontrado']]]); preencherMotivoProcura(sh, cab); }
+    if (cfg === ABAS.adega) validarListas(sh, cab, [['Tipo', TIPOS_ADEGA]]);
+  }
   const colId = cab.indexOf('ID_Auditoria');
   const existentes = new Set(sh.getLastRow() > 1
     ? sh.getRange(2, colId + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); })
@@ -912,6 +955,7 @@ function gravar(ss, cfg, registros) {
         r.Links_Fotos = (r.fotos || []).map(function (d, i) { return salvarFoto(d, r.ID_Auditoria + '_' + (i + 1)); }).filter(String).join(' ');
       }
     } catch (err) { r.Links_Fotos = 'Fotos não salvas: ' + err; }
+    if (cfg === ABAS.procura && !String(r.Motivo_Procura || '').trim()) { const mo = String(r.Motivo || '').trim(); if (mo === 'Produto não encontrado') r.Motivo_Procura = 'Não encontrado'; else if (mo === 'Produto encontrado') r.Motivo_Procura = 'Encontrado'; }
     r.Recebido_Em = new Date();
     linhas.push(cab.map(function (h) { const v = r[h]; return v === undefined || v === null ? '' : v; }));
     existentes.add(String(r.ID_Auditoria));
@@ -1243,9 +1287,15 @@ function painelSalvar(nome, dados, sessao) {
   return { ok: true, versao: versao, em: em, por: por };
 }
 
+let PASTA_CACHE = null;
 function obterPasta() {
+  if (PASTA_CACHE) return PASTA_CACHE;
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('PASTA_FOTOS_ID');
+  if (id) { try { PASTA_CACHE = DriveApp.getFolderById(id); return PASTA_CACHE; } catch (e) { } }
   const it = DriveApp.getFoldersByName(PASTA_FOTOS);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_FOTOS);
+  PASTA_CACHE = it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_FOTOS);
+  try { pr.setProperty('PASTA_FOTOS_ID', PASTA_CACHE.getId()); } catch (e) { }
+  return PASTA_CACHE;
 }
 
 function resposta(obj) {
