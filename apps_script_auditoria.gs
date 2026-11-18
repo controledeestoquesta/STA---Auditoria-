@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 64)
+ * Auditoria STA – Santa Therezinha (versão 65)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -207,6 +207,33 @@ function atualizarResumoNC(ss) {
   if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, Math.max(sh.getLastColumn(), CAB_RESUMO_NC.length)).clearContent();
   sh.getRange(1, 1, 1, CAB_RESUMO_NC.length).setValues([CAB_RESUMO_NC]).setFontWeight('bold');
   if (linhas.length) { sh.getRange(2, 1, linhas.length, 1).setNumberFormat('@'); sh.getRange(2, 1, linhas.length, CAB_RESUMO_NC.length).setValues(linhas); }
+}
+/* ---- NC dos auditores: apagar (o gestor) — a linha sai de NC_Auditores e fica registrada em NC_Auditores_Excluidas ---- */
+const ABA_NC_EXCL = 'NC_Auditores_Excluidas';
+const CAB_NC_EXCL = ['ID_Auditoria', 'Matricula_Colaborador', 'Nome_Colaborador', 'Tipo', 'Periodo', 'Status', 'Motivo_Exclusao', 'Excluida_Por', 'Excluida_Em'];
+function ncaudExcluir(id, motivo, sessao) {
+  id = String(id || '').trim(); if (!id) throw new Error('Informe a NC.');
+  const ss = abrirPlanilha(), sh = ss.getSheetByName(ABAS.ncaud.nome);
+  let info = {};
+  if (sh && sh.getLastRow() > 1) {
+    const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), ci = cab.indexOf('ID_Auditoria');
+    const dados = sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getDisplayValues();
+    for (let i = dados.length - 1; i >= 0; i--) if (String(dados[i][ci]).trim() === id) {
+      cab.forEach(function (c, k) { info[c] = dados[i][k]; }); sh.deleteRow(i + 2);
+    }
+  }
+  const ex = abaComCabecalho(ss, ABA_NC_EXCL, CAB_NC_EXCL);
+  const em = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  const o = { ID_Auditoria: id, Matricula_Colaborador: info.Matricula_Colaborador, Nome_Colaborador: info.Nome_Colaborador, Tipo: info.Tipo, Periodo: info.Periodo, Status: info.Status,
+    Motivo_Exclusao: String(motivo || ''), Excluida_Por: (sessao.nome || '') + ' (' + sessao.matricula + ')', Excluida_Em: em };
+  ex.getRange(ex.getLastRow() + 1, 1, 1, CAB_NC_EXCL.length).setNumberFormat('@').setValues([CAB_NC_EXCL.map(function (k) { return o[k] == null ? '' : String(o[k]); })]);
+  try { atualizarResumoNC(ss); } catch (e) {}
+  return { ok: true, excluidos: info.ID_Auditoria ? 1 : 0 };
+}
+function ncaudExcluidas(ss) {
+  const sh = ss.getSheetByName(ABA_NC_EXCL);
+  if (!sh || sh.getLastRow() < 2) return [];
+  return sh.getRange(2, 1, sh.getLastRow() - 1, 1).getDisplayValues().map(function (l) { return String(l[0]).trim(); }).filter(String);
 }
 /* ---- NC dos auditores: muda a situação (Aplicada / Dispensada) ---- */
 function ncaudStatus(d) {
@@ -471,6 +498,12 @@ function doPost(e) {
     if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
     try { return resposta(ncaudStatus(dados)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
+  if (dados.acao === 'ncaud_excluir') {
+    if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
+    const lkn = LockService.getScriptLock(); lkn.waitLock(30000);
+    try { return resposta(ncaudExcluir(dados.id, dados.motivo, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+    finally { lkn.releaseLock(); }
+  }
   if (dados.acao === 'vlc_metas') {
     if (['aud_adm', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão de gestão (ce_gest).' });
     try { return resposta(vlcMetas()); } catch (err) { return resposta({ ok: false, erro: 'Planilha de validade: ' + String(err.message || err) }); }
@@ -635,6 +668,7 @@ function doGet(e) {
         spkh: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0 || s.permissoes.indexOf('aud_spk') >= 0) ? lerAba(ss, ABAS.spkh.nome, ABAS.spkh.colunas) : vazio,
         ncaud: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas) : vazio,
         feedback: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.feedback.nome, ABAS.feedback.colunas) : vazio,
+        ncaudExcl: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? ncaudExcluidas(ss) : [],
         quadro: lerQuadro(ss)
       };
       return resposta(out);
@@ -644,7 +678,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 64, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 65, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
