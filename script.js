@@ -2999,9 +2999,9 @@ function fxSaldo(){const rows=spkDedup(fxNoPeriodo(FECH.dados&&FECH.dados.saldo)
   const top=conf.filter(r=>r.Situacao!=="OK").sort((a,b)=>Math.abs(pnum(b.Valor_Diferenca))-Math.abs(pnum(a.Valor_Diferenca))).slice(0,8);
   const nBloq=spkBloq(rows).length,man=fxNoPeriodo(FECH.dados&&FECH.dados.spkh),manT=man.reduce((s,r)=>s+spkhQtd(r),0);
   if(man.length){const all={};Object.keys(porD).forEach(k=>all[k]={ts:porD[k].ts,v:porD[k].u.size});man.forEach(r=>{const k=fxDiaKey(r.ts);all[k]=all[k]||{ts:r.ts,v:0};all[k].v+=spkhQtd(r);});dias.length=0;Object.keys(all).sort().forEach(k=>dias.push({l:fxDia(all[k].ts),v:all[k].v,txt:String(all[k].v)}));}
-  return '<div class="fxq-cmp no-print"><button type="button" id="fxk-exp"'+(nBloq?"":" disabled")+'>Exportar lista de bloqueio das faltas ('+nBloq+' itens)</button></div>'+fxHead(tit,rows.length)+
-    fxKpis([{t:"Total auditado",v:(rows.length+manT).toLocaleString("pt-BR"),c:"#0F172A",s:uni.size.toLocaleString("pt-BR")+" itens diferentes · "+dias.length+" dia(s)"+(manT?" · inclui "+manT.toLocaleString("pt-BR")+" lançados manualmente":"")},
-      {t:"Sem divergência",v:semDiv,c:"#16A34A",s:"acuracidade "+(uni.size?(semDiv/uni.size*100).toFixed(1).replace(".",",")+"%":"—")+" · "+conf.length+" conferência(s)"},
+  return '<div class="fxq-cmp no-print"><button type="button" id="fxk-exp"'+(nBloq?"":" disabled")+'>Exportar lista de bloqueio das faltas ('+nBloq+' itens)</button></div>'+fxHead(tit,rows.length+manT).replace('Total de registros:','Itens auditados:')+
+    fxKpis([{t:"Itens auditados",v:(rows.length+manT).toLocaleString("pt-BR"),c:"#0F172A",s:dias.length+" dia(s)"+(manT?" · inclui "+manT.toLocaleString("pt-BR")+" do histórico":"")},
+      {t:"Itens divergentes",v:(so.length+fa.length).toLocaleString("pt-BR"),c:"#DC2626",s:((rows.length+manT)?((so.length+fa.length)/(rows.length+manT)*100).toFixed(1).replace(".",","):"0")+"% dos itens · "+so.length+" sobra(s) · "+fa.length+" falta(s)"},
       {t:"Sobras",v:BRL.format(vv(so)),c:"#CA8A04",s:so.length+" item(ns) · "+un(so).toLocaleString("pt-BR")+" un"},
       {t:"Faltas",v:BRL.format(vv(fa)),c:"#DC2626",s:fa.length+" item(ns) · "+un(fa).toLocaleString("pt-BR")+" un"}],true).replace('class="fx-k','class="fx-k spk-k')+
     '<div class="fx-row" style="grid-template-columns:1.55fr 1fr">'+fxCard("Mapa de calor — itens auditados × itens da rua (8022)",heat)+
@@ -3817,7 +3817,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v158</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v159</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3906,7 +3906,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v158</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v159</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
