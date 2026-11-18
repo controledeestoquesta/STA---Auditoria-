@@ -119,10 +119,12 @@ function histPut(r){HIST.set(r.ID_Auditoria,r);return IDB.put(r).catch(()=>{toas
 let db=null,downloads=null,canWrite=true,dbState="loading";
 const remote={ruas:[]};
 let queue=store.get("audcd_fila",[]).filter(x=>x.col==="ruas");
+var REG={rows:null,busy:false,info:""};
 
 // login e permissões
 const DEMO=!!window.claude;
-let LOGIN=DEMO?{demo:true,perms:["aud_rua","aud_ret","aud_car"]}:null;/* login obrigatório a cada abertura do app */
+/* a sessão continua ao atualizar ou reabrir o app; sai só pelo botão Sair ou quando a planilha recusar o acesso */
+let LOGIN=DEMO?{demo:true,perms:["aud_rua","aud_ret","aud_car"]}:(()=>{try{const l=store.get("audcd_login",null);return l&&l.token&&l.mat?l:null;}catch(e){return null;}})();
 const VIEW_PERM={ruas:"aud_rua",retorno:"aud_ret",cargas:"aud_car",admin:"aud_adm",fechamento:"aud_adm"};
 const temPerm=p=>!!(LOGIN&&LOGIN.perms&&LOGIN.perms.includes(p));
 const ehAdm=()=>temPerm("aud_adm");
@@ -335,7 +337,7 @@ function filtered(){const ab=$("f-aba").value,pv=$("f-periodo").value,eu=$("f-qu
   else{const days=+pv;if(days){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(days-1));from=d.getTime();}}
   return (regFonte()==="planilha"?sheetRecs():allRecs()).filter(r=>(ab==="todas"||(r._aba||"ruas")===ab)&&r.ts>=from&&r.ts<to&&(!eu||r.Matricula_Auditor===auditor)&&(tp==="todos"||(tp==="nc"?ehNC(r):!ehNC(r))));}
 function renderRecords(){if(typeof renderSess==="function")try{renderSess();}catch(e){}try{if(!$("v-painel").hidden)renderPainel();}catch(e){}try{paintSync();}catch(e){}
-  const pla=regFonte()==="planilha";if(pla&&!REG.rows&&!REG.busy&&!$("v-registros").hidden)setTimeout(carregarReg,0);
+  const pla=regFonte()==="planilha";if(pla&&typeof REG!=="undefined"&&REG&&!REG.rows&&!REG.busy&&!$("v-registros").hidden)setTimeout(carregarReg,0);
   const sl=$("sync-line");if(pla&&sl){sl.hidden=false;sl.style.color="";sl.innerHTML=esc(REG.info||"Planilha Google")+' <button type="button" class="link" id="reg-upd" style="padding:0 4px">Atualizar</button>';$("reg-upd").onclick=()=>carregarReg(true);}
   const all=pla?sheetRecs():allRecs(),t0=new Date();t0.setHours(0,0,0,0);
   const ab=all.filter(r=>r.Possui_NC&&r.Status_NC!=="Resolvida");
@@ -1010,7 +1012,7 @@ function paintXnc(){const b=$("f-fonte");if(b)b.hidden=!temPerm("aud_adm");}
 
 
 // registros: todas as auditorias, fonte (aparelho/planilha), impressão e exclusão
-var REG={rows:null,busy:false,info:""};
+REG=REG||{rows:null,busy:false,info:""};
 function regFonte(){return typeof temPerm==="function"&&LOGIN&&temPerm("aud_adm")&&$("f-fonte").value==="planilha"?"planilha":"local";}
 function sheetRecs(){const j=REG.rows;if(!j)return [];if(REG._cache&&REG._cacheSrc===j&&REG._cacheN===REG._ver)return REG._cache;REG._cacheSrc=j;REG._cacheN=REG._ver;return REG._cache=sheetRecs0(j);}
 function sheetRecs0(j){const B=(r,ks)=>{ks.forEach(k=>{if(k in r)r[k]=pbool(r[k]);});return r;};
@@ -3804,7 +3806,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v156</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v157</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3893,7 +3895,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v156</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v157</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4867,7 +4869,6 @@ html.mob .fxbar #fx-upd,html.mob .fxbar #fx-pr{width:100%!important;min-height:4
 .fxm-in-l{animation:fxl .3s ease-out}.fxm-in-r{animation:fxr .3s ease-out}@keyframes fxl{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}@keyframes fxr{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:none}}`;document.head.appendChild(s);})();
 
 if(S){setMode("end");reset();}renderSess();paintFotos();paintConn();paintPend();aplicarPerms();renderRecords();
-let fora=0;document.addEventListener("visibilitychange",()=>{if(document.hidden){fora=Date.now();return;}if(!DEMO&&LOGIN&&fora&&Date.now()-fora>30*60e3){LOGIN=null;store.set("audcd_login",null);mostrarLogin();toast("Por segurança, entre de novo.");}});
-if(!DEMO&&!LOGIN){mostrarLogin();}else{go((location.hash||"").slice(1)||"inicio");setTimeout(revalidar,800);setTimeout(carregarApoio,1500);setTimeout(()=>novMostrar(),2500);}
+if(!DEMO&&!LOGIN){mostrarLogin();}else{if(!DEMO&&LOGIN.mat){auditor=LOGIN.mat;store.set("audcd_auditor",auditor);try{paintWho();}catch(e){}setTimeout(()=>sheetSync(),400);setTimeout(()=>{if(SHEET_URL&&navigator.onLine)carregarFech(false);},3000);}go((location.hash||"").slice(1)||"inicio");setTimeout(revalidar,800);setTimeout(carregarApoio,1500);setTimeout(()=>novMostrar(),2500);}
 
 })();
