@@ -2458,14 +2458,14 @@ $("cb-foto").addEventListener("change",e=>{const f=e.target.files[0];e.target.va
  "#cb-frame{width:100%;height:calc(100vh - 230px);min-height:640px;border:1px solid var(--line);border-radius:12px;background:#fff;display:block}html.desk #cb-frame{height:calc(100vh - 250px)}";document.head.appendChild(s);})();
 
 // ===== Fechamento: Mapa de ruas (endereços por rua × erros, peso 8) =====
-const RUA_ENDS={"1": 132, "2": 262, "3": 258, "4": 263, "5": 265, "6": 267, "7": 260, "8": 266, "9": 266, "10": 260, "11": 266, "12": 265, "13": 248, "14": 84, "15": 139, "16": 295, "17": 327, "18": 348, "19": 258, "20": 107, "21": 12, "22": 455, "23": 307, "24": 318, "25": 334, "26": 333, "27": 338, "28": 337, "29": 335, "30": 365, "31": 453, "32": 337, "33": 364, "34": 360, "35": 363, "36": 364, "37": 358, "38": 362, "39": 362, "40": 303, "41": 359, "42": 361, "43": 361, "44": 370, "45": 361, "46": 336, "47": 497, "48": 442, "49": 408, "51": 82};
+const RUA_ENDS={"1": 132, "2": 262, "3": 258, "4": 263, "5": 265, "6": 267, "7": 260, "8": 266, "9": 266, "10": 260, "11": 266, "12": 265, "13": 248, "14": 84, "15": 139, "16": 295, "17": 327, "18": 348, "19": 258, "20": 107, "21": 12, "22": 455, "23": 307, "24": 318, "25": 334, "26": 333, "27": 338, "28": 337, "29": 335, "30": 365, "31": 34, "32": 337, "33": 364, "34": 360, "35": 363, "36": 364, "37": 358, "38": 362, "39": 362, "40": 303, "41": 359, "42": 361, "43": 361, "44": 370, "45": 361, "46": 336, "47": 497, "48": 442, "49": 408, "51": 82};
 const PESO_MAPA=8;
 const MAPA_FORA=new Set(["1","21","31","51"]);/* ruas fora dos mapas de calor */
 FX_TAB.mapa="Mapa de ruas";FX_TIT.mapa="Mapa_de_Ruas";
 function fxMapaRuas(){const rows=fxNoPeriodo(FECH.dados&&FECH.dados.aero),tit="Mapa de ruas — Qualidade do aéreo por endereços (erros × acertos)";
   const err={};rows.forEach(r=>{const k=String(r.Rua==null?"":r.Rua).replace(/\D/g,"").replace(/^0+/,"");if(k)err[k]=(err[k]||0)+1;});
   const CP=cntPeriodo(),temCnt=CP.dias>0;
-  const R=Object.keys(RUA_ENDS).filter(r=>!MAPA_FORA.has(r)).map(r=>{const e=RUA_ENDS[r],n=err[r]||0,pts=n*PESO_MAPA,ac=Math.max(0,e-pts),aud=!temCnt||CP.porRua[r]||n;return {r,e,n,pts,ac,aud:!!aud,vezes:CP.porRua[r]||0,q:aud&&e?ac/e:null};});
+  const R=Object.keys(RUA_ENDS).filter(r=>!MAPA_FORA.has(r)||r==="31").map(r=>{const e=RUA_ENDS[r],n=err[r]||0,pts=n*PESO_MAPA,ac=Math.max(0,e-pts),aud=!temCnt||CP.porRua[r]||n;return {r,e,n,pts,ac,aud:!!aud,vezes:CP.porRua[r]||0,q:aud&&e?ac/e:null};});
   const Q={};R.forEach(x=>Q[x.r]=x.q);const RA=R.filter(x=>x.aud),totE=RA.reduce((s,x)=>s+x.e,0),totN=R.reduce((s,x)=>s+x.n,0),totAc=RA.reduce((s,x)=>s+x.ac,0),qg=totE?totAc/totE:null;
   const crit=R.filter(x=>x.q!=null&&x.q<.85).sort((a,b)=>a.q-b.q),comErro=R.filter(x=>x.n);
   const mapa=fxLegenda()+BLOCOS.map(([nm,a,z])=>{const rs=R.filter(x=>+x.r>=a&&+x.r<=z);if(!rs.length)return "";
@@ -3300,7 +3300,9 @@ async function ceAutoSync(){if(!ceCom()||!CE.cfg||!CE.lanc||!FECH.dados)return;c
   const dias=(L,fn)=>{const o={};fxRows(L).filter(r=>r.ts>=a0&&r.ts<=b0).forEach(r=>{const k=fxDiaKey(r.ts);fn(r,k,o);});return o;};
   // saldo de picking: itens (códigos únicos) por dia
   /* cada auditor recebe pelo que lançou (o responsável e quem deu apoio) */
-  Object.entries(dias(D.saldo,(r,k,o)=>{const m=String(r.Matricula_Auditor||"").trim()||C.autoSpk;(o[k+"|"+m]=o[k+"|"+m]||new Set()).add(String(r.Codigo_Produto||""));})).forEach(([km,s])=>{const [k,m]=km.split("|");put("SPK",m,k,"Saldo de Picking",s.size);});
+  Object.entries(dias(D.saldo,(r,k,o)=>{let m=String(r.Matricula_Auditor||"").trim()||C.autoSpk;if(gestMats().indexOf(m)>=0)m=SPK_HIST_MAT;(o[k+"|"+m]=o[k+"|"+m]||new Set()).add(String(r.Codigo_Produto||""));})).forEach(([km,s])=>{const [k,m]=km.split("|");put("SPK",m,k,"Saldo de Picking",s.size);});
+  // Saldo_Picking_Historico: quantidade de itens por dia → responsável do saldo de picking (Carlos Eduardo)
+  {const o={};fxRows(D.spkh).filter(r=>r.ts>=a0&&r.ts<=b0).forEach(r=>{const k=fxDiaKey(r.ts);o[k]=(o[k]||0)+spkhQtd(r);});Object.entries(o).forEach(([k,n])=>put("SPKH",SPK_HIST_MAT,k,"Saldo de Picking",n));}
   // aéreo: endereços das ruas contadas por dia (rua única no dia)
   {const rs=[];dias(D.contagem,(r)=>{rs.push(r);});Object.entries(cntAgrega(rs,r=>fxDiaKey(r.ts)+"|"+(String(r.Matricula_Auditor||"").trim()||C.autoAero))).forEach(([km,x])=>{const [k,m]=km.split("|");put("AERO",m,k,"Auditoria de Aero",x.end);});}
   // Validação BOX: ocorrências lançadas na auditoria de cargas por auditor
@@ -3790,7 +3792,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v152</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v153</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3871,7 +3873,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
   const nav=document.querySelector("nav");const btn={};nav.querySelectorAll("button[data-v]").forEach(b=>btn[b.dataset.v]=b);
   Object.entries(btn).forEach(([v,b])=>{const tn=[...b.childNodes].find(n=>n.nodeType===3&&n.data.trim());if(tn)tn.data="";const s=document.createElement("span");s.className="dk-t";s.textContent=NOME[v]||v;b.prepend(s);
     if(ICO[v])b.insertAdjacentHTML("afterbegin",'<svg class="dk-i" viewBox="0 0 24 24" aria-hidden="true">'+ICO[v]+'</svg>');b.title=NOME[v]||v;});
-  const logo=$("hdr-logo");nav.insertAdjacentHTML("afterbegin",'<div class="dk-brand"><img alt="Santa Therezinha" id="dk-logo"><div><b>Auditoria STA</b><span>Centro de Distribuição</span></div></div>');
+  const logo=$("hdr-logo");nav.insertAdjacentHTML("afterbegin",'<div class="dk-brand"><img alt="Santa Therezinha" id="dk-logo"><div><b>Santa Therezinha Atacadista</b><span>Centro de Distribuição</span></div></div>');
   const syncLogo=()=>{if(logo&&logo.src)$("dk-logo").src=logo.src;};syncLogo();setTimeout(syncLogo,600);
   let aberto=false;/* recolhido sempre que o app abre; abre ao clicar */
   GRUPOS.forEach(([id,tit,vs,col])=>{const g=document.createElement("div");g.className="dk-g";g.id="dk-g-"+id;
@@ -3879,7 +3881,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v152</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v153</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -3896,7 +3898,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     grid.appendChild(form);grid.appendChild(side);v.appendChild(grid);});
   // login
   const lg=$("login");if(lg){const side=document.createElement("div");side.className="lg-side";
-    side.innerHTML='<div><img alt="Santa Therezinha" id="lg-side-logo"><h2>Auditoria STA</h2><p>Centro de Distribuição · Santa Therezinha</p></div>'+
+    side.innerHTML='<div><img alt="Santa Therezinha" id="lg-side-logo"><h2>Santa Therezinha Atacadista</h2><p>Centro de Distribuição</p></div>'+
       '<ul><li>Auditorias de ruas, retorno, cargas e aéreo</li><li>Prevenção de Perdas e emissão de vales</li><li>Fechamentos e indicadores por setor</li></ul><small>© '+new Date().getFullYear()+' Santa Therezinha · uso interno</small>';
     const main=document.createElement("div");main.className="lg-main";[...lg.children].forEach(c=>main.appendChild(c));lg.appendChild(side);lg.appendChild(main);
     const box=main.querySelector(".lg-box");if(box){box.querySelector("h1").textContent="Entrar";box.querySelector("p").textContent="Use sua matrícula e senha do Permissionamento.";}
@@ -3915,7 +3917,7 @@ html.desk #print h1,html.desk #print h2,html.desk #print h3,html.desk #fech h1,h
 html.desk nav{position:fixed;top:0;bottom:0;left:0;right:auto;width:var(--dk-w);display:flex!important;flex-direction:column;background:#0F1E36;border:0;padding:0 0 12px;overflow-y:auto;z-index:20;grid-template-columns:none!important}
 html.desk .dk-brand{display:flex;align-items:center;gap:12px;padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
 html.desk .dk-brand img{height:34px;width:auto}
-html.desk .dk-brand b{display:block;color:#fff;font-size:1rem;line-height:1.1;white-space:nowrap}html.desk .dk-brand span{color:#8DA0BD;font-size:.74rem;white-space:nowrap}
+html.desk .dk-brand b{display:block;color:#fff;font-size:.95rem;line-height:1.15;white-space:normal;margin-bottom:2px}html.desk .dk-brand span{color:#8DA0BD;font-size:.74rem;white-space:nowrap}
 html.desk .dk-g{padding:6px 0}
 html.desk .dk-gh{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 22px 6px;color:#7D8FAD;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:none;border:0;text-align:left}
 html.desk nav .dk-gh{min-height:0;font-size:.72rem!important;letter-spacing:.08em!important;font-weight:700;color:#7D8FAD;padding:10px 22px 6px}html.desk nav .dk-mob{min-height:0;font-size:.82rem!important;letter-spacing:0!important;font-weight:500;padding:7px 10px}html.desk nav button[data-v]{font-size:.9rem!important;letter-spacing:0!important}html.desk button.dk-gh{cursor:pointer}html.desk button.dk-gh:hover{color:#C9D4E5}
@@ -4022,7 +4024,7 @@ function menuOculto(m){document.documentElement.classList.toggle("dk-off",m);try
 // login: lado com saudação e novidades (computador), senha com olho, matrícula lembrada, aviso de Caps Lock, novidades no celular
 (function(){const lg=$("login");if(!lg)return;const side=lg.querySelector(".lg-side");
   const novHtml=n=>'<ul class="lg-nov">'+NOVIDADES.slice(0,n).map(([t,d])=>'<li><span>'+esc(t)+'</span>'+esc(d)+'</li>').join("")+'</ul>';
-  if(side){side.innerHTML='<div><img alt="Santa Therezinha" id="lg-side-logo"><p class="lg-hi" id="lg-hi">'+saud()+'</p><h2>Auditoria STA</h2><p>Centro de Distribuição · Santa Therezinha</p></div>'+
+  if(side){side.innerHTML='<div><img alt="Santa Therezinha" id="lg-side-logo"><p class="lg-hi" id="lg-hi">'+saud()+'</p><h2>Santa Therezinha Atacadista</h2><p>Centro de Distribuição</p></div>'+
       '<div class="lg-nb"><h3><i>Novo</i> O que mudou</h3>'+novHtml(6)+'</div><small>© '+new Date().getFullYear()+' Santa Therezinha · uso interno</small>';
     const hl=document.querySelector("header img");const sl=()=>{if(hl&&hl.src&&$("lg-side-logo"))$("lg-side-logo").src=hl.src;};sl();setTimeout(sl,800);}
   else{const d=document.createElement("details");d.className="lg-mnov";d.innerHTML='<summary><i>Novo</i> O que mudou no app</summary>'+novHtml(7);lg.appendChild(d);}
@@ -4175,14 +4177,35 @@ function gmTotPicking(){return Object.entries(RUA_ENDS).filter(([r])=>!RUAS_FORA
 async function gmUsuarios(){if(GM.users||DEMO||!SHEET_URL)return;try{const j=await admPost({acao:"admin_listar"});if(j&&j.ok)GM.users=(j.usuarios||[]).map(u=>({mat:String(u.matricula),nome:u.nome||"",perms:Object.keys(u.perms||{}).filter(k=>u.perms[k]==="Ativo")}));}catch(e){}}
 async function gmValidade(forca){if(DEMO||!SHEET_URL)return;if(!forca&&GM.vm&&Date.now()-GM.vmEm<10*6e4)return;try{const j=await ppPost({acao:"vlc_metas"});if(j&&j.ok){GM.vm=j;GM.vmEm=Date.now();}else GM.vmErr=(j&&j.erro)||"";}catch(e){GM.vmErr=String(e.message||e);}}
 /** calcula metas da equipe e de cada auditor no período */
+/* Saldo_Picking_Historico (e códigos lançados pelo gestor em datas anteriores) contam para o responsável do saldo de picking */
+const SPK_HIST_MAT="10003725";
+const gmLetrasTk=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z ]/g," ").split(/\s+/).filter(x=>x.length>2);
+const gmLetras=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z]/g,"");
+function gmPessoaIdx(){const D=FECH.dados;if(GM.pidx&&GM.pidxD===D&&GM.pidxU===GM.users)return GM.pidx;const full={},comp={},first={},AUD=new Set();
+  const PA=["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro","aud_car"];(GM.users||[]).forEach(u=>{if((u.perms||[]).some(p=>PA.indexOf(p)>=0))AUD.add(String(u.mat));});Object.values(GM_RESP0).join(",").split(/[,; ]+/).filter(Boolean).forEach(m=>AUD.add(m));
+  const aud=[];const add=(m,n)=>{m=String(m||"").trim();n=String(n||"").trim();if(!/^\d{6,}$/.test(m)||!n||/^\d+$/.test(n)||/@/.test(n))return;const k=gmNk(n),c=gmLetras(n),o={mat:m,nome:n,a:AUD.has(m)};
+    /* auditor tem preferência sobre homônimo do cadastro geral */
+    if(k&&(!full[k]||(o.a&&!full[k].a)))full[k]=o;if(c&&(!comp[c]||(o.a&&!comp[c].a)))comp[c]=o;
+    if(o.a){const f=k.split(" ")[0];if(f)(first[f]=first[f]||{})[m]=o;if(!aud.some(x=>x.mat===m))aud.push(Object.assign({tk:gmLetrasTk(n)},o));}};
+  (GM.users||[]).forEach(u=>add(u.mat,u.nome||gmNomeDe(u.mat)));AUD.forEach(m=>add(m,gmNomeDe(m)));try{(QUADRO||[]).forEach(q=>add(q.mat,q.nome));}catch(e){}try{C.mat.forEach((m,i)=>add(m,C.nome[i]));}catch(e){}
+  GM.pidx={full,comp,first,aud};GM.pidxD=D;GM.pidxU=GM.users;return GM.pidx;}
+function gmPessoa(mat,nome){const m=String(mat||"").replace(/\D/g,"");if(/^\d{6,}$/.test(m))return {mat:m,nome:gmNomeDe(m)||(/^\d+$|@/.test(String(nome||""))?"":String(nome||"").trim())||m};
+  let n=String(nome||"").trim();if(!n)return null;if(/^\d{6,}$/.test(n))return gmPessoa(n,"");const I=gmPessoaIdx();if(/@/.test(n))n=n.split("@")[0];
+  const c=gmLetras(n);if(c.length<3)return null;
+  /* 1º auditores: todas as palavras do nome lançado aparecem no nome do auditor (ex.: "Carlos Eduardo" → Carlos Eduardo da Silva) */
+  {const tk=gmLetrasTk(n);if(tk.length>=2){const h=I.aud.filter(a=>tk.every(t=>a.tk.indexOf(t)>=0));if(h.length===1)return h[0];}}
+  if(I.comp[c])return I.comp[c];const k=gmNk(n);if(I.full[k])return I.full[k];
+  if(c.length>=8){const hit=Object.keys(I.comp).filter(x=>x.length>=8&&(x.startsWith(c)||c.startsWith(x)));if(hit.length===1)return I.comp[hit[0]];}
+  const tk=gmNk(n).split(" ");if(tk.length===1||(/^[a-z0-9._-]+$/i.test(String(nome||"").split("@")[0])&&!/\s/.test(n))){const f=I.first[tk[0]];if(f&&Object.keys(f).length===1)return Object.values(f)[0];}
+  return null;}
 function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.ate,fat=gmFator(P),du=gmDiasUteis(P.de,P.ate,c.diasSemana),rit=gmRitmo(P);
-  const A={};const aud=(mat,nome)=>{const k=mat?"m"+String(mat):"n"+gmNk(nome);if(!k||k==="n")return null;const x=A[k]=A[k]||{k,mat:String(mat||""),nome:nome||"",perms:[],spk:0,ret:0,aeroRuas:0,aeroEnd:0,cc:0,corte:0,vld:null,dias:new Set()};if(nome&&!x.nome)x.nome=nome;if(mat&&!x.mat)x.mat=String(mat);return x;};
+  const A={};const aud=(mat0,nome0)=>{const p=gmPessoa(mat0,nome0);if(!p)return null;const mat=p.mat,nome=p.nome,k="m"+mat;const x=A[k]=A[k]||{k,mat:String(mat||""),nome:nome||"",perms:[],spk:0,ret:0,aeroRuas:0,aeroEnd:0,cc:0,corte:0,vld:null,dias:new Set()};if(nome&&!x.nome)x.nome=nome;if(mat&&!x.mat)x.mat=String(mat);return x;};
   (GM.users||[]).forEach(u=>{if(gestMats().indexOf(u.mat)>=0)return;if(!u.perms.some(p=>["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro"].indexOf(p)>=0))return;const x=aud(u.mat,u.nome||gmNomeDe(u.mat));x.perms=u.perms;});
   const byNome={};Object.values(A).forEach(x=>{byNome[gmNk(x.nome)]=x;});
-  const quem0=r=>{if(r.Matricula_Auditor&&A["m"+r.Matricula_Auditor])return A["m"+r.Matricula_Auditor];const n=byNome[gmNk(r.Nome_Auditor)];if(n)return n;if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;},quem=r=>{const x=quem0(r);if(x)x.part=(x.part||0)+1;return x;};
+  const quem0=r=>{if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;},quem=r=>{const x=quem0(r);if(x)x.part=(x.part||0)+1;return x;};
   ["validade","cargas","aero"].forEach(a=>fxRows(D[a]).filter(noP).forEach(r=>quem(r)));
-  const spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
-  const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;if(r.Matricula_Colaborador){const x=quem({Matricula_Auditor:r.Matricula_Colaborador,Nome_Auditor:r.Nome_Colaborador});if(x)x.spk+=q;}});
+  const GMx=gestMats(),spk=fxRows(D.saldo).filter(noP);spk.forEach(r=>{const x=quem(GMx.indexOf(String(r.Matricula_Auditor||"").trim())>=0?{Matricula_Auditor:SPK_HIST_MAT}:r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
+  const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;const x=quem({Matricula_Auditor:SPK_HIST_MAT});if(x)x.spk+=q;});
   const ret=fxRows(D.retorno).filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
   const cnt=fxRows(D.contagem).filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.nRuas;aeroEnd+=d.end;});}catch(e){}
   const porA={};cnt.forEach(r=>{const x=quem(r);if(x)(porA[x.k]=porA[x.k]||[]).push(r);});Object.entries(porA).forEach(([k,rs])=>{try{Object.values(cntAgrega(rs,r=>fxDiaKey(r.ts))).forEach(d=>{A[k].aeroRuas+=d.nRuas;A[k].aeroEnd+=d.end;});}catch(e){}});
@@ -4192,13 +4215,13 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
   /* validade: itens da convocação cujo prazo de 7 dias venceu no período; feitos no prazo ÷ devidos */
   let vT={dev:0,ok:0,atr:0};const now=Date.now(),lim=Math.min(P.ate,now),pr=c.vldDias*864e5;
   if(GM.vm&&GM.vm.itens){const nome=GM.vm.nomes||{};const vA={};
-    GM.vm.itens.forEach(([lg,t0,tf,st])=>{const nm=nome[lg]||lg;let x=byNome[gmNk(nm)];if(!x){x=aud("",nm);byNome[gmNk(nm)]=x;}const v=vA[x.k]=vA[x.k]||{dev:0,ok:0,atr:0,pend:0,feitos:0};
+    GM.vm.itens.forEach(([lg,t0,tf,st])=>{const nm=nome[lg]||lg;let x=byNome[gmNk(nm)];if(!x){x=aud("",nm)||aud("",lg);if(x)byNome[gmNk(nm)]=x;}const v=x?(vA[x.k]=vA[x.k]||{dev:0,ok:0,atr:0,pend:0,feitos:0}):{dev:0,ok:0,atr:0,pend:0,feitos:0};
       if(st==="P"){v.pend++;if(t0&&now-t0>pr){v.atr++;vT.atr++;}}if(st==="A"&&tf>=P.de&&tf<P.ate)v.feitos++;
       if(t0){const dl=t0+pr;if(dl>=P.de&&dl<lim){v.dev++;vT.dev++;if(st==="A"&&tf&&tf<=dl){v.ok++;vT.ok++;}}}});
     Object.entries(vA).forEach(([k,v])=>{A[k].vld=v;if(v.feitos||v.ok)A[k].part=(A[k].part||0)+1;});}
   const porNm={};(GM.users||[]).forEach(u=>{porNm[gmNk(u.nome)]=porNm[gmNk(u.nome)]||{mat:u.mat,nome:u.nome};});try{C.mat.forEach((m,i)=>{const k=gmNk(C.nome[i]);if(k&&!porNm[k])porNm[k]={mat:String(m),nome:C.nome[i]};});}catch(e){}
   Object.values(A).forEach(x=>{if(!x.nome||/^\d+$/.test(String(x.nome).trim())){const n=gmNomeDe(x.mat||x.nome);if(n){if(!x.mat)x.mat=String(x.nome).trim();x.nome=n;}}const u=porNm[gmNk(x.nome)];if(u){if(!x.mat)x.mat=u.mat;if(String(u.nome).length>String(x.nome).length)x.nome=u.nome;}if(x.mat&&!x.nome){try{const i=cIdx.get(x.mat);if(i!=null)x.nome=C.nome[i];}catch(e){}}});
-  const L=Object.values(A).filter(x=>x.part>0&&gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
+  const L=Object.values(A).filter(x=>x.part>0&&/^\d{6,}$/.test(String(x.mat))&&gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
   const M={
     spk:{k:"spk",t:"Saldo de picking",esc:"Equipe",un:"itens",meta:c.spk*fat,real:spk.length+spkMan,sub:"Meta da equipe: "+c.spk.toLocaleString("pt-BR")+" itens auditados por semana"+(spkMan?" · inclui "+spkMan.toLocaleString("pt-BR")+" lançados manualmente":""),perm:"aud_spk",campo:"spk"},
     aero:{k:"aero",t:"Auditoria aéreo",esc:"Equipe",un:"ruas",meta:c.aeroDia*du,real:aeroRuas,sub:c.aeroDia+" ruas por dia útil · "+du+" dias úteis",extra:"Equivalente a "+Math.round(aeroRuas*c.aeroEnd/c.aeroRuas).toLocaleString("pt-BR")+" endereços",perm:"aud_aer",campo:"aeroRuas"},
@@ -4506,8 +4529,8 @@ function ncaAlertaBind(box){const S=ncaResumo();box.querySelectorAll("[data-nadv
 // ---------- ociosidade ----------
 const OC_ABAS=["ruas","retorno","cargas","procura","saldo","validade","contagem","aero","sac","adega","pp","solicit"];
 function ocCalc(P){const c=gmCfg(),lim=(c.ocLimiar||15)*6e4,jor=(c.ocJornada||528)*6e4,D=FECH.dados||{},A={};
-  OC_ABAS.forEach(a=>fxRows(D[a]).forEach(r=>{if(!r.ts||r.ts<P.de||r.ts>=P.ate)return;const mat=String(r.Matricula_Auditor||"").trim();if(!mat&&!r.Nome_Auditor)return;if(gestMats().indexOf(mat)>=0)return;
-    const k=mat||gmNk(r.Nome_Auditor);const x=A[k]=A[k]||{k,mat,nome:r.Nome_Auditor||"",dias:{}};if(!x.nome&&r.Nome_Auditor)x.nome=r.Nome_Auditor;const dk=fxDiaKey(r.ts);(x.dias[dk]=x.dias[dk]||[]).push({t:r.ts,a});}));
+  OC_ABAS.forEach(a=>fxRows(D[a]).forEach(r=>{if(!r.ts||r.ts<P.de||r.ts>=P.ate)return;const p=gmPessoa(r.Matricula_Auditor,r.Nome_Auditor);if(!p)return;const mat=p.mat;if(gestMats().indexOf(mat)>=0)return;
+    const k=mat;const x=A[k]=A[k]||{k,mat,nome:p.nome||"",dias:{}};if(!x.nome&&p.nome)x.nome=p.nome;const dk=fxDiaKey(r.ts);(x.dias[dk]=x.dias[dk]||[]).push({t:r.ts,a});}));
   return Object.values(A).map(x=>{if(!x.nome||/^\d+$/.test(x.nome))x.nome=gmNomeDe(x.mat)||x.nome||x.mat;let tot={dias:0,lanc:0,jan:0,ativo:0,ocio:0,fora:0,alm:0,maior:0,maiorEm:0};const D2=[];
     Object.entries(x.dias).sort().forEach(([dk,L])=>{L.sort((a,b)=>a.t-b.t);const ini=L[0].t,fim=L[L.length-1].t,gaps=[];for(let i=1;i<L.length;i++){const g=L[i].t-L[i-1].t;if(g>lim)gaps.push({de:L[i-1].t,ate:L[i].t,g});}
       let alm=0;const gg=gaps.slice().sort((a,b)=>b.g-a.g)[0];if(gg&&gg.g>=30*6e4&&gg.g<=90*6e4){alm=gg.g;gg.alm=true;}
