@@ -312,12 +312,21 @@
   </section>
 
   <section class="view" id="v-cnt" hidden>
-    <p class="note" style="margin:0 0 10px">Fotografe cada folha do <b>Relatório de produtos por endereço</b>. O app lê a coluna <b>Rua</b> e os endereços (Rua-Prédio-Nível-Apto) e conta sozinho as ruas e os endereços. Pode enviar quantas fotos quiser: endereço repetido não conta duas vezes.</p>
+    <p class="note" style="margin:0 0 10px">Informe as ruas auditadas e anexe a <b>foto da folha</b> do relatório. A foto é necessária: lançamento sem foto gera alerta ao gestor e pode ter desconto na comissão.</p>
     <div class="block">
-      <div class="cnt-cam"><label class="save" for="n-cam" style="margin:0">📷 Tirar foto da folha</label><label class="btn" for="n-gal">🖼 Escolher fotos</label></div>
-      <input type="file" id="n-cam" accept="image/*" capture="environment" hidden><input type="file" id="n-gal" accept="image/*" multiple hidden>
-      <p class="note" style="margin:8px 0 0">Para a leitura não falhar: folha inteira na foto, reta, com boa luz e sem sombra ou dedo sobre os números.</p>
-      <div id="n-fotos" style="margin-top:10px"></div>
+      <div class="cnt-g">
+        <div class="field" id="n-data-f"><label for="n-data">Data</label><input class="in" id="n-data" type="date"></div>
+        <div class="field" id="n-ini-f"><label for="n-ini">Rua inicial</label><input class="in" id="n-ini" inputmode="numeric" placeholder="Ex.: 22"></div>
+        <div class="field" id="n-fim-f"><label for="n-fim">Rua final <small>(opcional)</small></label><input class="in" id="n-fim" inputmode="numeric" placeholder="Ex.: 30"></div>
+      </div>
+      <div class="field" id="n-mais-f"><label for="n-mais">Outras ruas <small>(opcional, separadas por vírgula — ex.: 31, 33)</small></label><input class="in" id="n-mais" inputmode="numeric" placeholder="Ex.: 31, 33"></div>
+      <div class="cnt-prev" id="n-prev"></div>
+      <div class="field"><span class="lbl">Foto da folha <small>(necessária)</small></span>
+        <div class="cnt-cam"><label class="btn" for="n-cam" style="margin:0">📷 Tirar foto</label><label class="btn" for="n-gal" style="margin:0">🖼 Escolher fotos</label></div>
+        <input type="file" id="n-cam" accept="image/*" capture="environment" hidden><input type="file" id="n-gal" accept="image/*" multiple hidden>
+        <div id="n-fotos" class="cnt-th"></div></div>
+      <div class="field" id="n-obs-f"><label for="n-obs">Observação <small>(opcional)</small></label><input class="in" id="n-obs" placeholder="Ex.: ruas do bloco B, turno da manhã"></div>
+      <button type="button" class="save" id="n-save">Registrar ruas auditadas</button>
     </div>
     <div id="n-list" style="margin-top:12px"></div>
   </section>

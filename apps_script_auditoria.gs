@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 68)
+ * Auditoria STA – Santa Therezinha (versão 69)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -93,7 +93,7 @@ ABAS.adega = {
 const TIPOS_ADEGA = ['Falta', 'Sobra', 'Avaria'];
 ABAS.contagem = {
   nome: 'Contagem_Ruas', perm: ['aud_ret', 'aud_aer', 'aud_rua'],
-  colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos'],
+  colunas: ['Data', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'ID_Auditoria', 'DataHora', 'Recebido_Em', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos', 'Sem_Foto', 'Qtd_Fotos'],
   texto: ['Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Enderecos', 'Data_Relatorio', 'Matricula_Auditor', 'ID_Auditoria']
 };
 ABAS.saldo = {
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 68, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 69, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
