@@ -3862,7 +3862,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v162</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v163</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3951,7 +3951,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v162</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v163</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4272,20 +4272,24 @@ function gmPessoa(mat,nome){const m=String(mat||"").replace(/\D/g,"");if(/^\d{6,
   if(c.length>=8){const hit=Object.keys(I.comp).filter(x=>x.length>=8&&(x.startsWith(c)||c.startsWith(x)));if(hit.length===1)return I.comp[hit[0]];}
   const tk=gmNk(n).split(" ");if(tk.length===1||(/^[a-z0-9._-]+$/i.test(String(nome||"").split("@")[0])&&!/\s/.test(n))){const f=I.first[tk[0]];if(f&&Object.keys(f).length===1)return Object.values(f)[0];}
   return null;}
+/* linhas de uma aba: planilha + o que está neste aparelho e ainda não chegou na planilha (sem repetir) */
+function gmRows(D,a){const S=fxRows(D&&D[a]),ids=new Set(S.map(r=>String(r.ID_Auditoria)));
+  HIST.forEach(r=>{const ab=r._aba||"ruas";if(ab===a&&r.ID_Auditoria&&!ids.has(String(r.ID_Auditoria))&&r.ts){ids.add(String(r.ID_Auditoria));S.push(r);}});return S;}
 function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.ate,fat=gmFator(P),du=gmDiasUteis(P.de,P.ate,c.diasSemana),rit=gmRitmo(P);
   const A={};const aud=(mat0,nome0)=>{const p=gmPessoa(mat0,nome0);if(!p)return null;const mat=p.mat,nome=p.nome,k="m"+mat;const x=A[k]=A[k]||{k,mat:String(mat||""),nome:nome||"",perms:[],spk:0,ret:0,aeroRuas:0,aeroEnd:0,cc:0,corte:0,vld:null,dias:new Set()};if(nome&&!x.nome)x.nome=nome;if(mat&&!x.mat)x.mat=String(mat);return x;};
   (GM.users||[]).forEach(u=>{if(gestMats().indexOf(u.mat)>=0)return;if(!u.perms.some(p=>["aud_spk","aud_ret","aud_vld","aud_aer","aud_rua","aud_pro"].indexOf(p)>=0))return;const x=aud(u.mat,u.nome||gmNomeDe(u.mat));x.perms=u.perms;});
   const byNome={};Object.values(A).forEach(x=>{byNome[gmNk(x.nome)]=x;});
   const quem0=r=>{if(!r.Matricula_Auditor&&!r.Nome_Auditor)return null;const x=aud(r.Matricula_Auditor,r.Nome_Auditor);if(x)byNome[gmNk(x.nome)]=x;return x;},quem=r=>{const x=quem0(r);if(x)x.part=(x.part||0)+1;return x;};
-  ["validade","cargas","aero"].forEach(a=>fxRows(D[a]).filter(noP).forEach(r=>quem(r)));
-  const GMx=gestMats(),spk=spkDedup(fxRows(D.saldo).filter(noP));spk.forEach(r=>{const x=quem(GMx.indexOf(String(r.Matricula_Auditor||"").trim())>=0?{Matricula_Auditor:SPK_HIST_MAT}:r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
-  const spkM=fxRows(D.spkh).filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;const x=quem({Matricula_Auditor:SPK_HIST_MAT});if(x)x.spk+=q;});
-  const ret=fxRows(D.retorno).filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
-  const cnt=fxRows(D.contagem).filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.nRuas;aeroEnd+=d.end;});}catch(e){}
+  ["cargas","aero"].forEach(a=>gmRows(D,a).filter(noP).forEach(r=>quem(r)));
+  {const vis=new Set();gmRows(D,"validade").filter(noP).filter(r=>r.Codigo_Produto).forEach(r=>{const k=fxDiaKey(r.ts)+"|"+(r.Endereco||"")+"|"+r.Codigo_Produto+"|"+(r.Matricula_Auditor||r.Nome_Auditor||"");if(vis.has(k))return;vis.add(k);const x=quem(r);if(x){x.vldN=(x.vldN||0)+1;x.dias.add(fxDiaKey(r.ts));}});}
+  const GMx=gestMats(),spk=spkDedup(gmRows(D,"saldo").filter(noP));spk.forEach(r=>{const x=quem(GMx.indexOf(String(r.Matricula_Auditor||"").trim())>=0?{Matricula_Auditor:SPK_HIST_MAT}:r);if(x){x.spk++;x.dias.add(fxDiaKey(r.ts));}});
+  const spkM=gmRows(D,"spkh").filter(noP);let spkMan=0;spkM.forEach(r=>{const q=spkhQtd(r);spkMan+=q;const x=quem({Matricula_Auditor:SPK_HIST_MAT});if(x)x.spk+=q;});
+  const ret=gmRows(D,"retorno").filter(noP);ret.forEach(r=>{const x=quem(r);if(x){x.ret++;x.dias.add(fxDiaKey(r.ts));}});
+  const cnt=gmRows(D,"contagem").filter(noP);let aeroRuas=0,aeroEnd=0;try{Object.values(cntAgrega(cnt,r=>fxDiaKey(r.ts))).forEach(d=>{aeroRuas+=d.nRuas;aeroEnd+=d.end;});}catch(e){}
   const porA={};cnt.forEach(r=>{const x=quem(r);if(x)(porA[x.k]=porA[x.k]||[]).push(r);});Object.entries(porA).forEach(([k,rs])=>{try{Object.values(cntAgrega(rs,r=>fxDiaKey(r.ts))).forEach(d=>{A[k].aeroRuas+=d.nRuas;A[k].aeroEnd+=d.end;});}catch(e){}});
-  const ruas=fxRows(D.ruas).filter(noP);const ccD={};ruas.forEach(r=>{const e=unz(r.Rua)||String(fmtAddr(r.Endereco||"")).split("-")[0];if(!e||RUAS_FORA.has(e))return;const dk=fxDiaKey(r.ts);(ccD[dk]=ccD[dk]||new Set()).add(e);const x=quem(r);if(x){x.ccE=x.ccE||{};(x.ccE[dk]=x.ccE[dk]||new Set()).add(e);}});
+  const ruas=gmRows(D,"ruas").filter(noP);const ccD={};ruas.forEach(r=>{const e=unz(r.Rua)||String(fmtAddr(r.Endereco||"")).split("-")[0];if(!e||RUAS_FORA.has(e))return;const dk=fxDiaKey(r.ts);(ccD[dk]=ccD[dk]||new Set()).add(e);const x=quem(r);if(x){x.ccE=x.ccE||{};(x.ccE[dk]=x.ccE[dk]||new Set()).add(e);}});
   const cc=Object.values(ccD).reduce((s,x)=>s+x.size,0);Object.values(A).forEach(x=>{x.cc=Object.values(x.ccE||{}).reduce((s,y)=>s+y.size,0);delete x.ccE;});
-  const pro=fxRows(D.procura).filter(noP).filter(r=>r.Codigo_Produto);let corte=0;pro.forEach(r=>{const v=proQ(r).vF||0;corte+=v;const x=quem(r);if(x)x.corte+=v;});
+  const pro=gmRows(D,"procura").filter(noP).filter(r=>r.Codigo_Produto);let corte=0;pro.forEach(r=>{const v=proQ(r).vF||0;corte+=v;const x=quem(r);if(x)x.corte+=v;});
   /* validade: itens da convocação cujo prazo de 7 dias venceu no período; feitos no prazo ÷ devidos */
   let vT={dev:0,ok:0,atr:0};const now=Date.now(),lim=Math.min(P.ate,now),pr=c.vldDias*864e5;
   if(GM.vm&&GM.vm.itens){const nome=GM.vm.nomes||{};const vA={};
@@ -4293,6 +4297,7 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
       if(st==="P"){v.pend++;if(t0&&now-t0>pr){v.atr++;vT.atr++;}}if(st==="A"&&tf>=P.de&&tf<P.ate)v.feitos++;
       if(t0){const dl=t0+pr;if(dl>=P.de&&dl<lim){v.dev++;vT.dev++;if(st==="A"&&tf&&tf<=dl){v.ok++;vT.ok++;}}}});
     Object.entries(vA).forEach(([k,v])=>{A[k].vld=v;if(v.feitos||v.ok)A[k].part=(A[k].part||0)+1;});}
+  Object.values(A).forEach(x=>{if(x.vldN){x.vld=x.vld||{dev:0,ok:0,atr:0,pend:0,feitos:0};x.vld.feitos=Math.max(x.vld.feitos||0,x.vldN);}});
   const porNm={};(GM.users||[]).forEach(u=>{porNm[gmNk(u.nome)]=porNm[gmNk(u.nome)]||{mat:u.mat,nome:u.nome};});try{C.mat.forEach((m,i)=>{const k=gmNk(C.nome[i]);if(k&&!porNm[k])porNm[k]={mat:String(m),nome:C.nome[i]};});}catch(e){}
   Object.values(A).forEach(x=>{if(!x.nome||/^\d+$/.test(String(x.nome).trim())){const n=gmNomeDe(x.mat||x.nome);if(n){if(!x.mat)x.mat=String(x.nome).trim();x.nome=n;}}const u=porNm[gmNk(x.nome)];if(u){if(!x.mat)x.mat=u.mat;if(String(u.nome).length>String(x.nome).length)x.nome=u.nome;}if(x.mat&&!x.nome){try{const i=cIdx.get(x.mat);if(i!=null)x.nome=C.nome[i];}catch(e){}}});
   const L=Object.values(A).filter(x=>x.part>0&&/^\d{6,}$/.test(String(x.mat))&&gestMats().indexOf(String(x.mat))<0).map(x=>Object.assign(x,{nome:x.nome||x.mat,dias:x.dias.size})).sort((a,b)=>a.nome.localeCompare(b.nome));
@@ -4302,11 +4307,11 @@ function gmCalc(P){const c=gmCfg(),D=FECH.dados||{},noP=r=>r.ts>=P.de&&r.ts<P.at
     corte:{k:"corte",t:"Corte logístico",esc:"Equipe",un:"R$",inv:true,meta:c.corte*fat,real:corte,sub:"Valor final do corte (Procura) · limite máximo de "+BRL.format(c.corte).replace(",00","")+" por semana — quanto menor, melhor",perm:"aud_pro",campo:"corte"},
     cc:{k:"cc",t:"Cara crachá — ruas",esc:"Equipe",un:"ruas",meta:c.ccDia*du,real:cc,sub:"Auditoria de ruas: "+c.ccDia+" ruas por dia útil · "+du+" dias úteis",perm:"aud_rua",campo:"cc"},
     ret:{k:"ret",t:"Auditoria de retorno",esc:"Equipe",un:"auditorias",meta:c.retDia*du,real:ret.length,sub:"Total de auditorias: "+c.retDia+" por dia útil · "+du+" dias úteis",perm:"aud_ret",campo:"ret"},
-    vld:{k:"vld",t:"Validade — convocação ativa",esc:"Individual",un:"%",meta:1,real:vT.dev?vT.ok/vT.dev:null,pct:vT.dev?vT.ok/vT.dev:null,sub:"Atribuições zeradas em até "+c.vldDias+" dias · "+vT.ok+" de "+vT.dev+" no prazo"+(vT.atr?" · "+vT.atr+" atrasados agora":""),perm:"aud_vld",campo:"vld",semDados:!GM.vm?(GM.vmErr||"Carregando a planilha de validade…"):(!vT.dev?"Nenhum prazo de convocação venceu neste período.":"")}};
+    vld:{k:"vld",t:"Validade — convocação ativa",esc:"Individual",un:"%",meta:1,real:vT.dev?vT.ok/vT.dev:null,pct:vT.dev?vT.ok/vT.dev:null,sub:Object.values(A).reduce((t,x)=>t+(x.vldN||0),0)+" item(ns) auditado(s) no período · atribuições zeradas em até "+c.vldDias+" dias · "+vT.ok+" de "+vT.dev+" no prazo"+(vT.atr?" · "+vT.atr+" atrasados agora":""),perm:"aud_vld",campo:"vld",semDados:!GM.vm?(GM.vmErr||"Carregando a planilha de validade…"):(!vT.dev?"Nenhum prazo de convocação venceu neste período.":"")}};
   Object.values(M).forEach(m=>{if(m.k!=="vld"){m.pct=m.meta?m.real/m.meta:null;}m.rit=m.k==="vld"?1:rit;m.ref=m.pct==null?null:m.inv?(m.real>0?m.meta*Math.max(.05,m.rit)/m.real:2):m.pct/Math.max(.05,m.rit);});
   return {M,L,P,rit,du,fat};}
 /* resultado individual de um auditor numa meta */
-function gmInd(R,x,k){const m=R.M[k];if(k==="vld"){if(!x.vld||!x.vld.dev)return x.vld&&x.vld.feitos?{real:null,meta:null,pct:null,txt:x.vld.feitos+" item(ns) auditado(s), nenhum prazo vencido no período"}:null;return {real:x.vld.ok,meta:x.vld.dev,pct:x.vld.ok/x.vld.dev,txt:x.vld.ok+" de "+x.vld.dev+" itens zerados no prazo"+(x.vld.atr?" · "+x.vld.atr+" atrasado(s) agora":"")};}
+function gmInd(R,x,k){const m=R.M[k];if(k==="vld"){const fe=x.vld&&x.vld.feitos||0;if(!x.vld||!x.vld.dev)return fe?{real:null,meta:null,pct:null,txt:fe+" item(ns) auditado(s) no período · nenhum prazo de convocação vencido"}:null;return {real:x.vld.ok,meta:x.vld.dev,pct:x.vld.ok/x.vld.dev,txt:fe+" item(ns) auditado(s) no período · "+x.vld.ok+" de "+x.vld.dev+" convocados zerados no prazo"+(x.vld.atr?" · "+x.vld.atr+" atrasado(s) agora":"")};}
   if(m.esc==="Individual"){const tem=x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.ind,pct:m.ind?x[m.campo]/m.ind:null};}
   const tem=x[m.campo]>0;if(!tem)return null;return {real:x[m.campo],meta:m.meta,pct:m.pct,contrib:m.real?x[m.campo]/m.real:0,equipe:true};}
 function gmSit(ref,ab){if(ref==null)return {t:"Sem dados",c:"#64748B",n:-1};if(ref>=1)return {t:ab?"Dentro do ritmo":"Meta atingida",c:"#15803D",n:4};if(ref>=.9)return {t:ab?"Próximo do ritmo":"Próximo da meta",c:"#4D7C0F",n:3};if(ref>=.75)return {t:ab?"Abaixo do ritmo":"Abaixo da meta",c:"#A16207",n:2};if(ref>=.5)return {t:"Insatisfatório",c:"#C2410C",n:1};return {t:"Crítico",c:"#B91C1C",n:0};}
@@ -4336,8 +4341,12 @@ function gmPerBar(){return '<div class="gm-bar"><div class="seg" role="group"><b
   '<button type="button" class="btn sm" id="gm-upd">Atualizar</button></div>';}
 function gmBindBar(fn){document.querySelectorAll("[data-gper]").forEach(b=>b.onclick=()=>{GM.per=b.dataset.gper;GM.off=0;fn();});document.querySelectorAll("[data-goff]").forEach(b=>b.onclick=()=>{GM.off=Math.min(0,GM.off+ +b.dataset.goff);fn();});
   const u=$("gm-upd");if(u)u.onclick=async()=>{u.disabled=true;u.textContent="Atualizando…";GM.users=null;await Promise.all([carregarFech(true),gmUsuarios(),gmValidade(true)]);fn();};}
-async function gmPrep(fn){if(GM.busy)return;const falta=!FECH.dados||!FECH.fresh||!GM.cfg||!GM.users||!GM.vm;if(!falta)return;GM.busy=true;
-  await Promise.all([FECH.fresh?0:carregarFech(false),gmCarregarCfg(),gmUsuarios(),gmValidade()]);GM.busy=false;fn();}
+const GM_VELHO=5*60e3;
+async function gmPrep(fn){if(GM.busy)return;const agora=Date.now(),fV=!FECH.dados||!FECH.fresh||agora-FECH.fresh>GM_VELHO,vV=!GM.vm||agora-(GM.vmEm||0)>2*GM_VELHO;
+  const falta=fV||vV||!GM.cfg||!GM.users;if(!falta)return;if(!navigator.onLine&&FECH.dados&&GM.cfg&&GM.users)return;GM.busy=true;
+  try{await Promise.all([fV?carregarFech(false):0,GM.cfg?0:gmCarregarCfg(),GM.users?0:gmUsuarios(),vV?gmValidade(true):0]);}catch(e){}GM.busy=false;fn();}
+setInterval(()=>{try{if(document.hidden||DEMO||!LOGIN||!navigator.onLine)return;const vis=["inicio","metas","desemp","feedback","ncaud","ocio"].find(v=>{const e=$("v-"+v);return e&&!e.hidden;});
+  if(vis&&(ehGest()||gPerm("ce_gest")))gmPrep(()=>gestRefresh());else if($("v-fechamento")&&!$("v-fechamento").hidden&&FECH.fresh&&Date.now()-FECH.fresh>GM_VELHO)carregarFech(false);}catch(e){}},60e3);
 function paintMetas(){const box=$("gm-metas");if(!box)return;gmPrep(paintMetas);
   if(!FECH.dados){box.innerHTML=gmPerBar()+'<div class="nw-sk">'+'<div></div>'.repeat(6)+'</div><p class="note">Lendo a planilha Google…</p>';gmBindBar(paintMetas);return;}
   const P=gmPeriodo(GM.per,GM.off),R=gmCalc(P),Ms=Object.values(R.M),c=gmCfg();
@@ -4603,7 +4612,7 @@ function ncaAlertaBind(box){const S=ncaResumo();box.querySelectorAll("[data-nadv
 // ---------- ociosidade ----------
 const OC_ABAS=["ruas","retorno","cargas","procura","saldo","validade","contagem","aero","sac","adega","pp","solicit"];
 function ocCalc(P){const c=gmCfg(),lim=(c.ocLimiar||15)*6e4,jor=(c.ocJornada||528)*6e4,D=FECH.dados||{},A={};
-  OC_ABAS.forEach(a=>fxRows(D[a]).forEach(r=>{if(!r.ts||r.ts<P.de||r.ts>=P.ate)return;const p=gmPessoa(r.Matricula_Auditor,r.Nome_Auditor);if(!p)return;const mat=p.mat;if(gestMats().indexOf(mat)>=0)return;
+  OC_ABAS.forEach(a=>gmRows(D,a).forEach(r=>{if(!r.ts||r.ts<P.de||r.ts>=P.ate)return;const p=gmPessoa(r.Matricula_Auditor,r.Nome_Auditor);if(!p)return;const mat=p.mat;if(gestMats().indexOf(mat)>=0)return;
     const k=mat;const x=A[k]=A[k]||{k,mat,nome:p.nome||"",dias:{}};if(!x.nome&&p.nome)x.nome=p.nome;const dk=fxDiaKey(r.ts);(x.dias[dk]=x.dias[dk]||[]).push({t:r.ts,a});}));
   return Object.values(A).map(x=>{if(!x.nome||/^\d+$/.test(x.nome))x.nome=gmNomeDe(x.mat)||x.nome||x.mat;let tot={dias:0,lanc:0,jan:0,ativo:0,ocio:0,fora:0,alm:0,maior:0,maiorEm:0};const D2=[];
     Object.entries(x.dias).sort().forEach(([dk,L])=>{L.sort((a,b)=>a.t-b.t);const ini=L[0].t,fim=L[L.length-1].t,gaps=[];for(let i=1;i<L.length;i++){const g=L[i].t-L[i-1].t;if(g>lim)gaps.push({de:L[i-1].t,ate:L[i].t,g});}
@@ -4679,7 +4688,7 @@ function paintDesemp(){const box=$("gm-desemp");if(!box)return;gmPrep(paintDesem
         {t:"Ociosidade",v:pct(d.oc),c:d.oc==null?"#64748B":ocCor(d.oc),s:d.ocH?ocH(d.ocH)+" sem lançamento":""},{t:"NCs recebidas",v:d.nc.length,c:"#DC2626",s:d.nc.filter(r=>r.Status==="Aplicada").length+" aplicada(s)"},{t:"Advertências",v:d.adv.length,c:d.adv.length?"#B91C1C":"#16A34A",s:d.fb.length+" feedback(s) emitido(s)"}])+
       '<div class="fx-row" style="grid-template-columns:1.4fr 1fr">'+fxCard("Lançamentos por dia",fxCols(Object.keys(porD).sort().map(k=>({l:fxDia(porD[k].ts),v:porD[k].n,txt:String(porD[k].n),c:"#103F79"}))))+
         fxCard("Por tipo de auditoria",fxBars(Object.entries(porA).sort((a,b)=>b[1]-a[1]).map(([a,n])=>({l:DS_NOME[a]||a,v:n,txt:String(n),c:"#2563EB"}))))+'</div>'+
-      '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Metas no período",d.it.length?fxBars(d.it.map(i=>({l:i.m.t,v:Math.round((i.pct||0)*100),txt:(i.pct==null?"–":Math.round(i.pct*100)+"%")+" · "+i.si.t,c:i.si.c}))):'<p class="fx-e">Sem metas no período.</p>')+
+      '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Metas no período",d.it.length?fxBars(d.it.map(i=>({l:i.m.t,v:Math.round((i.pct||0)*100),txt:i.pct==null?(i.txt||"–"):Math.round(i.pct*100)+"% · "+i.si.t+(i.k==="vld"&&i.txt?" · "+i.txt:""),c:i.si.c}))):'<p class="fx-e">Sem metas no período.</p>')+
         fxCard("Evolução das metas (últimas 6 semanas)",fxCols(sem.map(w=>({l:w.l,v:w.v==null?0:Math.round(w.v*100),txt:w.v==null?"–":Math.round(w.v*100)+"%",c:w.v==null?"#CBD5E1":corM(w.v)}))))+'</div>'+
       '<div class="fx-row" style="grid-template-columns:1fr 1fr;margin-top:10px">'+fxCard("Histórico de não conformidades",d.nc.length+d.adv.length?fxTable([{t:"Data"},{t:"Tipo"},{t:"Medida"},{t:"Situação"}],d.nc.concat(d.adv).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,12).map(r=>[esc(String(r.DataHora||"").slice(0,10)),esc(r.Tipo||""),esc(r.Medida||""),esc(r.Status||"")])):'<p class="fx-e">Nenhuma não conformidade registrada.</p>')+
         fxCard("Feedbacks emitidos",d.fb.length?fxTable([{t:"Data"},{t:"Período"},{t:"Resumo"}],d.fb.sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10).map(r=>[esc(String(r.DataHora||"").slice(0,10)),esc(r.Periodo||""),esc(String(r.Resumo||"").slice(0,90))])):'<p class="fx-e">Nenhum feedback emitido.</p>')+'</div>';}
@@ -4792,9 +4801,10 @@ function hmCena(){/* ilustração animada do CD: porta-paletes, empilhadeira e c
     '<g class="hm-emp"><rect x="0" y="176" width="58" height="34" rx="4" fill="#F59E0B"/><rect x="10" y="150" width="30" height="30" rx="3" fill="none" stroke="#0F172A" stroke-width="4"/><rect x="58" y="120" width="6" height="92" fill="#334155"/><rect x="64" y="188" width="34" height="5" fill="#334155"/><rect class="hm-carga" x="66" y="160" width="30" height="28" rx="2" fill="#D6A35C"/><circle cx="14" cy="214" r="9" fill="#0F172A"/><circle cx="46" cy="214" r="9" fill="#0F172A"/></g>'+
     '<g class="hm-cam"><rect x="0" y="150" width="150" height="62" rx="4" fill="#F8FAFC"/><rect x="0" y="150" width="150" height="14" fill="#2563EB"/><text x="75" y="192" text-anchor="middle" font-size="15" font-weight="800" fill="#1E3A8A" font-family="Arial">STA</text><path d="M150 168h34l22 22v22h-56z" fill="#1D4ED8"/><rect x="160" y="174" width="24" height="16" rx="2" fill="#BFDBFE"/><circle cx="30" cy="214" r="11" fill="#0F172A"/><circle cx="120" cy="214" r="11" fill="#0F172A"/><circle cx="185" cy="214" r="11" fill="#0F172A"/></g>'+
     '</svg>';}
-function hmHoje(){const hoje=fdISO(todayISO()),A=allRecs().filter(r=>r.Data===hoje),M=A.filter(r=>String(r.Matricula_Auditor)===String(auditor));
+function hmHoje(){const t0=new Date();t0.setHours(0,0,0,0);const T=t0.getTime(),A=allRecs().filter(r=>(r.ts||0)>=T),M=A.filter(r=>String(r.Matricula_Auditor)===String(auditor));
+  const pend=[...HIST.values()].filter(r=>r._sheet!==SHEET_URL&&String(r.Matricula_Auditor||auditor)===String(auditor)).length+vlcFilaLer().filter(x=>x.auditor===auditor).length;
   let ruas=0;try{const ag=cntAgrega(A.filter(r=>r._aba==="contagem"),()=>"d").d;ruas=ag?ag.nRuas:0;}catch(e){}
-  return [{t:"Seus lançamentos hoje",v:M.length,c:"#2563EB"},{t:"Não conformidades hoje",v:M.filter(ehNC).length,c:"#DC2626"},{t:"Ruas contadas hoje (CD)",v:ruas,c:"#0D9488"},{t:"Aguardando envio",v:queue.length,c:queue.length?"#D97706":"#16A34A"}];}
+  return [{t:"Seus lançamentos hoje",v:M.length,c:"#2563EB"},{t:"Não conformidades hoje",v:M.filter(ehNC).length,c:"#DC2626"},{t:"Ruas contadas hoje (CD)",v:ruas,c:"#0D9488"},{t:"Aguardando envio",v:SHEET_URL&&!DEMO?pend:queue.length,c:(SHEET_URL&&!DEMO?pend:queue.length)?"#D97706":"#16A34A"}];}
 function hmNewsList(){const L=[];["logistica","df","empresas"].forEach(c=>{const D=NWS.dados[c];(D&&D.itens||[]).slice(0,8).forEach(n=>L.push(Object.assign({cat:c},n)));});
   const vis={};return L.filter(n=>{if(vis[n.link])return false;vis[n.link]=1;return true;}).sort((a,b)=>b.ts-a.ts);}
 const HM_CAT={logistica:"Logística",df:"Logística no DF",empresas:"Economia"};
@@ -4812,7 +4822,7 @@ function hmNews(){const box=$("hm-news"),tk=$("hm-tick");if(!box)return;const L=
   car.addEventListener("pointerdown",auto);auto();if(HM.i)setTimeout(()=>ir(HM.i),30);}
 function hmContar(el){const fim=+el.dataset.n||0,t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/700);el.textContent=Math.round(fim*(1-Math.pow(1-p,3))).toLocaleString("pt-BR");if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 /* aviso para gestores/ADM: o link do app ainda roda um Apps Script antigo */
-const GS_MIN=70;
+const GS_MIN=71;
 async function gsAviso(){if(DEMO||!SHEET_URL||!(ehAdm()||gPerm("ce_gest"))||!navigator.onLine)return;try{if(!GM.gsv||Date.now()-GM.gsvT>3e5){const j=await sheetVer(SHEET_URL);GM.gsv=j?(+j.versao||0):null;GM.gsvT=Date.now();}}catch(e){return;}
   const box=$("home");if(!box||GM.gsv==null||GM.gsv>=GS_MIN||$("gs-av"))return;
   box.insertAdjacentHTML("afterbegin",'<div id="gs-av" class="hm-card" style="border:1px solid #FCA5A5;background:#FEF2F2;color:#7F1D1D;margin-bottom:12px;text-align:left;padding:12px 14px"><b>Apps Script desatualizado: o link do app roda a versão '+GM.gsv+' e precisa da '+GS_MIN+'.</b><small style="display:block;margin-top:4px">Enquanto isso, NC dos auditores, exclusões e acessos novos não chegam à planilha. No editor do Apps Script: cole o código novo, salve e vá em Implantar → Gerenciar implantações → escolha a implantação com ID terminado em <b>'+esc(sheetIdCurto(SHEET_URL))+'</b> → lápis → Versão: Nova versão → Implantar.</small></div>');}

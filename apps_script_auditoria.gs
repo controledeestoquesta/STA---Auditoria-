@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 70)
+ * Auditoria STA – Santa Therezinha (versão 71)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -471,7 +471,7 @@ ABAS.validade = {
 };
 const CAMPOS_VLA = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo', 'Numero_OS', 'Codigo_Produto', 'Descricao_Produto', 'Endereco', 'Rua', 'Validade', 'Validades', 'Dias_Para_Vencer', 'Quantidade', 'Resultado', 'Peso_Validade',
   'Possui_NC', 'Matricula_Colaborador_NC', 'Nome_Colaborador_NC', 'Funcao_Colaborador_NC', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Links_Fotos', 'Vl_Unitario', 'Valor_Divergencia', 'Matricula_Encarregado', 'Nome_Encarregado'];
-const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos'];
+const CAMPOS_CNT = ['ID_Auditoria', 'Data', 'DataHora', 'Rua_Inicial', 'Rua_Final', 'Ruas', 'Qtd_Ruas', 'Qtd_Enderecos', 'Observacao', 'Matricula_Auditor', 'Nome_Auditor', 'Metodo', 'Enderecos', 'Data_Relatorio', 'Links_Fotos', 'Sem_Foto', 'Qtd_Fotos', 'Recebido_Em'];
 const CAMPOS_ADG = ['ID_Auditoria', 'Data', 'DataHora', 'Cod_Cliente', 'Nome_Cliente', 'Municipio_CNPJ', 'Tipo', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'Vl_Unitario', 'Valor',
   'Numero_Carga', 'Numero_Nota', 'Matricula_Conferente', 'Conferente', 'Funcao_Conferente', 'Observacao', 'Matricula_Registrou', 'Nome_Registrou', 'Links_Fotos'];
 const MOTIVOS_PROCURA = ['Produto encontrado', 'Encontrado parcialmente', 'Produto não encontrado', 'Produto cortado'];
@@ -678,7 +678,7 @@ function doGet(e) {
     if (p.acao === 'fechamento') {
       const s = validarToken(p.token);
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
-      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf('aud_fch') >= 0 || s.permissoes.indexOf('aud_reg') >= 0 || s.permissoes.indexOf(x) >= 0; };
+      const tem = function (x) { return s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('aud_com') >= 0 || s.permissoes.indexOf('aud_fch') >= 0 || s.permissoes.indexOf('aud_reg') >= 0 || s.permissoes.indexOf('ce_gest') >= 0 || s.permissoes.indexOf(x) >= 0; };
       if (!tem('aud_rua') && !tem('aud_ret') && !tem('aud_car') && !tem('aud_aer') && !tem('aud_pp') && !tem('aud_vale') && !tem('aud_sac') && !tem('aud_pro') && !tem('aud_adg') && !tem('aud_spk') && !tem('aud_sol') && !tem('aud_chp') && !tem('aud_vld')) return resposta({ ok: false, erro: 'Sem permissão para o fechamento.' });
       const vazio = { colunas: ['ID_Auditoria'], registros: [] };
       const out = {
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 70, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 71, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
