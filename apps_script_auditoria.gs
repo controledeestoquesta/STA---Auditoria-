@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 69)
+ * Auditoria STA – Santa Therezinha (versão 70)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -582,7 +582,7 @@ function doPost(e) {
   if (['com_ler', 'com_salvar', 'cha_ler', 'cha_salvar', 'cl_ler', 'cl_salvar', 'cl_excluir'].indexOf(dados.acao) >= 0) {
     const pode = function (x) { return sessao.permissoes.indexOf('aud_adm') >= 0 || sessao.permissoes.indexOf(x) >= 0; };
     const ehCom = dados.acao.indexOf('com_') === 0 || dados.acao.indexOf('cl_') === 0;
-    if (ehCom ? !pode('aud_com') : !(pode('aud_cha') || pode('aud_com'))) return resposta({ ok: false, erro: ehCom ? 'Sem permissão de comissão (aud_com).' : 'Sem permissão de chamada (aud_cha).' });
+    if (ehCom ? !(pode('aud_com') || pode('ce_gest')) : !(pode('aud_cha') || pode('aud_com') || pode('ce_gest'))) return resposta({ ok: false, erro: ehCom ? 'Sem permissão de comissão (aud_com).' : 'Sem permissão de chamada (aud_cha).' });
     const lkc = LockService.getScriptLock(); lkc.waitLock(30000);
     try {
       if (dados.acao === 'com_ler') return resposta(comLer(dados.chaves || []));
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 69, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 70, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }

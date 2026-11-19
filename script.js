@@ -2171,6 +2171,27 @@ async function ceSalvarCfg(ok){try{await ppPost({acao:"com_salvar",chave:"config
 function ceRegs(d){const br=ceBr(d),o={};(CE.cha||[]).forEach(r=>{if(r.Data===br){const k=CE_LAB2K[r.Status]||(r.Status==="Falta justificada"?"falta":"");if(k)o[r.Matricula]={s:k,obs:r.Observacao||"",por:r.Registrado_Por,em:r.Registrado_Em};}});return o;}
 function ceLista(){const q=norm(CE.q);return ceEq().filter(f=>(!CE.fSub||f.subsetor===CE.fSub)&&(!CE.fTurno||f.turno===CE.fTurno)&&(!q||norm(f.nome+" "+f.mat+" "+f.cargo).includes(q))).sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));}
 function ceStats(r,list){const c={total:list.length,presente:0,ferias:0,folga:0,falta:0,atestado:0,sem:0};list.forEach(f=>{const s=r[f.mat]&&r[f.mat].s;if(s&&c[s]!=null)c[s]++;else c.sem++;});c.esc=c.total-c.ferias-c.folga-c.atestado;c.taxa=c.esc?c.presente/c.esc*100:NaN;return c;}
+/* relatório por período (filtro De/Até + situação); o de folgas do mês sai sozinho todo dia 19 */
+const ceMesIni=(d)=>(d||todayISO()).slice(0,8)+"01";
+const ceMesFim=(d)=>{const x=new Date((d||todayISO()).slice(0,7)+"-01T12:00:00");x.setMonth(x.getMonth()+1);x.setDate(0);return x.toISOString().slice(0,10);};
+function cePer(){if(!CE.pDe)CE.pDe=ceMesIni();if(!CE.pAte)CE.pAte=ceMesFim();if(CE.pSt==null)CE.pSt="folga";if(CE.pAte<CE.pDe)CE.pAte=CE.pDe;return {de:CE.pDe,ate:CE.pAte,st:CE.pSt};}
+function ceRelPeriodo(de,ate,st){const L=ceLista(),M=new Set(L.map(f=>f.mat)),per=cePeriodo(de,ate),dias={};
+  (CE.cha||[]).forEach(r=>{const d=ceIso(r.Data);if(d<de||d>ate||!M.has(r.Matricula))return;const k=CE_LAB2K[r.Status];if(!k)return;((dias[r.Matricula]=dias[r.Matricula]||{})[k]=dias[r.Matricula][k]||[]).push({d,obs:r.Observacao||""});});
+  const z={presente:0,ferias:0,folga:0,falta:0,atestado:0},tot=Object.assign({},z);L.forEach(f=>{const p=per[f.mat];if(p)Object.keys(z).forEach(k=>tot[k]+=p[k]||0);});
+  const nomeSt=st?(CE_ST[st]?CE_ST[st][0]:st):"",rows=L.filter(f=>!st||(per[f.mat]&&per[f.mat][st]>0)).sort((a,b)=>((per[b.mat]||{})[st]||0)-((per[a.mat]||{})[st]||0)||a.nome.localeCompare(b.nome,"pt-BR"));
+  const dl=(m,k)=>((dias[m]||{})[k]||[]).sort((a,b)=>a.d.localeCompare(b.d)).map(x=>ceBr(x.d).slice(0,5)+(x.obs?' <small>('+esc(x.obs)+')</small>':'')).join(", ");
+  const filtro=[CE.fSub,CE.fTurno?"Entrada "+ceTL(CE.fTurno):"",CE.q?"Busca: "+CE.q:""].filter(Boolean).join(" · ");
+  return ceHead(st?"Relatório de "+({folga:"folgas",ferias:"férias",falta:"faltas",atestado:"atestados",presente:"presenças"}[st]||nomeSt.toLowerCase())+" no período":"Relatório de presença no período","Período: <b>"+ceBr(de)+" a "+ceBr(ate)+"</b>"+(filtro?" · "+esc(filtro):""))+
+    fxKpis([{t:"Funcionários"+(st?" com "+nomeSt.toLowerCase():""),v:rows.length,c:"#0F172A",s:"de "+L.length+" na equipe"},{t:"Folgas",v:tot.folga,c:"#94580A"},{t:"Férias",v:tot.ferias,c:"#1F5DB8"},{t:"Faltas",v:tot.falta,c:"#B3261E"},{t:"Atestados",v:tot.atestado,c:"#6E3FB8"},{t:"Presenças",v:tot.presente,c:"#16A34A"}],true)+
+    fxCard(st?nomeSt+" — "+rows.length+" funcionário(s)":"Por funcionário",fxTable([{t:"Funcionário"},{t:"Matrícula"},{t:"Subsetor"},{t:"Entrada"},{t:"Folgas",n:1},{t:"Férias",n:1},{t:"Faltas",n:1},{t:"Atestados",n:1},{t:"Presenças",n:1},{t:st?"Dias de "+nomeSt.toLowerCase():"Dias de ausência"}],
+      rows.map(f=>{const p=per[f.mat]||z;return [esc(f.nome),esc(f.mat),esc(f.subsetor||"—"),ceTL(f.turno),p.folga||"",p.ferias||"",p.falta||"",p.atestado||"",p.presente||"",st?dl(f.mat,st):["folga","ferias","falta","atestado"].map(k=>{const t=dl(f.mat,k);return t?CE_ST[k][0]+": "+t:"";}).filter(Boolean).join("<br>")];})))+
+    (rows.length?"":'<p class="muted" style="text-align:center;padding:12px">Nenhum registro'+(st?" de "+nomeSt.toLowerCase():"")+' neste período.</p>')+'<div class="fx-f"><span>Chamada · relatório por período · '+ceBr(de)+' a '+ceBr(ate)+'</span><span>Gerado em '+fmtDT(new Date())+' · Santa Therezinha</span></div>';}
+/* todo dia 19: abre o relatório das folgas do mês para quem cuida da chamada (uma vez por dia) */
+async function ceFolga19(){try{if(DEMO||!LOGIN||!SHEET_URL||!navigator.onLine)return;const hoje=todayISO();if(hoje.slice(8,10)!=="19"||!podeVer("cha"))return;if(store.get("audcd_folga19","")===hoje)return;
+  if(!CE.cha||!CE.cfg)await ceCarregar(false);if(!CE.cha||!CE.cfg)return;store.set("audcd_folga19",hoje);
+  const de=ceMesIni(hoje),ate=ceMesFim(hoje),sv=[CE.fSub,CE.fTurno,CE.q];CE.fSub="";CE.fTurno="";CE.q="";const html=ceRelPeriodo(de,ate,"folga");[CE.fSub,CE.fTurno,CE.q]=sv;
+  toast("Dia 19: relatório das folgas do mês.");cePrint(html,"Folgas_"+hoje.slice(0,7),"Folgas de "+ceMesNome(hoje.slice(0,7)));}catch(e){}}
+setTimeout(ceFolga19,6000);
 function cePeriodo(de,ate){const out={};(CE.cha||[]).forEach(r=>{const d=ceIso(r.Data);if(d<de||d>ate)return;const k=CE_LAB2K[r.Status];if(!k)return;const o=out[r.Matricula]=out[r.Matricula]||{presente:0,ferias:0,folga:0,falta:0,atestado:0};o[k]++;});return out;}
 async function ceMarcar(regs,d){try{await ppPost({acao:"cha_salvar",data:ceBr(d),registros:regs});
     const br=ceBr(d),agora=fmtDT(new Date());regs.forEach(r=>{const i=(CE.cha||[]).findIndex(x=>x.Data===br&&x.Matricula===r.Matricula);const row={Chave:br+"|"+r.Matricula,Data:br,Matricula:r.Matricula,Nome:r.Nome,Equipe:r.Equipe,Turno:r.Turno,Status:r.Status,Observacao:r.Observacao||"",Registrado_Por:(nomeAud()||"")+" ("+auditor+")",Registrado_Em:agora};
@@ -2250,7 +2271,7 @@ function LOGO_WHITE_SRC(){const h=$("hdr-logo");return h&&h.src?h.src:LOGO_BLUE;
 function ceRender(){const box=$("cha");if(box)box.innerHTML=ceChaHTML();const cb=$("com");if(cb)cb.innerHTML=ceComHTML();ceBind();}
 function ceTopo(){return (CE.msg?'<p class="note" style="margin:0 0 10px">'+esc(CE.msg)+'</p>':'');}
 function ceChaHTML(){if(!CE.cfg)return ceTopo()+(CE.busy?"":'<button type="button" class="btn" data-ce="reload">Carregar</button>');
-  const tabs=[["painel","Dashboard"],["chamada","Chamada"],["historico","Histórico"]].concat(ceCom()?[["equipe","Montar equipe"]]:[]);let h=ceTopo()+ceSub(tabs,CE.tab,"cet");
+  const tabs=[["painel","Dashboard"],["chamada","Chamada"],["periodo","Relatório por período"],["historico","Histórico"]].concat(ceCom()?[["equipe","Montar equipe"]]:[]);let h=ceTopo()+ceSub(tabs,CE.tab,"cet");
   const d=CE.d,r=ceRegs(d),list=ceLista(),c=ceStats(r,list);
   if(CE.tab==="painel")h+='<div class="ce-acts"><button type="button" class="btn" data-cet="chamada">Fazer chamada</button><button type="button" class="btn" data-ce="printDia">Imprimir / PDF</button><button type="button" class="btn" data-ce="imgPng">Exportar PNG</button><button type="button" class="btn" data-ce="imgJpg">Exportar JPEG</button><button type="button" class="btn" data-ce="reload">Atualizar</button></div>'+ceFiltros(true)+'<div class="ce-dbwrap">'+ceBoard(d)+'</div>';
   if(CE.tab==="chamada"){const done=c.total-c.sem,lf=ceFSt(r,list),grupos=[...new Set(CE_TURNOS.concat(lf.map(f=>f.turno||"")))].sort().map(t=>({t,l:lf.filter(f=>(f.turno||"")===t)})).filter(g=>g.l.length);
@@ -2262,6 +2283,12 @@ function ceChaHTML(){if(!CE.cfg)return ceTopo()+(CE.busy?"":'<button type="butto
       (CE.fSt?'<p class="note" style="margin:0 0 10px">Mostrando: <b>'+ceFStNome()+'</b> — '+lf.length+' funcionário(s).</p>':'')+
       (d>todayISO()?'<p class="ce-b b-off" style="margin-bottom:12px">Atenção: data futura. Use para lançar férias e folgas programadas.</p>':'')+
       (grupos.map(g=>'<div class="block"><div class="ce-th"><h3>Entrada '+ceTL(g.t)+'</h3><span class="muted">'+g.l.length+' funcionário'+(g.l.length>1?"s":"")+'</span></div>'+g.l.map(row).join("")+'</div>').join("")||'<div class="block">'+ceVazio("Nenhum funcionário neste filtro.")+'</div>');}
+  if(CE.tab==="periodo"){const P=cePer();
+    h+='<div class="ce-filters"><label class="ce-fld"><span>De</span><input type="date" id="ce-pde" value="'+P.de+'"></label><label class="ce-fld"><span>Até</span><input type="date" id="ce-pate" value="'+P.ate+'"></label>'+
+      '<label class="ce-fld"><span>Situação</span><select id="ce-pst">'+CE_FST.filter(([k])=>k!=="sem").map(([k,l])=>'<option value="'+k+'"'+(P.st===k?" selected":"")+'>'+l+'</option>').join("")+'</select></label>'+
+      '<div class="ce-fld" style="align-self:flex-end;flex-direction:row;gap:6px;display:flex;flex-wrap:wrap"><button type="button" class="btn sm" data-cep="mes">Este mês</button><button type="button" class="btn sm" data-cep="mesant">Mês anterior</button><button type="button" class="btn sm" data-cep="sem">Esta semana</button><button type="button" class="btn sm" data-cep="prox">Próximos 30 dias</button></div></div>'+
+      ceFiltros(false)+'<div class="ce-acts"><button type="button" class="btn" data-ce="printPer">Imprimir / PDF</button><button type="button" class="btn" data-ce="reload">Atualizar da planilha</button></div>'+
+      '<div class="block"><div class="com-rel"><div class="pd fx">'+ceRelPeriodo(P.de,P.ate,P.st)+'</div></div></div>';}
   if(CE.tab==="historico"){const m=CE.hMes,de=m+"-01",ate=m+"-31",dias=[...new Set((CE.cha||[]).map(x=>ceIso(x.Data)).filter(x=>x>=de&&x<=ate))].sort().reverse(),eq=ceEq().slice().sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR")),f=ceFunc(CE.hMat);
     let emp="";if(f){const pc=cePeriodo(de,ate)[f.mat]||{presente:0,ferias:0,folga:0,falta:0,atestado:0},recs=(CE.cha||[]).filter(x=>x.Matricula===f.mat&&ceIso(x.Data)>=de&&ceIso(x.Data)<=ate).sort((a,b)=>ceIso(a.Data).localeCompare(ceIso(b.Data)));
       emp='<div class="ce-kpis">'+ceKpi("Presenças",pc.presente,"","ok")+ceKpi("Férias",pc.ferias,"","vac")+ceKpi("Folgas",pc.folga,"","off")+ceKpi("Faltas",pc.falta,"","bad")+ceKpi("Atestados",pc.atestado,"","med")+'</div>'+
@@ -2343,6 +2370,12 @@ function ceBind(){const on=(sel,ev,fn)=>document.querySelectorAll(sel).forEach(e
   v("ce-cde",e=>{CE.cDe=e.target.value||CE.cDe;ceRender();});v("ce-cate",e=>{CE.cAte=e.target.value||CE.cAte;ceRender();});
   const busca=(id,k)=>{const el=$(id);if(el)el.oninput=()=>{CE[k]=el.value;clearTimeout(el._t);el._t=setTimeout(()=>{ceRender();const n=$(id);if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},350);};};busca("ce-q","q");busca("ce-lq","lq");
   on('[data-ce="printDia"]',"onclick",()=>cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d)));
+  on('[data-ce="printPer"]',"onclick",()=>{const P=cePer();cePrint(ceRelPeriodo(P.de,P.ate,P.st),"Chamada_"+(P.st||"periodo")+"_"+P.de+"_a_"+P.ate,(P.st?CE_ST[P.st][0]:"Presença")+" – "+ceBr(P.de)+" a "+ceBr(P.ate));});
+  v("ce-pde",e=>{CE.pDe=e.target.value||ceMesIni();ceRender();});v("ce-pate",e=>{CE.pAte=e.target.value||ceMesFim();ceRender();});v("ce-pst",e=>{CE.pSt=e.target.value;ceRender();});
+  on("[data-cep]","onclick",e=>{const k=e.currentTarget.dataset.cep,t=todayISO();if(k==="mes"){CE.pDe=ceMesIni(t);CE.pAte=ceMesFim(t);}
+    if(k==="mesant"){const x=new Date(t.slice(0,7)+"-01T12:00:00");x.setDate(0);const a=x.toISOString().slice(0,10);CE.pDe=ceMesIni(a);CE.pAte=ceMesFim(a);}
+    if(k==="sem"){const x=new Date(t+"T12:00:00"),w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);CE.pDe=x.toISOString().slice(0,10);x.setDate(x.getDate()+6);CE.pAte=x.toISOString().slice(0,10);}
+    if(k==="prox"){const x=new Date(t+"T12:00:00");CE.pDe=t;x.setDate(x.getDate()+30);CE.pAte=x.toISOString().slice(0,10);}ceRender();});
   on('[data-ce="imgPng"]',"onclick",()=>ceExportImg("png"));on('[data-ce="imgJpg"]',"onclick",()=>ceExportImg("jpg"));
   on("[data-verdia]","onclick",e=>{CE.d=e.currentTarget.dataset.verdia;cePrint(ceBoard(CE.d),"Chamada_"+CE.d,"Chamada – "+ceBr(CE.d));});
   on("[data-editdia]","onclick",e=>{CE.d=e.currentTarget.dataset.editdia;CE.tab="chamada";ceRender();});
@@ -3829,7 +3862,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v161</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v162</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3918,7 +3951,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v161</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v162</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4171,12 +4204,15 @@ function gPerm(p){return ehGest()||temPerm(p);}
 function podeVerG(v){switch(v){
   case "rot":return gPerm("ce_est")||temPerm("aud_rot");
   case "lib":return gPerm("ce_est")||temPerm("aud_lib");
-  case "cha":case "com":case "registros":case "painel":case "metas":case "feedback":case "ncaud":case "spkh":case "ocio":case "desemp":return gPerm("ce_gest");
+  case "cha":return gPerm("ce_gest")||temPerm("aud_cha");
+  case "com":return gPerm("ce_gest")||temPerm("aud_com");
+  case "registros":return gPerm("ce_gest")||temPerm("aud_reg");
+  case "painel":case "metas":case "feedback":case "ncaud":case "spkh":case "ocio":case "desemp":return gPerm("ce_gest");
   case "fechamento":return gPerm("ce_gest")?true:undefined;
   case "bases":return gPerm("ce_bas");}
   return undefined;}
 /* senha extra para Gestão Controle de Estoque e Bases (vale até fechar o app) */
-function gateGrupo(v){if(v==="bases")return "b";if(["cha","com","registros","painel","metas","feedback","ncaud","spkh","ocio","desemp"].indexOf(v)>=0)return "g";if(v==="fechamento"&&gPerm("ce_gest"))return "g";return "";}
+function gateGrupo(v){if(v==="bases")return "b";if(({cha:"aud_cha",com:"aud_com",registros:"aud_reg"})[v]&&!gPerm("ce_gest"))return "";if(["cha","com","registros","painel","metas","feedback","ncaud","spkh","ocio","desemp"].indexOf(v)>=0)return "g";if(v==="fechamento"&&gPerm("ce_gest"))return "g";return "";}
 function gateHash(g){return {g:"1526e9e952db756cc962825dd6ce63b29b9e6ada2a1f35ef2e1656d607844cf2",b:"1526e9e952db756cc962825dd6ce63b29b9e6ada2a1f35ef2e1656d607844cf2"}[g];}
 var GATE_OK=GATE_OK||{};
 function gateNeed(v){const g=gateGrupo(v);return !!(g&&!GATE_OK[g]&&!DEMO);}
@@ -4776,7 +4812,7 @@ function hmNews(){const box=$("hm-news"),tk=$("hm-tick");if(!box)return;const L=
   car.addEventListener("pointerdown",auto);auto();if(HM.i)setTimeout(()=>ir(HM.i),30);}
 function hmContar(el){const fim=+el.dataset.n||0,t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/700);el.textContent=Math.round(fim*(1-Math.pow(1-p,3))).toLocaleString("pt-BR");if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 /* aviso para gestores/ADM: o link do app ainda roda um Apps Script antigo */
-const GS_MIN=69;
+const GS_MIN=70;
 async function gsAviso(){if(DEMO||!SHEET_URL||!(ehAdm()||gPerm("ce_gest"))||!navigator.onLine)return;try{if(!GM.gsv||Date.now()-GM.gsvT>3e5){const j=await sheetVer(SHEET_URL);GM.gsv=j?(+j.versao||0):null;GM.gsvT=Date.now();}}catch(e){return;}
   const box=$("home");if(!box||GM.gsv==null||GM.gsv>=GS_MIN||$("gs-av"))return;
   box.insertAdjacentHTML("afterbegin",'<div id="gs-av" class="hm-card" style="border:1px solid #FCA5A5;background:#FEF2F2;color:#7F1D1D;margin-bottom:12px;text-align:left;padding:12px 14px"><b>Apps Script desatualizado: o link do app roda a versão '+GM.gsv+' e precisa da '+GS_MIN+'.</b><small style="display:block;margin-top:4px">Enquanto isso, NC dos auditores, exclusões e acessos novos não chegam à planilha. No editor do Apps Script: cole o código novo, salve e vá em Implantar → Gerenciar implantações → escolha a implantação com ID terminado em <b>'+esc(sheetIdCurto(SHEET_URL))+'</b> → lápis → Versão: Nova versão → Implantar.</small></div>');}
