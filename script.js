@@ -3893,7 +3893,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v175</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v176</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3982,7 +3982,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v175</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v176</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4999,8 +4999,8 @@ if(S){setMode("end");reset();}renderSess();paintFotos();paintConn();paintPend();
 /* global THREE */
 /* ===== Curva de apanha — Picking (8351 Picking + base 8022 do app: PK_END e departamento + 286: custo) e Mapa de calor — Aéreo (8351 Aéreo).
    A 8022 é a mesma da aba Bases (não há importação aqui). As 8351 ficam guardadas neste aparelho (IndexedDB). ===== */
-const CV_REG={A:10,B:5,cob:{A:5,B:9,C:15},choc:{r0:10,r1:12},beb:{lim1:250,lim2:300,pMax:22,pMin:26,rua:13,privada:55},hpl:[32,41]};
-const CV={dep:"",atab:"planta",pick:null,aero:null,tab:"mapa",cor:"apd",aCor:"apd",filtro:"",motivo:"",busy:false,cur:{A:1,B:1,C:1},q:"",sel:null,ord:"apd",zoom:18,
+const CV_REG={A:10,B:5,Z:2,cob:{A:5,B:9,C:15,Z:15},beb:{lim0:100,lim1:250,lim2:900,pMax:22,pMin:26,rua:13,privada:55},hpl:[32,41]};
+const CV={dep:"",atab:"planta",pick:null,aero:null,tab:"mapa",cor:"apd",aCor:"apd",filtro:"",motivo:"",busy:false,cur:{A:1,B:1,C:1,Z:1},q:"",sel:null,ord:"apd",zoom:18,
   aq:"",asel:null,azoom:18,iq:"",icur:"",iest:"",irua:"",ipag:100};
 function cvDB(){return new Promise((res,rej)=>{const q=indexedDB.open("audcd_curva",1);q.onupgradeneeded=()=>q.result.createObjectStore("kv");q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
 async function cvSet(k,v){try{const d=await cvDB();await new Promise((res,rej)=>{const t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch(e){}}
@@ -5025,11 +5025,11 @@ async function cvImport(tipo,file){CV.busy=true;cvPaintAll();try{const wb=await 
     const L=cv8351(A);CV[tipo]={L,em:fmtDT(new Date()),nome:file.name};await cvSet(tipo,CV[tipo]);toast(L.length.toLocaleString("pt-BR")+" linhas da 8351 – "+(tipo==="pick"?"Picking":"Aéreo")+" importadas.");const m=$(tipo==="pick"?"b8351p-msg":"b8351a-msg");if(m)m.textContent="✓ "+L.length.toLocaleString("pt-BR")+" linhas importadas de "+file.name+".";}
   catch(e){toast("Não importou: "+(e.message||e));const m=$(tipo==="pick"?"b8351p-msg":"b8351a-msg");if(m)m.textContent="Não importou: "+(e.message||e);}CV.ld=true;CV3.key="";cvBasesPaint();CV.busy=false;CV.calc=null;CV.sel=null;CV.asel=null;cvPaintAll();}
 /* ---------- cálculo: curva, regras, coberturas e transferências ---------- */
-function cvCurva(apd){return apd>=CV_REG.A?"A":apd>=CV_REG.B?"B":"C";}
+function cvCurva(apd){return apd>CV_REG.A?"A":apd>=CV_REG.B?"B":apd>=CV_REG.Z?"C":"Z";}
 function cvCalc(){const Ee=cvE();if(CV.calc&&CV.calcE===Ee)return CV.calc;const L=(CV.pick&&CV.pick.L)||[],R=CV_REG;
   const it=L.map(r=>{const apd=r.qd>0?r.qa/r.qd:0,cur=cvCurva(apd),k=cvKey(r.rua,r.pr,r.nv,r.ap),e=Ee.end[k]||null,ki=pIdx.get(String(r.cod).replace(/\D/g,"")),custo=ki!=null?(P.vl[ki]||0):0;
     const est=(e&&e.est)||Ee.estProd[r.cod]||"",dpt=(e&&e.dpt)||Ee.prod[r.cod]||"",d=norm(r.desc),dn=norm(dpt);
-    const choc=/CHOCOLATE|BOMBONIER/.test(dn)||/^(CHOC|CHOCOLATE|BOMBOM|BOMB|TABLETE CHOC|BARRA DE CHOC|OVO DE PASCOA)\b/.test(d);
+    const choc=false;
     const beb=/^(VINHO|WHISKY|WHISKEY|WHISK|VODKA|VODCA)\b/.test(d),hpl=/\bHPL\b|HIGIENE|PERFUMARIA|LIMPEZA/.test(dn);
     const alvo=R.cob[cur],need=Math.ceil(r.med*alvo),capSug=r.med>0?Math.ceil(need/(r.mult||1))*(r.mult||1):0,estq=(r.epk||0)+(r.ewms||0);
     return Object.assign({},r,{k,apd,cur,est,dpt,custo,choc,beb,hpl,alvo,need,capSug,estq,cobAt:r.med>0?r.cap/r.med:r.cob,regra:"",mov:null});});
@@ -5039,19 +5039,23 @@ function cvCalc(){const Ee=cvE();if(CV.calc&&CV.calcE===Ee)return CV.calc;const 
   const mov=[],cap=[];const add=(x,mot,ord,dest,dok,aceita)=>{const m={x,mot,ord,dest,dok,aceita:aceita||(()=>true),livre:null,troca:null};x.mov=m;mov.push(m);};
   const okR=(x,t)=>{x.regra=t;};
   it.slice().sort((a,b)=>b.apd-a.apd).forEach(x=>{
-    if(x.choc){const naRua=x.rua>=R.choc.r0&&x.rua<=R.choc.r1;if(naRua&&(!x.est||cvFrac(x.est)))return okR(x,"Chocolate nas ruas 10–12 em "+(x.est||"picking").toLowerCase());
-      return add(x,"Chocolate: ruas 10 a 12 no picking de meio",1,"Rua 10, 11 ou 12 · meio",l=>l.rua>=R.choc.r0&&l.rua<=R.choc.r1&&(!l.est||cvFrac(l.est)),o=>o.choc);}
-    if(x.beb){const na13=x.rua===R.beb.rua;
-      if(x.custo&&x.custo<=R.beb.lim1){if(na13&&x.pr<=R.beb.pMax)return okR(x,"Bebida até R$ 250 na rua 13 até o prédio 22");return add(x,"Vinho, whisky ou vodka até R$ 250: rua 13 até o prédio 22",2,"Rua 13 · prédio 1 a 22",l=>l.rua===R.beb.rua&&l.pr<=R.beb.pMax,o=>o.beb);}
-      if(x.custo>R.beb.lim2){if((na13&&x.pr>=R.beb.pMin)||x.rua===R.beb.privada)return okR(x,"Bebida acima de R$ 300 na gaiola/rua 55");return add(x,"Vinho, whisky ou vodka acima de R$ 300: gaiola (rua 13 a partir do prédio 26) ou rua 55",3,"Rua 13 prédio ≥ 26 (gaiola) ou rua 55",l=>(l.rua===R.beb.rua&&l.pr>=R.beb.pMin)||l.rua===R.beb.privada,o=>o.beb);}
-      /* R$ 250 a R$ 300 ou sem custo na 286: com estoque, tem que estar na rua 13 */
-      if(!x.estq)return okR(x,"Bebida sem estoque: não conferida");
-      if(na13)return okR(x,"Bebida com estoque na rua 13");
-      return add(x,"Vinho, whisky ou vodka com estoque fora da rua 13"+(x.custo?" (R$ 250 a R$ 300)":" (sem custo na 286)"),4,"Rua 13",l=>l.rua===R.beb.rua,o=>o.beb);}
-    if(x.hpl&&x.cur==="B"){if(R.hpl.indexOf(x.rua)>=0)return okR(x,"HPL curva B na rua 32/41");return add(x,"HPL de curva B: rua 32 (ou 41)",5,"Rua 32 (ou 41)",l=>l.rua===32||l.rua===41,o=>o.hpl);}
-    if(x.cur==="A"){if(cvFrac(x.est)&&x.cobAt<R.cob.A)return add(x,"Curva A em "+x.est.toLowerCase()+" sem cobertura de "+R.cob.A+" dias: passar para inteiro",6,"Estrutura inteiro",l=>cvGrande(l.est),o=>!o.choc&&!o.beb);
-      return okR(x,cvFrac(x.est)?"Curva A em "+x.est.toLowerCase()+", cobertura atende":x.est?"Curva A em "+x.est.toLowerCase():"Curva A (sem PK_END na 8022)");}
-    if(x.cur==="C"&&cvGrande(x.est)&&x.cobAt>=2*R.cob.C)return add(x,"Curva C ocupando inteiro com cobertura acima de "+(2*R.cob.C)+" dias: passar para meio e liberar o inteiro",7,"Estrutura meio ou terço",l=>cvFrac(l.est),o=>o.cur==="A"||(!o.choc&&!o.beb));});
+    if(x.beb){const na13=x.rua===R.beb.rua,c=x.custo;
+      if(!c||c<R.beb.lim0)return okR(x,c?"Bebida abaixo de R$ "+R.beb.lim0+": sem regra de endereço":"Bebida sem custo na 286");
+      if(c<=R.beb.lim1){if(na13&&x.pr<=R.beb.pMax)return okR(x,"Bebida de R$ 100 a R$ 250 na rua 13, fora da gaiola");return add(x,"Vinho, whisky ou vodka de R$ 100 a R$ 250: rua 13 fora da gaiola (prédio 1 a 22)",2,"Rua 13 · prédio 1 a 22",l=>l.rua===R.beb.rua&&l.pr<=R.beb.pMax,o=>o.beb);}
+      if(c<=R.beb.lim2){if(na13&&x.pr>=R.beb.pMin)return okR(x,"Bebida de R$ 251 a R$ 900 na gaiola");return add(x,"Vinho, whisky ou vodka de R$ 251 a R$ 900: gaiola (rua 13 a partir do prédio 26)",3,"Gaiola · rua 13 prédio ≥ 26",l=>l.rua===R.beb.rua&&l.pr>=R.beb.pMin,o=>o.beb);}
+      if(x.rua===R.beb.privada)return okR(x,"Bebida acima de R$ 900 na rua 55");return add(x,"Vinho, whisky ou vodka acima de R$ 900: rua 55 (rua privada)",4,"Rua 55",l=>l.rua===R.beb.privada,o=>o.beb);}
+    if(x.hpl&&x.cur==="B"&&R.hpl.indexOf(x.rua)<0)return add(x,"HPL de curva B: rua 32 (ou 41)",5,"Rua 32 (ou 41)",l=>l.rua===32||l.rua===41,o=>o.hpl);
+    const e=x.est,el=(e||"").toLowerCase(),livre=o=>!o.beb;
+    if(x.cur==="A"){if(e==="Terço")return add(x,"Curva A em terço: passar para meio",6,"Estrutura meio",l=>l.est==="Meio",livre);
+      if(e==="Meio"&&x.cobAt<R.cob.A)return add(x,"Curva A em meio sem cobertura de "+R.cob.A+" dias: passar para inteiro",7,"Estrutura inteiro",l=>cvGrande(l.est),livre);
+      return okR(x,e?"Curva A em "+el+(e==="Meio"?", cobertura atende":""):"Curva A (sem PK_END na 8022)");}
+    if(x.cur==="B"){if(e==="Terço")return add(x,"Curva B em terço: passar para meio",8,"Estrutura meio",l=>l.est==="Meio",livre);
+      if(cvGrande(e)&&x.cobAt>=2*R.cob.B)return add(x,"Curva B em inteiro com cobertura acima de "+(2*R.cob.B)+" dias: passar para meio",9,"Estrutura meio",l=>l.est==="Meio",livre);
+      return okR(x,e?"Curva B em "+el:"Curva B (sem PK_END na 8022)");}
+    /* curvas C e Z */
+    if(e==="Meio")return add(x,"Curva "+x.cur+" em meio: passar para terço",10,"Estrutura terço",l=>l.est==="Terço",livre);
+    if(cvGrande(e)&&x.cobAt>=2*R.cob.C)return add(x,"Curva "+x.cur+" em inteiro com cobertura acima de "+(2*R.cob.C)+" dias: passar para terço e liberar o inteiro",11,"Estrutura terço",l=>l.est==="Terço",livre);
+    return okR(x,e?"Curva "+x.cur+" em "+el:"Curva "+x.cur);});
   mov.sort((a,b)=>a.ord-b.ord||b.x.apd-a.x.apd);
   /* 1º endereço livre da 8022; 2º troca entre dois itens que precisam sair (um vai para o lugar do outro) */
   mov.forEach(m=>{m.livre=pega(m.dok,m.x);});
@@ -5062,7 +5066,7 @@ const cvDestTxt=m=>m.livre?cvEnd(m.livre)+(m.livre.est?" ("+m.livre.est+")":""):
 /* ---------- mapa de calor (interativo) ---------- */
 const CV_PAL=["#FEF3C7","#FCD34D","#FB923C","#EF4444","#991B1B"];
 function cvEscala(vals){const s=vals.filter(x=>x>0).sort((a,b)=>a-b);const q=[.2,.4,.6,.8].map(p=>s[Math.min(s.length-1,Math.floor(p*s.length))]||0);const f=v=>!v?"var(--cv-0)":CV_PAL[q.filter(x=>v>x).length];f.q=q;return f;}
-const CV_CUR={A:"#DC2626",B:"#F59E0B",C:"#94A3B8"},CV_EST={Inteiro:"#1D4ED8",Meio:"#16A34A","Terço":"#9333EA","Drive-in":"#0891B2"};
+const CV_CUR={A:"#DC2626",B:"#FACC15",C:"#7DD3FC",Z:"#D1D5DB"},CV_EST={Inteiro:"#1D4ED8",Meio:"#16A34A","Terço":"#9333EA","Drive-in":"#0891B2"};
 const CD_DEP0={LIQUIDA:"#2563EB",MERCEARIA:"#F59E0B",HPL:"#DB2777",BAZAR:"#7C3AED",PERECIVEIS:"#0891B2",COMMODITIES:"#65A30D","NAO REVENDA":"#64748B"},CD_DEPX=["#EA580C","#0D9488","#BE123C","#4F46E5","#CA8A04","#059669"];
 function cdDepCor(d){if(!d)return "#CBD5E1";const k=norm(d).trim();if(CD_DEP0[k])return CD_DEP0[k];let h=0;for(const ch of k)h=(h*31+ch.charCodeAt(0))>>>0;return CD_DEPX[h%CD_DEPX.length];}
 const cdDepNome=d=>d?d.charAt(0)+d.slice(1).toLowerCase():"Sem departamento";
@@ -5110,36 +5114,35 @@ function cvGrid(cells,corDe,opt){const lay=cdLayout(),by={};cells.forEach(c=>{by
       (b==="A"?rs.slice().reverse():rs).map(r=>rua(r,cols,c0,true)).join("")+'</div>';});
   const out=[...ruasC].filter(r=>!cdBloco(r)).sort((a,b)=>a-b);if(out.length){const cols=Math.max(...out.map(r=>lay.R[r]?lay.R[r].maxPos:1));h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>Outras ruas</b> <small>fora dos blocos A, B e C</small></div>'+out.map(r=>rua(r,cols,0,false)).join("")+'</div>';}
   return h+'</div>';}
-/* planta 2D no mesmo desenho do 3D (T: bloco A no centro, B à direita, C à esquerda, corredor pela rua 25) */
-function cvPlan(cells,corDe,opt){const lay=cdLayout(),L=CDG.L,D=CDG.D,bx=lay.bx,z25=lay.zBar,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-6,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+6,Z0=Math.min(bx.A[2],bx.B[2])-10,Z1=Math.max(bx.A[3],bx.B[3])+4,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100;
-  let h='<svg class="cv-plan" data-vw="'+f2(VW)+'" viewBox="'+f2(X0)+' '+f2(Z0)+' '+f2(VW)+' '+f2(VH)+'" width="'+Math.round(VW*opt.zoom/L*0.8)+'" xmlns="http://www.w3.org/2000/svg">';
-  ["A","B","C"].forEach(b=>{const q=bx[b];h+='<rect x="'+f2(q[0]-1.5)+'" y="'+f2(q[2]-1.5)+'" width="'+f2(q[1]-q[0]+3)+'" height="'+f2(q[3]-q[2]+3)+'" rx="2" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(q[2]-4)+'" class="cv-pt">BLOCO '+b+'</text>';});
-  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2]-3)+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.B[0]-3)+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.C[1]-bx.B[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
+/* planta 2D: mesmo desenho do 3D, com o bloco A embaixo e os blocos B (esquerda) e C (direita) em cima, ligados pelo corredor da rua 25; cabe inteira na tela */
+function cvPlan(cells,corDe,opt){const lay=cdLayout(),L=CDG.L,D=CDG.D,bx=lay.bx,z25=lay.zBar,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-7,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+3,Z0=Math.min(bx.A[2],bx.B[2])-9,Z1=Math.max(bx.A[3],bx.B[3])+9,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100,Y=z=>Z0+Z1-z;
+  let h='<svg class="cv-plan" viewBox="'+f2(X0)+' '+f2(Z0)+' '+f2(VW)+' '+f2(VH)+'" preserveAspectRatio="xMidYMin meet" xmlns="http://www.w3.org/2000/svg">';
+  ["A","B","C"].forEach(b=>{const q=bx[b],y0=Y(q[3]),y1=Y(q[2]);h+='<rect x="'+f2(q[0]-1.5)+'" y="'+f2(y0-1.5)+'" width="'+f2(q[1]-q[0]+3)+'" height="'+f2(y1-y0+3)+'" rx="2" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(b==="A"?y1+6.5:y0-3.5)+'" class="cv-pt">BLOCO '+b+'</text>';});
+  h+='<rect x="'+f2(-L/2)+'" y="'+f2(Y(bx.A[3]+3))+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.B[0]-3)+'" y="'+f2(Y(z25+L/2))+'" width="'+f2(bx.C[1]-bx.B[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
   ["A","B","C"].forEach(b=>CD_BL[b].forEach(r=>{const f=lay.fr[r],o=lay.R[r];if(!f||!o)return;const sel=opt.rua===r?" on":"";
-    if(f.ax)h+='<text x="'+f2(bx.A[0]-1)+'" y="'+f2(f.oz+0.55)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';
-    else h+='<text x="'+f2(f.ox)+'" y="'+f2(bx[b][2]-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}));
+    if(f.ax)h+='<text x="'+f2(bx.A[0]-1)+'" y="'+f2(Y(f.oz)+0.75)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';
+    else h+='<text x="'+f2(f.ox)+'" y="'+f2(Y(bx[b][3])-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}));
   cells.forEach(c=>{const sl=lay.slot(c.rua,c.pr);if(!sl)return;const f=sl.f,w=f.ax?L*0.86:D*0.9,hh=f.ax?D*0.9:L*0.86,k=c.rua+"|"+c.pr;
-    h+='<rect x="'+f2(sl.x-w/2)+'" y="'+f2(sl.z-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
+    h+='<rect x="'+f2(sl.x-w/2)+'" y="'+f2(Y(sl.z)-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
   return h+'</svg>';}
 function cvZoom(k){return '<label class="cv-zoom"><span>Tamanho</span><input type="range" min="12" max="34" step="2" value="'+CV[k]+'" data-cvzoom="'+k+'"></label>';}
-function cvPickCells(C){const g={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const k=x.rua+"|"+x.pr,o=g[k]=g[k]||{rua:x.rua,pr:x.pr,apd:0,n:0,cur:{A:0,B:0,C:0},est:{},dp:{},it:[],mov:0};o.apd+=x.apd;o.n++;o.cur[x.cur]++;if(x.est)o.est[x.est]=(o.est[x.est]||0)+1;o.dp[x.dpt||""]=(o.dp[x.dpt||""]||0)+1+x.apd;if(x.mov)o.mov++;o.it.push(x);});return g;}
+function cvPickCells(C){const g={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const k=x.rua+"|"+x.pr,o=g[k]=g[k]||{rua:x.rua,pr:x.pr,apd:0,n:0,cur:{A:0,B:0,C:0,Z:0},est:{},dp:{},it:[],mov:0};o.apd+=x.apd;o.n++;o.cur[x.cur]++;if(x.est)o.est[x.est]=(o.est[x.est]||0)+1;o.dp[x.dpt||""]=(o.dp[x.dpt||""]||0)+1+x.apd;if(x.mov)o.mov++;o.it.push(x);});return g;}
 function cvDeps(){const s={};const C=CV.pick?cvCalc():null;if(C)C.it.forEach(x=>{if(x.dpt)s[x.dpt]=(s[x.dpt]||0)+1;});return Object.entries(s).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);}
 function cvDepChips(atual,attr){return '<div class="cv-tools cv-deps"><span>Departamento</span><button type="button" class="cv-chip'+(atual?"":" on")+'" '+attr+'="">Todos</button>'+cvDeps().map(d=>'<button type="button" class="cv-chip cv-dc'+(atual===d?" on":"")+'" style="--dc:'+cdDepCor(d)+'" '+attr+'="'+esc(d)+'"><i></i>'+esc(cdDepNome(d))+'</button>').join("")+'</div>';}
 function cvMapaPick(C){const g=cvPickCells(C);CV._gp=g;const cells=Object.values(g),q=norm(CV.q||"").trim(),dep=CV.dep||"";
-  const top=c=>c.cur.A?"A":c.cur.B?"B":"C",estTop=c=>Object.entries(c.est).sort((a,b)=>b[1]-a[1])[0],dpTop=c=>Object.entries(c.dp).sort((a,b)=>b[1]-a[1])[0][0],esc0=cvEscala(cells.map(c=>c.apd));
+  const top=c=>c.cur.A?"A":c.cur.B?"B":c.cur.C?"C":"Z",estTop=c=>Object.entries(c.est).sort((a,b)=>b[1]-a[1])[0],dpTop=c=>Object.entries(c.dp).sort((a,b)=>b[1]-a[1])[0][0],esc0=cvEscala(cells.map(c=>c.apd));
   const cor=CV.cor==="cur"?c=>CV_CUR[top(c)]:CV.cor==="est"?c=>{const e=estTop(c);return e?(CV_EST[e[0]]||"#CBD5E1"):"#E2E8F0";}:CV.cor==="dep"?c=>dep&&c.it.some(x=>x.dpt===dep)?cdDepCor(dep):cdDepCor(dpTop(c)):CV.cor==="mov"?c=>c.mov?"#7C3AED":"#E2E8F0":c=>esc0(c.apd);
-  const hit=q||dep?c=>c.it.some(x=>(!q||norm(x.cod+" "+x.desc).includes(q))&&(!dep||x.dpt===dep)):null,nh=hit?cells.filter(hit).length:0;
+  const sr=CV.selRua,hit=q||dep||sr?c=>(!sr||c.rua===sr)&&c.it.some(x=>(!q||norm(x.cod+" "+x.desc).includes(q))&&(!dep||x.dpt===dep)):null,nh=hit?cells.filter(hit).length:0;
   const leg=CV.cor==="cur"?Object.entries(CV_CUR).map(([k,c])=>'<span><i style="background:'+c+'"></i>Curva '+k+'</span>').join(""):CV.cor==="est"?Object.entries(CV_EST).map(([k,c])=>'<span><i style="background:'+c+'"></i>'+k+'</span>').join(""):CV.cor==="dep"?'<span>Cor do departamento com mais apanhas no prédio</span>':CV.cor==="mov"?'<span><i style="background:#7C3AED"></i>Tem transferência sugerida</span>':'<span>Menos</span>'+CV_PAL.map(c=>'<span><i style="background:'+c+'"></i></span>').join("")+'<span>Mais apanhas</span>';
   const ruas={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const o=ruas[x.rua]=ruas[x.rua]||{apd:0,A:0,n:0};o.apd+=x.apd;o.n++;if(x.cur==="A")o.A++;});const rk=Object.entries(ruas).sort((a,b)=>b[1].apd-a[1].apd).slice(0,15),rmx=rk.length?rk[0][1].apd:1;
   return '<div class="cv-tools"><span>Cor por</span>'+[["apd","Apanhas por dia"],["cur","Curva ABC"],["est","Estrutura"],["dep","Departamento"],["mov","Transferências"]].map(([k,l])=>'<button type="button" class="cv-chip'+(CV.cor===k?" on":"")+'" data-cvcor="'+k+'">'+l+'</button>').join("")+
-    '<span style="margin-left:8px">Mostrar</span>'+["A","B","C"].map(k=>'<button type="button" class="cv-chip cv-cc'+(CV.cur[k]?" on":"")+'" style="--cc:'+CV_CUR[k]+'" data-cvcur="'+k+'">Curva '+k+'</button>').join("")+'</div>'+cvDepChips(dep,"data-cvdep")+
-    '<div class="cv-tools"><input class="in" type="search" id="cv-mq" placeholder="Achar item no mapa: código ou descrição" value="'+esc(CV.q)+'" style="max-width:340px">'+(hit?'<small class="note" style="margin:0">'+nh+' prédio(s) encontrados</small>':'')+cvZoom("zoom")+'<div class="cv-leg">'+leg+'</div></div>'+
-    '<div class="cv-mw"><div><div class="cv-hm" data-grid="pick">'+cvPlan(cells,cor,{zoom:CV.zoom,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:CV.zoom,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Mesmo desenho do Depósito 3D: bloco A no centro (rua 2 no alto até a 31), bloco B à esquerda, bloco C à direita, e o corredor que liga os dois pela rua 25. Cada rua tem o lado ímpar de um lado e o par do outro. Passe o mouse para ver o item; toque para abrir o detalhe.</p></div>'+
-    '<aside class="cv-det" id="cv-det">'+cvDetPick(g)+'</aside></div>'+
+    '<span style="margin-left:8px">Mostrar</span>'+["A","B","C","Z"].map(k=>'<button type="button" class="cv-chip cv-cc'+(CV.cur[k]?" on":"")+'" style="--cc:'+CV_CUR[k]+'" data-cvcur="'+k+'">Curva '+k+'</button>').join("")+'</div>'+cvDepChips(dep,"data-cvdep")+
+    '<div class="cv-tools"><input class="in" type="search" id="cv-mq" placeholder="Achar item no mapa: código ou descrição" value="'+esc(CV.q)+'" style="max-width:340px">'+(hit?'<small class="note" style="margin:0">'+nh+' prédio(s) encontrados'+(sr?' · rua '+sr+' <button type="button" class="link" data-cvrx>mostrar todas</button>':'')+'</small>':'')+'<div class="cv-leg">'+leg+'</div></div>'+
+    '<div class="cv-plw" data-grid="pick">'+cvPlan(cells,cor,{sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:12,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Bloco A embaixo (rua 31 encostada no corredor até a rua 2), blocos B (esquerda) e C (direita) em cima, ligados pelo corredor da rua 25. Passe o mouse ou toque em um quadrado para ver o item; toque no nome da rua para caminhar nela no Depósito 3D.</p>'+
     '<div class="block" style="margin-top:12px"><h3>Ruas com mais apanhas por dia</h3>'+rk.map(([r,o])=>'<button type="button" class="cv-bar" data-cvrua="'+r+'"><span>Rua '+r+'</span><div><i style="width:'+Math.max(2,o.apd/rmx*100)+'%"></i></div><b>'+cvFmt(o.apd,0)+'/dia</b><small>'+o.A+' item(ns) A · '+o.n+' end.</small></button>').join("")+'</div>';}
 function cvDetPick(g){let L=[],tit="",wr=0,wp=0;if(CV.sel&&g[CV.sel]){const c=g[CV.sel];L=c.it;tit="Rua "+c.rua+" · prédio "+c.pr;wr=c.rua;wp=c.pr;}else if(CV.selRua){L=Object.values(g).filter(c=>c.rua===CV.selRua).flatMap(c=>c.it);tit="Rua "+CV.selRua+" inteira";wr=CV.selRua;}
   if(!L.length)return '<div class="cv-dv"><b>Detalhe</b><p class="note">Toque em um prédio ou em uma rua do mapa para ver os itens: curva, apanhas por dia, cobertura, estrutura e a transferência sugerida.</p></div>';
-  L=L.slice().sort((a,b)=>b.apd-a.apd);const n={A:0,B:0,C:0};L.forEach(x=>n[x.cur]++);
+  L=L.slice().sort((a,b)=>b.apd-a.apd);const n={A:0,B:0,C:0,Z:0};L.forEach(x=>n[x.cur]++);
   return '<div class="cv-dv"><div class="cv-dh"><b>'+tit+'</b><button type="button" class="link" id="cv-dx">fechar</button></div><small class="muted">'+L.length+' endereço(s) · A '+n.A+' · B '+n.B+' · C '+n.C+' · '+cvFmt(L.reduce((s,x)=>s+x.apd,0),1)+' apanhas/dia</small>'+(cdLayout().fr[wr]?'<button type="button" class="btn cv-w3" data-cvw3="'+wr+'|'+wp+'">Caminhar nesta rua em 3D</button>':'')+
     L.slice(0,80).map(x=>'<div class="cv-di"><div class="cv-dt"><span class="cv-cb" style="background:'+CV_CUR[x.cur]+'">'+x.cur+'</span><b>'+cvEnd(x)+'</b>'+(x.est?'<small>'+esc(x.est)+'</small>':'')+'</div><div class="cv-dd">'+esc(x.cod)+' – '+esc(x.desc)+'</div>'+
       '<div class="cv-dm"><span>'+cvFmt(x.apd,1)+' apanhas/dia</span><span>cobertura '+cvFmt(x.cobAt,1)+' d (alvo '+x.alvo+')</span><span>cap. '+cvFmt(x.cap)+'</span>'+(x.dpt?'<span>'+esc(x.dpt)+'</span>':'')+'</div>'+
@@ -5150,7 +5153,7 @@ function cvItens(C){const q=norm(CV.iq||"").trim();let L=C.it.filter(x=>(!CV.icu
   const o=CV.ord,sorts={apd:(a,b)=>b.apd-a.apd,cob:(a,b)=>a.cobAt-b.cobAt,end:(a,b)=>a.rua-b.rua||a.pr-b.pr||a.ap-b.ap,desc:(a,b)=>a.desc.localeCompare(b.desc,"pt-BR")};L.sort(sorts[o]||sorts.apd);
   const ruas=[...new Set(C.it.map(x=>x.rua))].sort((a,b)=>a-b),ests=[...new Set(C.it.map(x=>x.est||"—"))];
   return '<div class="cv-tools"><input class="in" type="search" id="cv-iq" placeholder="Código, descrição, endereço ou departamento" value="'+esc(CV.iq)+'" style="max-width:300px">'+
-    '<select class="in" id="cv-icur" style="max-width:130px"><option value="">Todas as curvas</option>'+["A","B","C"].map(k=>'<option'+(CV.icur===k?" selected":"")+'>'+k+'</option>').join("")+'</select>'+
+    '<select class="in" id="cv-icur" style="max-width:130px"><option value="">Todas as curvas</option>'+["A","B","C","Z"].map(k=>'<option'+(CV.icur===k?" selected":"")+'>'+k+'</option>').join("")+'</select>'+
     '<select class="in" id="cv-iest" style="max-width:150px"><option value="">Toda estrutura</option>'+ests.map(k=>'<option'+(CV.iest===k?" selected":"")+'>'+esc(k)+'</option>').join("")+'</select>'+
     '<select class="in" id="cv-irua" style="max-width:120px"><option value="">Todas as ruas</option>'+ruas.map(r=>'<option value="'+r+'"'+(String(CV.irua)===String(r)?" selected":"")+'>Rua '+r+'</option>').join("")+'</select>'+
     '<select class="in" id="cv-iord" style="max-width:190px">'+[["apd","Mais apanhas primeiro"],["cob","Menor cobertura primeiro"],["end","Por endereço"],["desc","Por descrição"]].map(([k,l])=>'<option value="'+k+'"'+(o===k?" selected":"")+'>'+l+'</option>').join("")+'</select>'+
@@ -5251,9 +5254,9 @@ function cvFonte(tipo){const o=CV[tipo],pb=typeof podeVer==="function"&&podeVer(
     (pb?'<button type="button" class="link" data-cvgo="bases">Importar em Bases e planilhas →</button>':'<span>Importação em Bases e planilhas</span>')+'</div>';}
 function cvPaintPick(){const box=$("cv");if(!box)return;const C=CV.pick?cvCalc():null;let h=cvFonte("pick");
   const tabs=[["mapa","Mapa de calor"],["3d","Depósito 3D"],["itens","Itens da curva"+(C?" ("+C.it.length.toLocaleString("pt-BR")+")":"")],["mov","Transferências"+(C?" ("+C.mov.length+")":"")],["cob","Cobertura e capacidade"+(C?" ("+C.cap.length+")":"")],["reg","Regras"]];
-  if(C){const cnt={A:0,B:0,C:0};C.it.forEach(x=>cnt[x.cur]++);h+='<div class="cv-kpis">'+[["Endereços de picking",cvFmt(C.it.length),"","mapa"],["Curva A",cvFmt(cnt.A),CV_CUR.A,"A"],["Curva B",cvFmt(cnt.B),CV_CUR.B,"B"],["Curva C",cvFmt(cnt.C),CV_CUR.C,"C"],["Transferências sugeridas",cvFmt(C.mov.length),"#7C3AED","mov"],["Capacidade abaixo da cobertura",cvFmt(C.cap.length),"#B45309","cob"]].map(([t,v,c,k])=>'<button type="button" class="cv-k" data-cvk="'+k+'"><span>'+t+'</span><b'+(c?' style="color:'+c+'"':'')+'>'+v+'</b></button>').join("")+'</div>';}
+  if(C){const cnt={A:0,B:0,C:0,Z:0};C.it.forEach(x=>cnt[x.cur]++);h+='<div class="cv-kpis">'+[["Endereços de picking",cvFmt(C.it.length),"","mapa"],["Curva A",cvFmt(cnt.A),CV_CUR.A,"A"],["Curva B",cvFmt(cnt.B),"#CA8A04","B"],["Curva C",cvFmt(cnt.C),"#0284C7","C"],["Curva Z",cvFmt(cnt.Z),"#6B7280","Z"],["Transferências sugeridas",cvFmt(C.mov.length),"#7C3AED","mov"],["Capacidade abaixo da cobertura",cvFmt(C.cap.length),"#B45309","cob"]].map(([t,v,c,k])=>'<button type="button" class="cv-k" data-cvk="'+k+'"><span>'+t+'</span><b'+(c?' style="color:'+c+'"':'')+'>'+v+'</b></button>').join("")+'</div>';}
   h+='<div class="cv-tabs">'+tabs.map(([k,l])=>'<button type="button" class="cv-tab'+(CV.tab===k?" on":"")+'" data-cvt="'+k+'">'+l+'</button>').join("")+'</div>';
-  if(CV.tab==="reg")h+='<div class="block cv-reg"><h3>Regras aplicadas</h3><ul><li><b>Curva ABC</b> (8351 Picking): QTAPANHA ÷ QTDIAS ≥ 10 = A · 5 a 9 = B · abaixo de 5 = C.</li><li><b>Curva A</b> em estrutura <b>inteiro</b> (ou drive-in); pode ficar em <b>meio ou terço</b> quando a cobertura do endereço atende '+CV_REG.cob.A+' dias.</li><li><b>Chocolates</b>: ruas 10 a 12, picking de <b>meio</b> (terço também é aceito).</li><li><b>Vinho, whisky e vodka</b> (custo da 286): até R$ 250 na <b>rua 13 até o prédio 22</b>; acima de R$ 300 na <b>gaiola (rua 13 a partir do prédio 26)</b> ou na <b>rua 55</b> (rua privada). De R$ 250 a R$ 300 (ou sem custo na 286): se tem estoque, tem que estar na rua 13. Custo = coluna E da 286 (Vl. ult. entrada).</li><li><b>HPL de curva B</b> (departamento da 8022): <b>rua 32</b> (ou 41).</li><li><b>Cobertura</b>: curva A '+CV_REG.cob.A+' dias · B '+CV_REG.cob.B+' dias · C '+CV_REG.cob.C+' dias (capacidade ÷ média diária).</li><li><b>Curva C em inteiro</b> com cobertura acima de '+(2*CV_REG.cob.C)+' dias: sugerido passar para meio e liberar o inteiro. Quando um curva A precisa de inteiro e um curva C precisa sair do inteiro, o app sugere a <b>troca</b> entre os dois.</li><li><b>Estrutura e departamento</b>: 8022 da aba Bases (colunas PK_END e departamento). <b>Endereços livres</b>: endereços da 8022 sem produto.</li></ul></div>';
+  if(CV.tab==="reg")h+='<div class="block cv-reg"><h3>Regras aplicadas</h3><ul><li><b>Curva</b> (8351 Picking, QTAPANHA ÷ QTDIAS): <b>A</b> acima de 10 · <b>B</b> de 5 a 10 · <b>C</b> abaixo de 5 · <b>Z</b> abaixo de 2 apanhas por dia.</li><li><b>Curva A</b>: em terço → passar para meio; em meio sem cobertura de '+CV_REG.cob.A+' dias → passar para inteiro.</li><li><b>Curva B</b>: em terço → passar para meio; em inteiro com cobertura acima de '+(2*CV_REG.cob.B)+' dias → passar para meio.</li><li><b>Curvas C e Z</b>: em meio → passar para terço; em inteiro com cobertura acima de '+(2*CV_REG.cob.C)+' dias → passar para terço e liberar o inteiro.</li><li><b>Trocas</b>: quando um item precisa ir para a estrutura que outro precisa liberar (ex.: curva A em terço e curva C em meio), o app sugere a troca entre os dois.</li><li><b>Vinho, whisky e vodka</b> (custo = coluna E da 286): de R$ 100 a R$ 250 na <b>rua 13 fora da gaiola</b> (prédio 1 a 22); de R$ 251 a R$ 900 na <b>gaiola</b> (rua 13 a partir do prédio 26); acima de R$ 900 na <b>rua 55</b>.</li><li><b>HPL de curva B</b> (departamento da 8022): <b>rua 32</b> (ou 41).</li><li><b>Cobertura</b>: curva A '+CV_REG.cob.A+' dias · B '+CV_REG.cob.B+' dias · C e Z '+CV_REG.cob.C+' dias (capacidade ÷ média diária).</li><li><b>Estrutura e departamento</b>: 8022 da aba Bases (colunas PK_END e DEPTO).</li></ul></div>';
   else if(CV.tab==="3d")h+='<div id="cv3box"></div>';
   else if(!C)h+='<div class="block"><p class="note">Importe a <b>8351 – Picking</b> do dia em <b>Bases e planilhas</b> para montar a curva, o mapa de calor e as listas de transferência.</p></div>';
   else h+=CV.tab==="itens"?cvItens(C):CV.tab==="mov"?cvLista(C):CV.tab==="cob"?cvCob(C):cvMapaPick(C);
@@ -5261,19 +5264,19 @@ function cvPaintPick(){const box=$("cv");if(!box)return;const C=CV.pick?cvCalc()
 function cvPaintAero(){const box=$("cva");if(!box)return;const t=CV.atab||"planta";box.innerHTML=cvFonte("aero")+'<div class="cv-tabs">'+[["planta","Planta das ruas"],["3d","Depósito 3D"]].map(([k,l])=>'<button type="button" class="cv-tab'+(t===k?" on":"")+'" data-cvat="'+k+'">'+l+'</button>').join("")+'</div>'+(t==="3d"?'<div id="cva3box"></div>':'<div class="ca-wrap">'+cvMapaAero()+'</div>');cvBind(box);if(t==="3d")cd3Mount($("cva3box"));}
 function cvPaintAll(){if($("v-curva")&&!$("v-curva").hidden)cvPaintPick();if($("v-curvaa")&&!$("v-curvaa").hidden)cvPaintAero();}
 function cvBind(box){const on=(sel,fn)=>box.querySelectorAll(sel).forEach(fn);
-  on("[data-cvgo]",b=>b.onclick=()=>go(b.dataset.cvgo));
+  on("[data-cvgo]",b=>b.onclick=()=>go(b.dataset.cvgo));on("[data-cvrx]",b=>b.onclick=()=>{CV.selRua=null;cvPaintPick();});
   on("[data-cvat]",b=>b.onclick=()=>{CV.atab=b.dataset.cvat;cvPaintAero();});
   on("[data-cvdep]",b=>b.onclick=()=>{CV.dep=b.dataset.cvdep;if(CV.dep&&CV.cor!=="dep")CV.cor="dep";cvPaintPick();});
   on("[data-cvw3]",b=>b.onclick=()=>{const [r,p]=b.dataset.cvw3.split("|").map(Number);CV.tab="3d";cvPaintPick();const tr=()=>{if(CV3.mPk&&CV3.o)cd3Entrar(r,p||0);else setTimeout(tr,250);};setTimeout(tr,300);});
   on("[data-cvt]",b=>b.onclick=()=>{CV.tab=b.dataset.cvt;cvPaintPick();});
-  on("[data-cvk]",b=>b.onclick=()=>{const k=b.dataset.cvk;if(/^[ABC]$/.test(k)){CV.tab="itens";CV.icur=k;}else CV.tab=k;cvPaintPick();});
+  on("[data-cvk]",b=>b.onclick=()=>{const k=b.dataset.cvk;if(/^[ABCZ]$/.test(k)){CV.tab="itens";CV.icur=k;}else CV.tab=k;cvPaintPick();});
   on("[data-cvcor]",b=>b.onclick=()=>{CV.cor=b.dataset.cvcor;cvPaintPick();});
-  on("[data-cvcur]",b=>b.onclick=()=>{CV.cur[b.dataset.cvcur]=CV.cur[b.dataset.cvcur]?0:1;if(!CV.cur.A&&!CV.cur.B&&!CV.cur.C)CV.cur[b.dataset.cvcur]=1;cvPaintPick();});
+  on("[data-cvcur]",b=>b.onclick=()=>{CV.cur[b.dataset.cvcur]=CV.cur[b.dataset.cvcur]?0:1;if(!CV.cur.A&&!CV.cur.B&&!CV.cur.C&&!CV.cur.Z)CV.cur[b.dataset.cvcur]=1;cvPaintPick();});
   on("[data-cvacor]",b=>b.onclick=()=>{CV.aCor=b.dataset.cvacor;cvPaintAero();});
   on("[data-cvzoom]",i=>i.oninput=()=>{CV[i.dataset.cvzoom]=+i.value;box.querySelectorAll(".cv-hm").forEach(g=>g.style.setProperty("--cz",i.value+"px"));box.querySelectorAll("svg.cv-plan").forEach(g=>g.setAttribute("width",Math.round(+g.dataset.vw*i.value/CDG.L*0.8)));});
   /* clique no mapa: prédio ou rua */
-  on('.cv-hm[data-grid="pick"]',g=>g.onclick=e=>{cvTipHide();const c=e.target.closest("[data-cell]"),r=e.target.closest("[data-cvrua]");if(c){CV.sel=CV.sel===c.dataset.cell?null:c.dataset.cell;CV.selRua=null;}else if(r){CV.selRua=+r.dataset.cvrua;CV.sel=null;}else return;cvPaintPick();const d=$("cv-det");if(d&&innerWidth<900)d.scrollIntoView({behavior:"smooth"});});
-  on(".cv-bar[data-cvrua]",b=>b.onclick=()=>{CV.selRua=+b.dataset.cvrua;CV.sel=null;cvPaintPick();$("cv-det")&&$("cv-det").scrollIntoView({behavior:"smooth",block:"nearest"});});
+  on('[data-grid="pick"]',g=>g.onclick=e=>{const c=e.target.closest("[data-cell]"),r=e.target.closest("[data-cvrua]");if(c){const h=cvTipHTML(c);if(h)cvTipShow(h,e.clientX,e.clientY);return;}if(r){const rua=+r.dataset.cvrua;cvTipHide();CV.tab="3d";cvPaintPick();const tr=()=>{if(CV3.mPk&&CV3.o)cd3Entrar(rua,0);else setTimeout(tr,250);};setTimeout(tr,300);}});
+  on(".cv-bar[data-cvrua]",b=>b.onclick=()=>{const r=+b.dataset.cvrua;CV.selRua=CV.selRua===r?null:r;CV.sel=null;cvPaintPick();const m=document.querySelector("#cv .cv-plw");if(m)m.scrollIntoView({behavior:"smooth",block:"start"});});
   on("#cva [data-arua]",b=>b.onclick=()=>{const r=+b.dataset.arua;CV.aRua=CV.aRua===r&&b.classList.contains("ca-rua")?null:r;CV.asel=null;cvPaintAero();const ev=$("ca-elev");if(ev&&CV.aRua)ev.scrollIntoView({behavior:"smooth",block:"start"});});
   on("#cva [data-apos]",b=>b.onclick=()=>{CV.asel=CV.asel===b.dataset.apos?null:b.dataset.apos;const D=cvAeroDados(),ev=$("ca-elev");if(ev){ev.innerHTML=caElev(D);cvBind(ev);const s=ev.querySelector(".ca-sel");if(s&&innerWidth<900)s.scrollIntoView({behavior:"smooth",block:"nearest"});}});
   const dx=$("cv-dx");if(dx)dx.onclick=()=>{CV.sel=null;CV.selRua=null;cvPaintPick();};const adx=box.querySelector("#cv-adx");if(adx)adx.onclick=()=>{CV.asel=null;CV.aRua=null;cvPaintAero();};
@@ -5303,7 +5306,7 @@ function cd3Sugs(r){if(CV3._sgR&&CV3._sgR.r===r&&CV3._sgR.k===CV3.key)return CV3
   CV3.mPk.userData.it.forEach((x,i)=>{if(x.rua!==r)return;const u=lay.slot(x.rua,x.pr).u,g=CV3.mPk.userData.g[i];
     if(x.apd>=1&&(x.epk||0)<=0)L.push({x,i,ae:false,u,g,c:"#DC2626",ic:"⚠",t:"Picking zerado com giro de "+cvFmt(x.apd,1)+" apanhas/dia: abastecer"});
     if(x.mov)L.push({x,i,ae:false,u,g,c:"#7C3AED",ic:"→",t:x.mov.mot+(cvDestTxt(x.mov)?" · "+cvDestTxt(x.mov):" · destino: "+x.mov.dest)});
-    else if(x.med>0&&x.cap<x.need&&x.cur!=="C")L.push({x,i,ae:false,u,g,c:"#D97706",ic:"!",t:"Capacidade "+cvFmt(x.cap)+" não cobre "+x.alvo+" dias: sugerido "+cvFmt(x.capSug)});});
+    else if(x.med>0&&x.cap<x.need&&(x.cur==="A"||x.cur==="B"))L.push({x,i,ae:false,u,g,c:"#D97706",ic:"!",t:"Capacidade "+cvFmt(x.cap)+" não cobre "+x.alvo+" dias: sugerido "+cvFmt(x.capSug)});});
   CV3.mAe.userData.it.forEach((x,i)=>{if(x.rua!==r||x.ok)return;L.push({x,i,ae:true,u:lay.slot(x.rua,x.pr).u,g:CV3.mAe.userData.g[i],c:"#EA580C",ic:"↓",t:x.sug});});
   L.sort((a,b)=>a.u-b.u);CV3._sgR={r,k:CV3.key,L};return L;}
 function cd3Foco(s){const ww=CV3.walk;if(!ww||!s)return;const lay=cdLayout(),sl=lay.slot(s.x.rua,s.x.pr),m=s.ae?CV3.mAe:CV3.mPk,rg=cd3Range(ww.rua);
@@ -5448,6 +5451,7 @@ function cd3BindUI(box){const on=(s,f)=>box.querySelectorAll(s).forEach(f);
   on("[data-c3fs]",b=>b.onclick=()=>cd3Tela(box));
   on("[data-c3w]",b=>{const a=b.dataset.c3w;if(a==="sair"){b.onclick=()=>cd3Vista("geral");return;}if(a==="next"||a==="prev"){b.onclick=()=>cd3Pula(a==="next"?1:-1);return;}const set=v=>{const m=CV3.mv=CV3.mv||{};m[{fwd:"f",back:"b",turnL:"l",turnR:"r"}[a]]=v;};
     b.onpointerdown=e=>{e.preventDefault();set(true);};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>set(false);});}
+document.addEventListener("click",e=>{if(!CVTIP.el||CVTIP.el.hidden||!e.target.closest)return;if(e.target.closest("[data-cell]")||e.target.closest("#c3-view"))return;cvTipHide();});
 function cvBasesPaint(){[["pick","b8351p"],["aero","b8351a"]].forEach(([t,id])=>{const o=CV[t],sr=$(id+"-src"),n=$(id+"-n");if(sr)sr.textContent=o?"Importada em "+o.em+" ("+o.nome+")":"Nenhum arquivo importado neste aparelho";if(n)n.textContent=o?o.L.length.toLocaleString("pt-BR"):"0";});}
 [["b8351p-file","pick"],["b8351a-file","aero"]].forEach(([id,t])=>{const i=$(id);if(i)i.addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;await cvLoad();const m=$(id.replace("file","msg"));if(m)m.textContent="Lendo "+f.name+"…";cvImport(t,f);});});
 async function cvLoad(){if(!CV.ld){CV.ld=true;const [p,a]=await Promise.all([cvGet("pick"),cvGet("aero")]);CV.pick=p;CV.aero=a;CV.calc=null;}}
@@ -5489,6 +5493,7 @@ async function curvaAeroAbrir(){await cvLoad();cvPaintAero();}
 .cvt-row{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid #F1F5F9}.cvt-row small{color:#94A3B8}
 .cvc{border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;background:#fff}.cvc+.cvc{margin-top:6px}
 .cvc-h{display:flex;gap:10px;align-items:center;padding:8px 10px;background:linear-gradient(90deg,color-mix(in srgb,var(--hc,#103F79) 16%,#fff),#fff)}.cvc-h b{font-size:.92rem}.cvc-h small{display:block;color:#64748B;font-size:.7rem}
+.cv-cb,.cvc-b{text-shadow:0 0 3px rgba(0,0,0,.55)}
 .cvc-b{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:9px;background:var(--hc,#103F79);color:#fff;font-weight:900;font-size:.85rem;flex:0 0 auto}
 .cvc-bd{padding:8px 10px 10px}.cvc-d{font-weight:800;font-size:.9rem;line-height:1.25}.cvc-c{color:#64748B;font-size:.7rem;margin:2px 0 6px}
 .cvc-k{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.cvc-k div{background:#F8FAFC;border-radius:9px;padding:6px 7px}.cvc-k b{display:block;font-size:1rem;color:#0F172A}.cvc-k span{font-size:.62rem;color:#64748B;line-height:1.15;display:block}
@@ -5528,7 +5533,7 @@ async function curvaAeroAbrir(){await cvLoad();cvPaintAero();}
 
 @media (max-width:900px){.cv-mw{grid-template-columns:1fr}.cv-det{position:static;max-height:none}}
 @media (max-width:700px){.cv-bar{grid-template-columns:54px 1fr 64px}.cv-bar small{display:none}.cv-leg{margin-left:0}}
-.cv-plan{display:block;height:auto;background:#EEF2F6;border-radius:10px}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
+.cv-plw{border:1px solid var(--line);border-radius:12px;background:#EEF2F6;padding:4px}.cv-plan{display:block;width:100%;height:auto;max-height:calc(100vh - 150px);background:#EEF2F6;border-radius:10px}.cv-out .cv-blk{min-width:0}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
 .cv-plan .cv-prl{font:800 2.1px Inter,system-ui,sans-serif;fill:#475569;cursor:pointer}.cv-plan .cv-prl:hover,.cv-plan .cv-prl.on{fill:#2563EB}
 .cv-plan .cv-c{transform:none!important;outline:none!important;cursor:pointer;stroke:transparent;stroke-width:.25}.cv-plan .cv-c:hover{stroke:#0F172A}.cv-plan .cv-c.sel{stroke:#0F172A;stroke-width:.45}.cv-plan .cv-c.dim{opacity:.16}.cv-plan .cv-c.hit{stroke:#2563EB;stroke-width:.35}
 .cd3-main{display:block}.cd3-view{height:78vh;min-height:460px}
