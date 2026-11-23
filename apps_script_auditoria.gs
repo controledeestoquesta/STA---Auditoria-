@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 73)
+ * Auditoria STA – Santa Therezinha (versão 74)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -569,11 +569,12 @@ function doPost(e) {
       try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar') {
-    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+  if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
+    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
     if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
+    if (dados.acao === 'painel_ver') { const pv = painelLer(dados.painel); return resposta({ ok: true, versao: pv.versao, em: pv.em, por: pv.por }); }
     const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
     try { return resposta(painelSalvar(dados.painel, dados.dados, sessao)); }
     catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
@@ -716,7 +717,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 73, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 74, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -753,13 +754,14 @@ const PERMISSOES_CONHECIDAS = {
   aud_cha: 'Acesso a chamada (presenca) do controle de estoque',
   ce_est: 'Acesso ao Controle de Estoque (rotinas e liberacao de mercadorias)',
   ce_tra: 'Acesso ao setor de transferencias (curva de apanha, mapas de calor e listas de transferencia)',
+  ce_rtz: 'Acesso a Roteirizacao (pedidos, notas, picos de horario e tempo de geracao do WMS)',
   ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
   ce_bas: 'Acesso a Bases e planilha',
   aud_adm: 'Acesso a tela de administracao'
 };
 /* gestores do Controle de Estoque: acesso completo automático (precisam ter uma linha com senha no Permissionamento) */
 const GESTORES_CE = ['10002001', '10002939'];
-const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_tra', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
+const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_tra', 'ce_rtz', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
 
 /** Lê a aba Permissionamento (cria a coluna Status se não existir). */
 function tabelaPermissoes() {
@@ -792,6 +794,8 @@ function lerPermissoes() {
     if (m.permissoes.indexOf(per) < 0) m.permissoes.push(per);
   });
   GESTORES_CE.forEach(function (g) { if (mapa[g]) PERMS_GESTOR.forEach(function (x) { if (mapa[g].permissoes.indexOf(x) < 0) mapa[g].permissoes.push(x); }); });
+  /* Joel Marques (supervisor de roteirização): acesso à Roteirização */
+  if (mapa['10000514'] && mapa['10000514'].permissoes.indexOf('ce_rtz') < 0) mapa['10000514'].permissoes.push('ce_rtz');
   return mapa;
 }
 

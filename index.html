@@ -272,6 +272,9 @@
   <section class="view" id="v-curvaa" hidden>
     <div id="cva"></div>
   </section>
+  <section class="view" id="v-rtz" hidden>
+    <div id="rtz"></div>
+  </section>
   <section class="view" id="v-lib" hidden>
     <div class="block cb-bar">
       <div class="cb-txt"><b>Liberação de mercadorias</b><small id="pinfo-lib">Entra com o mesmo login do app. Liberações, cadastros e assinaturas ficam online para todos que têm acesso.</small></div>
@@ -544,6 +547,20 @@
       <p class="okline" id="b8351a-msg"></p>
     </div>
     <div class="block">
+      <h3>8072 – Tempos do WMS (roteirização)</h3>
+      <div class="bstat"><span id="b8072-src">Nenhum arquivo importado</span><span><b id="b8072-n">0</b> pedidos</span></div>
+      <label class="filebtn" style="width:100%">Importar 8072 (.xlsx ou .xls)<input type="file" id="b8072-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Colunas usadas: NUMPED, NUMNOTA, NUMCAR, NUMTRANSWMS, cliente e os horários DTWMS, DATAGERACAOOS, separação, conferência e fim da OS. Cada importação soma à base (o mesmo pedido é atualizado) e é publicada para todos com acesso à Roteirização.</p>
+      <p class="okline" id="b8072-msg"></p>
+    </div>
+    <div class="block">
+      <h3>8268 – Pedidos (roteirização)</h3>
+      <div class="bstat"><span id="b8268-src">Nenhum arquivo importado</span><span><b id="b8268-n">0</b> pedidos</span></div>
+      <label class="filebtn" style="width:100%">Importar 8268 (.xlsx ou .xls)<input type="file" id="b8268-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Colunas usadas: DATA, HORA, MINUTO, DTMONT, VLATEND, NUMPED, ESTENT (UF), CLIENTE, CGCENT, RCA, ROTA, PRACA e POSICAO. Também soma à base e é publicada para todos.</p>
+      <p class="okline" id="b8268-msg"></p>
+    </div>
+    <div class="block">
       <h3>Base de funcionários (Quadro)</h3>
       <div class="bstat"><span id="bq-src">Base original</span><span><b id="bq-n">0</b> colaboradores</span></div>
       <label class="filebtn" style="width:100%">Importar quadro de funcionários (.xls ou .xlsx)<input type="file" id="bq-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
@@ -594,6 +611,7 @@
   <button type="button" data-v="lib" hidden>Liberação</button>
   <button type="button" data-v="curva" hidden>Curva Picking</button>
   <button type="button" data-v="curvaa" hidden>Mapa Aéreo</button>
+  <button type="button" data-v="rtz" hidden>Roteirização</button>
   <button type="button" data-v="dev" hidden>Devoluções</button>
   <button type="button" data-v="noticias" hidden>Notícias</button>
   <button type="button" data-v="vales" hidden>Vales</button>
