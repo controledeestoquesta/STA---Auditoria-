@@ -3893,7 +3893,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa","rtz"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v182</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v183</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3982,7 +3982,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v182</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v183</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -5653,6 +5653,34 @@ function rzLine(L,cor,fmt,ref,lab){if(L.length<2)return '<p class="note">Poucos 
 const RZ_UF={RR:[1,0],AP:[3,0],AM:[1,1],PA:[2,1],MA:[3,1],CE:[4,1],RN:[5,1],AC:[0,2],RO:[1,2],TO:[2,2],PI:[3,2],PB:[5,2],PE:[4,2],MT:[1,3],GO:[2,3],BA:[3,3],AL:[5,3],SE:[4,3],MS:[1,4],DF:[2,4],MG:[3,4],ES:[4,4],PR:[1,5],SP:[2,5],RJ:[3,5],SC:[1,6],RS:[1,7]};
 function rzMapa(C){const L=Object.entries(C.uf),mx=Math.max(1,...L.map(([,o])=>o.v)),cor=v=>{const p=Math.pow(v/mx,0.45);return "hsl(214 "+Math.round(45+40*p)+"% "+Math.round(94-58*p)+"%)";};
   return '<div class="rz-br">'+Object.entries(RZ_UF).map(([u,[x,y]])=>{const o=C.uf[u],v=o?o.v:0,p=Math.pow(v/mx,0.45);return '<button type="button" class="rz-uf'+(RTZ.f.uf===u?" on":"")+(o?"":" vz")+'" style="grid-column:'+(x+1)+';grid-row:'+(y+1)+';background:'+(o?cor(v):"#F1F5F9")+';color:'+(p>0.55?"#fff":"#0F172A")+'" data-rzuf="'+u+'" title="'+u+(o?" · "+BRL.format(o.v)+" · "+o.n+" pedidos · "+o.c.size+" clientes":" · sem pedidos")+'"><b>'+u+'</b><small>'+(o?rzBRL(v):"")+'</small></button>';}).join("")+'</div>';}
+/* ---------- velocímetros: médias do ciclo (pedidos filtrados), escala fixa 0–100% do limite "Ruim" ---------- */
+const RZ_VEL=[{k:"env",l:"Envio → Montagem",bom:120,ruim:240},{k:"mwms",l:"Montagem → WMS",bom:10,ruim:20},{k:"wos",l:"WMS → Início OS",bom:40,ruim:80},{k:"sep",l:"Início OS → Fim Separação",bom:120,ruim:240},{k:"conf",l:"Início Conferência → Fim Conferência",bom:90,ruim:180},{k:"tot",l:"Ciclo total (Envio → Fim Conferência)",bom:300,ruim:600}];
+const RZ_FX=[[20,"Excelente","#047A3C","😍"],[35,"Ótimo","#22A94F","😄"],[50,"Bom","#9BD36A","🙂"],[75,"Mediano","#F2C94C","😐"],[100,"Regular","#F2994A","😟"],[1e9,"Ruim","#D32F2F","😡"]];
+const rzHm=m=>m==null?"—":m<60?Math.round(m)+"min":Math.floor(m/60)+"h"+(Math.round(m%60)?" "+String(Math.round(m%60)).padStart(2,"0")+"min":"");
+const rzHm2=m=>m<60?Math.round(m)+"min":Math.floor(m/60)+"h"+String(Math.round(m%60)).padStart(2,"0");
+function rzVelDia(){const rg=rzRange();if(!rg)return null;if(RTZ.vd)return new Date(RTZ.vd+"T00:00").getTime();
+  const ontem=rzD0(Date.now())-RZ_DIA,dias=new Set(((RTZ.d68&&RTZ.d68.rows)||[]).map(r=>rzD0(r[RZI68.data])));if(dias.has(ontem))return ontem;let d=0;dias.forEach(x=>{if(x<=ontem&&x>d)d=x;});return d||rg.mx;}
+function rzCiclo(a,b){const I=RZI68,J=RZI72,f=RTZ.f,by72=new Map();((RTZ.d72&&RTZ.d72.rows)||[]).forEach(r=>by72.set(r[J.ped],r));const S={env:[],mwms:[],wos:[],sep:[],conf:[],tot:[]};let fat=0,pend=0;
+  ((RTZ.d68&&RTZ.d68.rows)||[]).forEach(o=>{const d=o[I.data];if(d<a||d>=b+RZ_DIA)return;if((f.uf&&o[I.uf]!==f.uf)||(f.rota&&o[I.rota]!==f.rota)||(f.rca&&o[I.rca]!==f.rca))return;
+    if(/fatur/i.test(o[I.pos]))fat++;else pend++;const w=by72.get(o[I.ped]),tp=d+((o[I.hora]|0)*60+(o[I.min]|0))*6e4,mt=o[I.dtmont],put=(k,x,y)=>{if(x&&y&&y>=x)S[k].push((y-x)/6e4);};
+    put("env",tp,mt);if(w){put("mwms",mt,w[J.dtwms]);put("wos",w[J.dtwms],w[J.inios]);put("sep",w[J.inios],w[J.fimsep]);put("conf",w[J.iniconf],w[J.fimconf]);put("tot",tp,w[J.fimconf]);}});
+  const md=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:null;return {m:Object.fromEntries(Object.entries(S).map(([k,v])=>[k,md(v)])),n:Object.fromEntries(Object.entries(S).map(([k,v])=>[k,v.length])),fat,pend};}
+function rzGauge(g,v){const cx=160,cy=150,R1=128,R0=76,pct=v==null?null:v/g.ruim*100,fx=pct==null?null:RZ_FX.find(x=>pct<x[0]),B=[0,20,35,50,75,100,200],ang=p=>{p=Math.max(0,Math.min(200,p));for(let i=0;i<6;i++)if(p<=B[i+1])return (i+(p-B[i])/(B[i+1]-B[i]))*30;return 180;};
+  const pt=(a,r)=>[cx+r*Math.cos(a*Math.PI/180),cy-r*Math.sin(a*Math.PI/180)],seg=(a0,a1,c)=>{const p0=pt(a0,R1),p1=pt(a1,R1),p2=pt(a1,R0),p3=pt(a0,R0);return '<path d="M'+p0+' A'+R1+' '+R1+' 0 0 0 '+p1+' L'+p2+' A'+R0+' '+R0+' 0 0 1 '+p3+'Z" fill="'+c+'" stroke="#fff" stroke-width="3"/>';};
+  const cores=[...RZ_FX].map(x=>x[2]),emo=RZ_FX.map(x=>x[3]),lab=["0%","20%","35%","50%","75%","100%"];
+  let s='<svg viewBox="0 0 320 175" class="rz-gsvg">';for(let i=0;i<6;i++){s+=seg(i*30,(i+1)*30,cores[i]);const e=pt(i*30+15,(R0+R1)/2);s+='<text x="'+e[0].toFixed(1)+'" y="'+(e[1]+7).toFixed(1)+'" text-anchor="middle" font-size="19">'+emo[i]+'</text>';}
+  lab.forEach((t,i)=>{const p=pt(i*30,R1+12);s+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+3).toFixed(1)+'" text-anchor="'+(i===0?"start":i===3?"middle":i>3?"end":"start")+'" class="rz-gl">'+t+'</text>';});
+  if(pct!=null){const a=ang(pct),q=pt(a,R1-14);s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+q[0].toFixed(1)+'" y2="'+q[1].toFixed(1)+'" stroke="#111827" stroke-width="5" stroke-linecap="round" class="rz-ndl"/>';}
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="10" fill="#111827"/></svg>';
+  return '<div class="rz-g">'+s+'<b class="rz-gv">'+(v==null?"—":rzHm(v))+'</b><div class="rz-gt">'+esc(g.l)+'</div>'+(fx?'<div class="rz-gs"><i style="background:'+fx[2]+'"></i>'+fx[1]+'</div>':'<div class="rz-gs">sem dados</div>')+
+    '<small>Bom: abaixo de '+rzHm2(g.bom)+' · Ruim: a partir de '+rzHm2(g.ruim)+'<br>'+(pct!=null?'Ponteiro: '+cvFmt(pct,0)+'% do limite':'')+'</small></div>';}
+function rzVel(C){const modo=RTZ.vm||"dia";let a,b,txt;if(modo==="painel"){a=C.rg.a;b=C.rg.b;txt=new Date(a).toLocaleDateString("pt-BR")+" a "+new Date(b).toLocaleDateString("pt-BR");}else{a=b=rzVelDia();txt=new Date(a).toLocaleDateString("pt-BR");}
+  const K=rzCiclo(a,b);
+  return '<div class="block rz-vel"><div class="rz-hh"><div><h3>● Médias do ciclo <small>(pedidos filtrados)</small></h3><p class="note" style="margin:2px 0 0">Período dos velocímetros: <b>'+txt+'</b></p></div><div class="cv-tools" style="margin:0">'+
+    '<button type="button" class="cv-chip'+(modo==="dia"?" on":"")+'" data-rzvm="dia">Dia</button><button type="button" class="cv-chip'+(modo==="painel"?" on":"")+'" data-rzvm="painel">Período do painel</button>'+(modo==="dia"?'<input class="in" type="date" id="rz-vd" value="'+new Date(a-new Date(a).getTimezoneOffset()*6e4).toISOString().slice(0,10)+'" style="max-width:160px">':'')+'</div></div>'+
+    '<div class="rz-gg">'+RZ_VEL.map(g=>rzGauge(g,K.m[g.k])).join("")+'<div class="rz-g rz-gfp"><span>Faturados / Pendentes</span><b>'+cvFmt(K.fat)+' <small>/ '+cvFmt(K.pend)+'</small></b><em>pedidos filtrados</em></div></div>'+
+    '<div class="rz-gleg"><b>Escala fixa 0–100% do limite "Ruim":</b>'+RZ_FX.map((x,i)=>'<span><i style="background:'+x[2]+'"></i>'+x[1]+' '+(i===5?"≥ 100%":(i?RZ_FX[i-1][0]:0)+"–"+x[0]+"%")+'</span>').join("")+'</div>'+
+    '<p class="note"><b>Como ler:</b> cada velocímetro mostra a <b>média</b> do período contra metas fixas, em escala de 0 a 100% do limite "Ruim". Por padrão abre no <b>dia anterior</b> (pedidos de D-1). Envio = hora em que o pedido foi digitado (8268); montagem = DTMONT; WMS = DTWMS; início/fim da OS, separação e conferência vêm da 8072. Intervalos negativos ou incompletos são ignorados. Os filtros de UF, rota e RCA do painel valem aqui também.</p></div>';}
 /* ---------- tela ---------- */
 function rzPaint(){const box=$("rtz");if(!box)return;if(!RTZ.d72&&!RTZ.d68){box.innerHTML=rzFonte()+'<div class="block"><p class="note">Importe as rotinas <b>8072</b> e <b>8268</b> em <b>Bases e planilhas</b> para montar o painel de roteirização.</p></div>';rzBind(box);return;}
   const C=rzCalc();if(!C){box.innerHTML=rzFonte();rzBind(box);return;}const K=C.K,I=RZI68,f=RTZ.f,dt=t=>new Date(t).toLocaleDateString("pt-BR");
@@ -5664,7 +5692,7 @@ function rzPaint(){const box=$("rtz");if(!box)return;if(!RTZ.d72&&!RTZ.d68){box.
     '<select class="in" id="rz-rca"><option value="">Todos os RCAs</option>'+rcas.map(u=>'<option'+(f.rca===u?" selected":"")+'>'+esc(u)+'</option>').join("")+'</select>'+
     ((f.uf||f.rota||f.rca)?'<button type="button" class="link" data-rzlimpa>limpar filtros</button>':'')+'<small class="note" style="margin:0">'+dt(C.rg.a)+' a '+dt(C.rg.b)+'</small></div>';
   const kp=[["Valor atendido",rzBRL(K.vl),"#15803D",BRL.format(K.vl)],["Pedidos gerados",cvFmt(K.ped),"#103F79"],["Notas emitidas",cvFmt(K.notas.size),"#7C3AED"],["Clientes atendidos",cvFmt(K.cli.size),"#0EA5E9"],["Cargas",cvFmt(K.car.size),"#0D9488"],["Ticket médio",K.ped?rzBRL(K.vl/K.ped):"—","#B45309",K.ped?BRL.format(K.vl/K.ped):""],["Peso",cvFmt(K.peso/1000,1)+" t","#475569"]];
-  h+='<div class="cv-kpis">'+kp.map(([t,v,c,ti])=>'<div class="cv-k"'+(ti?' title="'+ti+'"':'')+'><span>'+t+'</span><b style="color:'+c+'">'+v+'</b></div>').join("")+'</div>';
+  h+='<div class="cv-kpis">'+kp.map(([t,v,c,ti])=>'<div class="cv-k"'+(ti?' title="'+ti+'"':'')+'><span>'+t+'</span><b style="color:'+c+'">'+v+'</b></div>').join("")+'</div>';h+=rzVel(C);
   /* tempo de geração do WMS */
   const g=C.G,gm=rzMed(g),g9=rzPct(g,0.9),ok=g.filter(x=>x<=RTZ.meta).length,pk=g.length?ok/g.length*100:0,faixas=[[0,5],[5,15],[15,30],[30,60],[60,1e9]],fx=faixas.map(([a,b])=>g.filter(x=>x>=a&&x<b).length);
   const gd=Object.keys(C.gDia).map(Number).sort((a,b)=>a-b).map(d=>({l:new Date(d).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}),v:rzMed(C.gDia[d])}));
@@ -5721,13 +5749,19 @@ function rzBind(box){const on=(s,fn)=>box.querySelectorAll(s).forEach(fn);
   [["rz-uf","uf"],["rz-rota","rota"],["rz-rca","rca"]].forEach(([id,k])=>{const s=$(id);if(s)s.onchange=()=>{RTZ.f[k]=s.value;rzPaint();};});
   [["rz-ini","ini"],["rz-fim","fim"]].forEach(([id,k])=>{const s=$(id);if(s)s.onchange=()=>{RTZ.f[k]=s.value;rzPaint();};});
   on("[data-rzuf]",b=>b.onclick=()=>{const u=b.dataset.rzuf;RTZ.f.uf=RTZ.f.uf===u?"":u;rzPaint();});on("[data-rzrca]",b=>b.onclick=()=>{RTZ.f.rca=RTZ.f.rca===b.dataset.rzrca?"":b.dataset.rzrca;rzPaint();});on("[data-rzrota]",b=>b.onclick=()=>{RTZ.f.rota=RTZ.f.rota===b.dataset.rzrota?"":b.dataset.rzrota;rzPaint();});
-  on("[data-rzlimpa]",b=>b.onclick=()=>{RTZ.f.uf=RTZ.f.rota=RTZ.f.rca="";rzPaint();});
+  on("[data-rzlimpa]",b=>b.onclick=()=>{RTZ.f.uf=RTZ.f.rota=RTZ.f.rca="";rzPaint();});on("[data-rzvm]",b=>b.onclick=()=>{RTZ.vm=b.dataset.rzvm;rzPaint();});const vd=$("rz-vd");if(vd)vd.onchange=()=>{RTZ.vd=vd.value;rzPaint();};
   const m=$("rz-meta");if(m)m.onchange=()=>{RTZ.meta=Math.max(1,+m.value||15);try{localStorage.setItem("audcd_rtz_meta",RTZ.meta);}catch(e){}rzPaint();};
   const q=$("rz-q");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{RTZ.q=q.value;const tr=$("rz-tr");if(tr)tr.innerHTML=rzTrack();},300);};}
   const x=$("rz-xls");if(x)x.onclick=rzXls;}
 async function rtzAbrir(){await rzLoad();rzPaint();rzSync();}
 [["b8072-file","72"],["b8268-file","68"]].forEach(([id,t])=>{const i=$(id);if(i)i.addEventListener("change",e=>{const f=e.target.files[0];e.target.value="";if(f)rzImport(t,f);});});
 (function(){const s=document.createElement("style");s.textContent=`
+.rz-vel{border-top:4px solid #103F79}.rz-gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:12px}
+.rz-g{border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px;text-align:center;background:var(--card,#fff);display:flex;flex-direction:column;align-items:center}.rz-gsvg{width:100%;max-width:300px;display:block}.rz-gl{font-size:10px;fill:#475569}
+.rz-ndl{transform-origin:160px 150px;animation:rzndl .9s cubic-bezier(.2,.9,.3,1.2)}@keyframes rzndl{from{transform:rotate(-120deg)}to{transform:none}}
+.rz-gv{font:800 1.8rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin-top:2px;letter-spacing:.02em}.rz-gt{font-weight:700;font-size:.86rem;margin:2px 0 4px}.rz-gs{display:flex;align-items:center;gap:6px;font-size:.84rem;margin-bottom:4px}.rz-gs i{width:13px;height:13px;border-radius:3px;display:inline-block}.rz-g small{color:var(--muted);font-size:.7rem;line-height:1.45}
+.rz-gfp{justify-content:center;gap:10px}.rz-gfp span{font-size:.82rem;font-weight:700;color:var(--muted)}.rz-gfp b{font:800 1.7rem ui-monospace,Menlo,Consolas,monospace}.rz-gfp b small{font-size:1rem;color:var(--muted)}.rz-gfp em{font-style:normal;font-size:.74rem;color:var(--muted)}
+.rz-gleg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.74rem;margin:12px 0 4px}.rz-gleg span{display:flex;align-items:center;gap:5px}.rz-gleg i{width:12px;height:12px;border-radius:3px;display:inline-block}
 #rtz .cv-k b{white-space:nowrap;font-size:1.3rem}.rz-f select.in{max-width:200px}.rz-f input[type=date]{max-width:160px}
 .rz-hero{border-top:4px solid #DC2626}.rz-hh{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}.rz-hh h3{margin:0}
 .rz-meta{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--muted)}.rz-meta input{width:64px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit}
