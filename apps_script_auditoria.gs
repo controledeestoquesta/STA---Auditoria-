@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 71)
+ * Auditoria STA – Santa Therezinha (versão 72)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 71, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 72, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -752,13 +752,14 @@ const PERMISSOES_CONHECIDAS = {
   aud_com: 'Acesso a comissao do controle de estoque (equipes, metas, valores)',
   aud_cha: 'Acesso a chamada (presenca) do controle de estoque',
   ce_est: 'Acesso ao Controle de Estoque (rotinas e liberacao de mercadorias)',
+  ce_tra: 'Acesso ao setor de transferencias (curva de apanha, mapas de calor e listas de transferencia)',
   ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
   ce_bas: 'Acesso a Bases e planilha',
   aud_adm: 'Acesso a tela de administracao'
 };
 /* gestores do Controle de Estoque: acesso completo automático (precisam ter uma linha com senha no Permissionamento) */
 const GESTORES_CE = ['10002001', '10002939'];
-const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
+const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_tra', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
 
 /** Lê a aba Permissionamento (cria a coluna Status se não existir). */
 function tabelaPermissoes() {
