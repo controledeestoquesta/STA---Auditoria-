@@ -3893,7 +3893,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v178</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v179</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3982,7 +3982,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v178</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v179</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -5070,11 +5070,11 @@ const CV_CUR={A:"#DC2626",B:"#FACC15",C:"#7DD3FC",Z:"#D1D5DB"},CV_EST={Inteiro:"
 const CD_DEP0={LIQUIDA:"#2563EB",MERCEARIA:"#F59E0B",HPL:"#DB2777",BAZAR:"#7C3AED",PERECIVEIS:"#0891B2",COMMODITIES:"#65A30D","NAO REVENDA":"#64748B"},CD_DEPX=["#EA580C","#0D9488","#BE123C","#4F46E5","#CA8A04","#059669"];
 function cdDepCor(d){if(!d)return "#CBD5E1";const k=norm(d).trim();if(CD_DEP0[k])return CD_DEP0[k];let h=0;for(const ch of k)h=(h*31+ch.charCodeAt(0))>>>0;return CD_DEPX[h%CD_DEPX.length];}
 const cdDepNome=d=>d?d.charAt(0)+d.slice(1).toLowerCase():"Sem departamento";
-const cvEnd=x=>[x.rua,x.pr,x.nv,x.ap].map(n=>String(n).padStart(2,"0")).join("-");
+const cvEnd=x=>[x.rua,x.pr,x.nv,x.ap].map(n=>+n||0).join("-");
 /* ---------- layout físico do CD (formato T): bloco A = haste (ruas 2–31, sem 15 e 21, corredor central vertical);
    blocos B (32–40) e C (41–49) = barra do T, ruas na vertical com corredor horizontal. Em cada rua: prédios ímpares de um lado e pares do outro.
    Nas ruas pares a numeração começa do outro lado (vem dos próprios arquivos: o corredor cai no prédio 17/18 nas ímpares e 29/30 nas pares). ---------- */
-const CD_BL={A:[],B:[],C:[]};for(let r=2;r<=31;r++)if(r!==15&&r!==21)CD_BL.A.push(r);for(let r=32;r<=40;r++)CD_BL.B.push(r);for(let r=41;r<=49;r++)CD_BL.C.push(r);
+const CD_BL={A:[],B:[],C:[]};for(let r=2;r<=30;r++)if(r!==15&&r!==21)CD_BL.A.push(r);for(let r=32;r<=40;r++)CD_BL.B.push(r);for(let r=41;r<=49;r++)CD_BL.C.push(r);
 const cdBloco=r=>CD_BL.A.includes(r)?"A":CD_BL.B.includes(r)?"B":CD_BL.C.includes(r)?"C":"";
 const CDG={L:2.4,D:1.1,W:3.2,G:0.3,H:1.6,HALL:14};CDG.P=2*CDG.D+CDG.W+CDG.G;
 function cdLayout(){const key=(CV.pick?CV.pick.em:"")+"|"+(CV.aero?CV.aero.em:"")+"|"+E.id.length+"|"+(BASEINFO.e?BASEINFO.e.ts:"");if(CV._lay&&CV._layK===key)return CV._lay;
@@ -5082,7 +5082,7 @@ function cdLayout(){const key=(CV.pick?CV.pick.em:"")+"|"+(CV.aero?CV.aero.em:""
   ((CV.pick&&CV.pick.L)||[]).forEach(x=>{if(!x.rua||!x.pr)return;const o=g(x.rua);o.maxPr=Math.max(o.maxPr,x.pr);o.pkPr.push(x.pr);});
   ((CV.aero&&CV.aero.L)||[]).forEach(x=>{if(!x.rua||!x.pr||x.dep!==1||x.rua>60)return;const o=g(x.rua);o.maxPr=Math.max(o.maxPr,x.pr);o.maxNv=Math.max(o.maxNv,Math.min(9,x.nv));});
   E.pt.forEach(p=>{const r=+p[0],pr=+p[1];if(!r||!pr||r>60)return;const o=g(r);o.maxPr=Math.max(o.maxPr,pr);if(+p[2]<=1)o.pkPr.push(pr);});
-  Object.values(R).forEach(o=>{o.maxPos=Math.max(1,Math.ceil(o.maxPr/2));const b0=o.rua>=41&&o.rua<=49?41:o.rua>=32&&o.rua<=40?32:2;o.inv=(o.rua-b0)%2===0;const mp=o.maxPos,inv=o.inv;o.pos=pr=>{const k=Math.ceil(pr/2);return inv?mp+1-k:k;};
+  Object.values(R).forEach(o=>{o.maxPos=Math.max(1,Math.ceil(o.maxPr/2));o.inv=o.rua>=32&&o.rua<=49?(o.rua-(o.rua>=41?41:32))%2===1:o.rua>=22?false:(o.rua-2)%2===0;const mp=o.maxPos,inv=o.inv;o.pos=pr=>{const k=Math.ceil(pr/2);return inv?mp+1-k:k;};
     o.lado=pr=>(pr%2?-1:1)*(inv?-1:1);const S=new Set(o.pkPr.map(o.pos)),mid=(mp+1)/2;let best=0,bd=1e9;
     for(let k=2;k<mp;k++)if(!S.has(k)&&(S.has(k-1)||S.has(k+1))){const d=Math.abs(k-mid);if(d<bd){bd=d;best=k;}}
     o.corAchado=!!best&&bd<=mp*0.3;o.cor=o.corAchado?best:Math.round(mid);delete o.pkPr;});
@@ -5090,13 +5090,13 @@ function cdLayout(){const key=(CV.pick?CV.pick.em:"")+"|"+(CV.aero?CV.aero.em:""
   const pct=(a,p)=>{const s=a.slice().sort((x,y)=>x-y);return s.length?s[Math.min(s.length-1,Math.floor(p*(s.length-1)+0.5))]:1;};
   ["A","B","C"].forEach(b=>{const rs=CD_BL[b].filter(r=>R[r]),ant=Math.max(1,pct(rs.map(r=>R[r].cor-1),0.85)),dep=Math.max(1,pct(rs.map(r=>R[r].maxPos-R[r].cor),0.85));lay.bl[b]={rs,ant,dep};
     /* rua fora do padrão (ex.: numeração maior que as vizinhas): comprime para caber no mesmo comprimento do bloco */
-    rs.forEach(r=>{const o=R[r],e=Math.min(1,ant/Math.max(1,o.cor-1),dep/Math.max(1,o.maxPos-o.cor));if(e<1){const p0=o.pos,c=o.cor;o.pos=pr=>c+Math.round((p0(pr)-c)*e);o.maxPos=c+dep;o.comp=e;}});});
+    rs.forEach(r=>{const o=R[r],e=Math.min(1,ant/Math.max(1,o.cor-1),dep/Math.max(1,o.maxPos-o.cor));if(e<1){const p0=o.pos,c=o.cor;o.pos=pr=>c+(p0(pr)-c)*e;o.maxPos=c+dep;o.comp=e;}});});
   const nA=CD_BL.A.length,xA=(lay.bl.A.ant+0.5)*L,xA2=(lay.bl.A.dep+0.5)*L,GAP=7;
   CD_BL.A.forEach((r,i)=>{lay.fr[r]={ox:0,oz:P*(nA-1-i)+P/2,ax:1,az:0,nx:0,nz:1,b:"A"};});
   const z25=lay.fr[25].oz,depBC=Math.max(lay.bl.B.dep,lay.bl.C.dep),antBC=Math.max(lay.bl.B.ant,lay.bl.C.ant),nB=CD_BL.B.length,nC=CD_BL.C.length;
   /* bloco B (32–40) à direita e C (41–49) à esquerda; o corredor dos dois passa pela rua 25 (liga os dois lados atravessando o bloco A) */
   CD_BL.B.forEach((r,j)=>{lay.fr[r]={ox:xA2+GAP+P/2+j*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"B"};});
-  CD_BL.C.forEach((r,j)=>{lay.fr[r]={ox:-xA-GAP-P/2-(nC-1-j)*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"C"};});
+  CD_BL.C.forEach((r,j)=>{lay.fr[r]={ox:-xA-GAP-P/2-j*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"C"};});
   const zb0=z25-(antBC+0.5)*L,zb1=z25+(depBC+0.5)*L;
   lay.bx={A:[-xA-0.5,xA2+0.5,0,nA*P],B:[xA2+GAP,xA2+GAP+nB*P,zb0,zb1],C:[-xA-GAP-nC*P,-xA-GAP,zb0,zb1]};
   lay.zBar=z25;lay.antBC=antBC;lay.depBC=depBC;
@@ -5109,22 +5109,24 @@ function cvGrid(cells,corDe,opt){const lay=cdLayout(),by={};cells.forEach(c=>{by
     const lane=s=>'<div class="cv-ln">'+ln[s].map((h,i)=>h||(comCor&&i===c0?'<i class="cv-cor"></i>':'<i class="cv-nx"></i>')).join("")+'</div>';
     return '<div class="cv-rr'+(opt.rua===r?" on":"")+'"><button type="button" class="cv-rl" data-cvrua="'+r+'" title="Ver a rua '+r+'">R'+r+'<small>ímpar<br>par</small></button>'+lane(-1)+lane(1)+'</div>';};
   let h='<div class="cv-hm" style="--cz:'+opt.zoom+'px" data-grid="pick">';
-  [["A","Bloco A · ruas 2 a 31 · corredor central vertical"],["B","Bloco B · ruas 32 a 40 · corredor horizontal"],["C","Bloco C · ruas 41 a 49 · corredor horizontal"]].forEach(([b,t])=>{const B=lay.bl[b],rs=CD_BL[b].filter(r=>ruasC.has(r));if(!rs.length)return;
+  [["A","Bloco A · ruas 2 a 30 · corredor central vertical"],["B","Bloco B · ruas 32 a 40 · corredor horizontal"],["C","Bloco C · ruas 41 a 49 · corredor horizontal"]].forEach(([b,t])=>{const B=lay.bl[b],rs=CD_BL[b].filter(r=>ruasC.has(r));if(!rs.length)return;
     const cols=B.ant+1+B.dep,c0=B.ant;h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>'+t+'</b></div><div class="cv-rr cv-rul"><span></span><div class="cv-ln">'+Array.from({length:cols},(_,i)=>i===c0?'<i class="cv-corh">▼</i>':'<i class="cv-nx"></i>').join("")+'</div></div>'+
       (b==="A"?rs.slice().reverse():rs).map(r=>rua(r,cols,c0,true)).join("")+'</div>';});
   const out=[...ruasC].filter(r=>!cdBloco(r)).sort((a,b)=>a-b);if(out.length){const cols=Math.max(...out.map(r=>lay.R[r]?lay.R[r].maxPos:1));h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>Outras ruas</b> <small>fora dos blocos A, B e C</small></div>'+out.map(r=>rua(r,cols,0,false)).join("")+'</div>';}
   return h+'</div>';}
-/* planta 2D: mesmo desenho do 3D — bloco A embaixo, blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25; cabe inteira na tela */
-function cvPlan(cells,corDe,opt){const lay=cdLayout(),L=CDG.L,D=CDG.D,W=CDG.W,bx=lay.bx,z25=lay.zBar,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-7,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+3,Z0=Math.min(bx.A[2],bx.B[2])-9,Z1=Math.max(bx.A[3],bx.B[3])+9,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100;
+/* planta 2D: mesmo desenho do 3D — bloco A embaixo, blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25.
+   Cada rua é uma faixa branca (lado ímpar e lado par) e cada endereço (prédio/apto) é um quadrado dentro dela. */
+function cvPlan(items,corX,opt){const lay=cdLayout(),L=CDG.L,bx=lay.bx,z25=lay.zBar,DP=1.6,HB=0.75+DP+0.2,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-5,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+3,Z0=Math.min(bx.A[2],bx.B[2])-8,Z1=Math.max(bx.A[3],bx.B[3])+8,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100;
   let h='<svg class="cv-plan" viewBox="'+f2(X0)+' '+f2(Z0)+' '+f2(VW)+' '+f2(VH)+'" preserveAspectRatio="xMidYMin meet" xmlns="http://www.w3.org/2000/svg">';
-  ["A","B","C"].forEach(b=>{const q=bx[b];h+='<rect x="'+f2(q[0]-1.5)+'" y="'+f2(q[2]-1.5)+'" width="'+f2(q[1]-q[0]+3)+'" height="'+f2(q[3]-q[2]+3)+'" rx="2" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(b==="A"?q[3]+6.5:q[2]-3.5)+'" class="cv-pt">BLOCO '+b+'</text>';});
-  /* faixa de cada rua (o corredor entre o lado ímpar e o par), com o nome alinhado nela */
-  ["A","B","C"].forEach(b=>CD_BL[b].forEach(r=>{const f=lay.fr[r],o=lay.R[r];if(!f||!o)return;const u0=(0.5-o.cor)*L,u1=(o.maxPos+0.5-o.cor)*L,sel=opt.rua===r?" on":"";
-    if(f.ax){h+='<rect x="'+f2(f.ox+u0)+'" y="'+f2(f.oz-0.75)+'" width="'+f2(u1-u0)+'" height="1.5" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(bx.A[0]-1)+'" y="'+f2(f.oz+0.6)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';}
-    else{h+='<rect x="'+f2(f.ox-0.75)+'" y="'+f2(f.oz+u0)+'" width="1.5" height="'+f2(u1-u0)+'" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(f.ox)+'" y="'+f2(bx[b][2]-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}}));
-  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2]-3)+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.C[0]-3)+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.B[1]-bx.C[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
-  cells.forEach(c=>{const sl=lay.slot(c.rua,c.pr);if(!sl)return;const f=sl.f,DP=1.7,off=sl.s*(0.75+DP/2),cx=f.ox+f.ax*sl.u+f.nx*off,cz=f.oz+f.az*sl.u+f.nz*off,w=f.ax?L*0.92:DP,hh=f.ax?DP:L*0.92,k=c.rua+"|"+c.pr;
-    h+='<rect x="'+f2(cx-w/2)+'" y="'+f2(cz-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
+  ["A","B","C"].forEach(b=>{const q=bx[b];h+='<rect x="'+f2(q[0]-1)+'" y="'+f2(q[2]-1)+'" width="'+f2(q[1]-q[0]+2)+'" height="'+f2(q[3]-q[2]+2)+'" rx="1.6" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(b==="A"?q[3]+5.8:q[2]-3.6)+'" class="cv-pt">BLOCO '+b+'</text>';});
+  ["A","B","C"].forEach(b=>CD_BL[b].forEach(r=>{const f=lay.fr[r],o=lay.R[r];if(!f||!o)return;const sel=opt.rua===r?" on":"",q=bx[b];
+    if(f.ax)h+='<rect x="'+f2(q[0]-0.4)+'" y="'+f2(f.oz-HB)+'" width="'+f2(q[1]-q[0]+0.8)+'" height="'+f2(2*HB)+'" rx="0.5" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><line x1="'+f2(q[0])+'" x2="'+f2(q[1])+'" y1="'+f2(f.oz)+'" y2="'+f2(f.oz)+'" class="cv-pl"/><text x="'+f2(q[0]-1.4)+'" y="'+f2(f.oz+0.65)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">'+r+'</text>';
+    else h+='<rect x="'+f2(f.ox-HB)+'" y="'+f2(q[2]-0.4)+'" width="'+f2(2*HB)+'" height="'+f2(q[3]-q[2]+0.8)+'" rx="0.5" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><line y1="'+f2(q[2])+'" y2="'+f2(q[3])+'" x1="'+f2(f.ox)+'" x2="'+f2(f.ox)+'" class="cv-pl"/><text x="'+f2(f.ox)+'" y="'+f2(q[2]-1.3)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}));
+  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2])+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2])+'" class="cv-pc"/><rect x="'+f2(bx.C[0])+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.B[1]-bx.C[0])+'" height="'+f2(L)+'" class="cv-pc"/>';
+  const G={};items.forEach(x=>{const k=x.rua+"|"+x.pr;(G[k]=G[k]||[]).push(x);});
+  Object.entries(G).forEach(([k,arr])=>{const x0=arr[0],sl=lay.slot(x0.rua,x0.pr);if(!sl)return;const f=sl.f,cp=(lay.R[x0.rua].comp||1),tot=L*0.94*cp,n=arr.length,w=tot/n,off=sl.s*(0.75+DP/2),gap=Math.min(0.1,w*0.15);
+    arr.sort((a,b)=>a.nv-b.nv||a.ap-b.ap).forEach((x,i)=>{const u=sl.u-tot/2+w*(i+0.5),cx=f.ox+f.ax*u+f.nx*off,cz=f.oz+f.az*u+f.nz*off,ww=f.ax?w-gap:DP,hh=f.ax?DP:w-gap,ht=opt.hit?opt.hit(x):true;
+      h+='<rect x="'+f2(cx-ww/2)+'" y="'+f2(cz-hh/2)+'" width="'+f2(ww)+'" height="'+f2(hh)+'" rx="0.16" class="cv-c'+(opt.hit&&!ht?" dim":"")+(opt.hit&&ht?" hit":"")+'" style="fill:'+corX(x)+'" data-cell="'+k+'"/>';});});
   return h+'</svg>';}
 function cvZoom(k){return '<label class="cv-zoom"><span>Tamanho</span><input type="range" min="12" max="34" step="2" value="'+CV[k]+'" data-cvzoom="'+k+'"></label>';}
 function cvPickCells(C){const g={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const k=x.rua+"|"+x.pr,o=g[k]=g[k]||{rua:x.rua,pr:x.pr,apd:0,n:0,cur:{A:0,B:0,C:0,Z:0},est:{},dp:{},it:[],mov:0};o.apd+=x.apd;o.n++;o.cur[x.cur]++;if(x.est)o.est[x.est]=(o.est[x.est]||0)+1;o.dp[x.dpt||""]=(o.dp[x.dpt||""]||0)+1+x.apd;if(x.mov)o.mov++;o.it.push(x);});return g;}
@@ -5133,13 +5135,13 @@ function cvDepChips(atual,attr){return '<div class="cv-tools cv-deps"><span>Depa
 function cvMapaPick(C){const g=cvPickCells(C);CV._gp=g;const cells=Object.values(g),q=norm(CV.q||"").trim(),dep=CV.dep||"";
   const top=c=>c.cur.A?"A":c.cur.B?"B":c.cur.C?"C":"Z",estTop=c=>Object.entries(c.est).sort((a,b)=>b[1]-a[1])[0],dpTop=c=>Object.entries(c.dp).sort((a,b)=>b[1]-a[1])[0][0],esc0=cvEscala(cells.map(c=>c.apd));
   const cor=CV.cor==="cur"?c=>CV_CUR[top(c)]:CV.cor==="est"?c=>{const e=estTop(c);return e?(CV_EST[e[0]]||"#CBD5E1"):"#E2E8F0";}:CV.cor==="dep"?c=>dep&&c.it.some(x=>x.dpt===dep)?cdDepCor(dep):cdDepCor(dpTop(c)):CV.cor==="mov"?c=>c.mov?"#7C3AED":"#E2E8F0":c=>esc0(c.apd);
-  const sr=CV.selRua,hit=q||dep||sr?c=>(!sr||c.rua===sr)&&c.it.some(x=>(!q||norm(x.cod+" "+x.desc).includes(q))&&(!dep||x.dpt===dep)):null,nh=hit?cells.filter(hit).length:0;
+  const sr=CV.selRua,hit=q||dep||sr?c=>(!sr||c.rua===sr)&&c.it.some(x=>(!q||norm(x.cod+" "+x.desc).includes(q))&&(!dep||x.dpt===dep)):null,escI=cvEscala(C.it.map(x=>x.apd)),corX=CV.cor==="cur"?x=>CV_CUR[x.cur]:CV.cor==="est"?x=>CV_EST[x.est]||"#E2E8F0":CV.cor==="dep"?x=>cdDepCor(x.dpt):CV.cor==="mov"?x=>x.mov?"#7C3AED":"#E2E8F0":x=>escI(x.apd),hitX=hit?x=>(!sr||x.rua===sr)&&(!q||norm(x.cod+" "+x.desc).includes(q))&&(!dep||x.dpt===dep):null,nh=hit?cells.filter(hit).length:0;
   const leg=CV.cor==="cur"?Object.entries(CV_CUR).map(([k,c])=>'<span><i style="background:'+c+'"></i>Curva '+k+'</span>').join(""):CV.cor==="est"?Object.entries(CV_EST).map(([k,c])=>'<span><i style="background:'+c+'"></i>'+k+'</span>').join(""):CV.cor==="dep"?'<span>Cor do departamento com mais apanhas no prédio</span>':CV.cor==="mov"?'<span><i style="background:#7C3AED"></i>Tem transferência sugerida</span>':'<span>Menos</span>'+CV_PAL.map(c=>'<span><i style="background:'+c+'"></i></span>').join("")+'<span>Mais apanhas</span>';
   const ruas={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const o=ruas[x.rua]=ruas[x.rua]||{apd:0,A:0,n:0};o.apd+=x.apd;o.n++;if(x.cur==="A")o.A++;});const rk=Object.entries(ruas).sort((a,b)=>b[1].apd-a[1].apd).slice(0,15),rmx=rk.length?rk[0][1].apd:1;
   return '<div class="cv-tools"><span>Cor por</span>'+[["apd","Apanhas por dia"],["cur","Curva ABC"],["est","Estrutura"],["dep","Departamento"],["mov","Transferências"]].map(([k,l])=>'<button type="button" class="cv-chip'+(CV.cor===k?" on":"")+'" data-cvcor="'+k+'">'+l+'</button>').join("")+
     '<span style="margin-left:8px">Mostrar</span>'+["A","B","C","Z"].map(k=>'<button type="button" class="cv-chip cv-cc'+(CV.cur[k]?" on":"")+'" style="--cc:'+CV_CUR[k]+'" data-cvcur="'+k+'">Curva '+k+'</button>').join("")+'</div>'+cvDepChips(dep,"data-cvdep")+
     '<div class="cv-tools"><input class="in" type="search" id="cv-mq" placeholder="Achar item no mapa: código ou descrição" value="'+esc(CV.q)+'" style="max-width:340px">'+(hit?'<small class="note" style="margin:0">'+nh+' prédio(s) encontrados'+(sr?' · rua '+sr+' <button type="button" class="link" data-cvrx>mostrar todas</button>':'')+'</small>':'')+'<div class="cv-leg">'+leg+'</div></div>'+
-    '<div class="cv-plw" data-grid="pick">'+cvPlan(cells,cor,{sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:12,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Bloco A embaixo (rua 31 encostada no corredor até a rua 2), blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25. Passe o mouse ou toque em um quadrado para ver o item; toque no nome da rua para caminhar nela no Depósito 3D.</p>'+
+    '<div class="cv-plw" data-grid="pick">'+cvPlan(C.it.filter(x=>CV.cur[x.cur]),corX,{hit:hitX,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:12,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Bloco A embaixo (da rua 30, encostada nos blocos de cima, até a rua 2), blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25. Passe o mouse ou toque em um quadrado para ver o item; toque no nome da rua para caminhar nela no Depósito 3D.</p>'+
     '<div class="block" style="margin-top:12px"><h3>Ruas com mais apanhas por dia</h3>'+rk.map(([r,o])=>'<button type="button" class="cv-bar" data-cvrua="'+r+'"><span>Rua '+r+'</span><div><i style="width:'+Math.max(2,o.apd/rmx*100)+'%"></i></div><b>'+cvFmt(o.apd,0)+'/dia</b><small>'+o.A+' item(ns) A · '+o.n+' end.</small></button>').join("")+'</div>';}
 function cvDetPick(g){let L=[],tit="",wr=0,wp=0;if(CV.sel&&g[CV.sel]){const c=g[CV.sel];L=c.it;tit="Rua "+c.rua+" · prédio "+c.pr;wr=c.rua;wp=c.pr;}else if(CV.selRua){L=Object.values(g).filter(c=>c.rua===CV.selRua).flatMap(c=>c.it);tit="Rua "+CV.selRua+" inteira";wr=CV.selRua;}
   if(!L.length)return '<div class="cv-dv"><b>Detalhe</b><p class="note">Toque em um prédio ou em uma rua do mapa para ver os itens: curva, apanhas por dia, cobertura, estrutura e a transferência sugerida.</p></div>';
@@ -5150,28 +5152,38 @@ function cvDetPick(g){let L=[],tit="",wr=0,wp=0;if(CV.sel&&g[CV.sel]){const c=g[
       (x.mov?'<div class="cv-dmv">→ '+esc(x.mov.dest)+(cvDestTxt(x.mov)?' · <b>'+esc(cvDestTxt(x.mov))+'</b>':' · sem endereço livre')+'<br><small>'+esc(x.mov.mot)+'</small></div>':x.regra?'<div class="cv-dok">✓ '+esc(x.regra)+'</div>':'')+
       (x.med>0&&x.cap<x.need?'<div class="cv-dcap">Capacidade abaixo da cobertura: sugerido '+cvFmt(x.capSug)+'</div>':'')+'</div>').join("")+(L.length>80?'<p class="note">Mostrando 80 de '+L.length+'.</p>':'')+'</div>';}
 /* lista de itens da curva */
+/* ordenação por coluna (clique no título) */
+const CVO={A:0,B:1,C:2,Z:3},cvEndK=x=>x.rua*1e9+x.pr*1e5+x.nv*1e3+x.ap;
+const CVK={itens:{end:cvEndK,cod:x=>+x.cod||0,desc:x=>x.desc,cur:x=>CVO[x.cur],qa:x=>x.qa,qd:x=>x.qd,apd:x=>x.apd,med:x=>x.med,cap:x=>x.cap,cob:x=>x.cobAt,est:x=>x.est||"",dpt:x=>x.dpt||"",sit:x=>x.mov?x.mov.mot:x.regra||""},
+  mov:{n:m=>m.ord*1e6-m.x.apd,cod:m=>+m.x.cod||0,desc:m=>m.x.desc,val:m=>m.x.custo||0,cur:m=>CVO[m.x.cur],apd:m=>m.x.apd,dpt:m=>m.x.dpt||"",end:m=>cvEndK(m.x),est:m=>m.x.est||"",dest:m=>m.dest,dd:m=>cvDestTxt(m),cob:m=>m.x.cobAt,mot:m=>m.mot},
+  cob:{cod:x=>+x.cod||0,desc:x=>x.desc,end:cvEndK,cur:x=>CVO[x.cur],med:x=>x.med,cap:x=>x.cap,cob:x=>x.cobAt,alvo:x=>x.alvo,sug:x=>x.capSug,est:x=>x.est||""}};
+const CVTH={itens:[["end","Endereço"],["cod","Código"],["desc","Descrição"],["cur","Curva"],["qa","Apanhas"],["qd","Dias"],["apd","Apanhas/dia"],["med","Média/dia"],["cap","Capacidade"],["cob","Cobertura"],["est","Estrutura"],["dpt","Depto."],["sit","Situação"]],
+  mov:[["n","#"],["cod","Código"],["desc","Descrição"],["val","Valor do item"],["cur","Curva"],["apd","Apanhas/dia"],["dpt","Depto."],["end","Origem"],["est","Estrutura"],["dest","Destino (regra)"],["dd","Endereço destino / troca"],["cob","Cobertura"],["mot","Motivo"]],
+  cob:[["cod","Código"],["desc","Descrição"],["end","Endereço"],["cur","Curva"],["med","Média/dia"],["cap","Capacidade atual"],["cob","Cobertura atual"],["alvo","Cobertura alvo"],["sug","Capacidade sugerida"],["est","Estrutura"]]};
+CV.srt={itens:{c:"apd",d:-1},mov:{c:"n",d:1},cob:{c:"apd",d:-1}};CVK.cob.apd=x=>x.apd;
+function cvSortBy(L,t){const s=CV.srt[t],f=s&&CVK[t][s.c];if(!f)return L;return L.slice().sort((a,b)=>{const x=f(a),y=f(b);return (typeof x==="number"&&typeof y==="number"?x-y:String(x).localeCompare(String(y),"pt-BR",{numeric:true}))*s.d;});}
+function cvTh(t){const s=CV.srt[t];return CVTH[t].map(([k,l])=>'<th class="cv-th'+(s&&s.c===k?" on":"")+'" data-cvs="'+t+'|'+k+'" title="Ordenar por '+l+'">'+l+'<i>'+(s&&s.c===k?(s.d>0?"▲":"▼"):"⇅")+'</i></th>').join("");}
 function cvItens(C){const q=norm(CV.iq||"").trim();let L=C.it.filter(x=>(!CV.icur||x.cur===CV.icur)&&(!CV.iest||(CV.iest==="—"?!x.est:x.est===CV.iest))&&(!CV.irua||x.rua===+CV.irua)&&(!q||norm(x.cod+" "+x.desc+" "+cvEnd(x)+" "+x.dpt).includes(q)));
-  const o=CV.ord,sorts={apd:(a,b)=>b.apd-a.apd,cob:(a,b)=>a.cobAt-b.cobAt,end:(a,b)=>a.rua-b.rua||a.pr-b.pr||a.ap-b.ap,desc:(a,b)=>a.desc.localeCompare(b.desc,"pt-BR")};L.sort(sorts[o]||sorts.apd);
+  L=cvSortBy(L,"itens");
   const ruas=[...new Set(C.it.map(x=>x.rua))].sort((a,b)=>a-b),ests=[...new Set(C.it.map(x=>x.est||"—"))];
   return '<div class="cv-tools"><input class="in" type="search" id="cv-iq" placeholder="Código, descrição, endereço ou departamento" value="'+esc(CV.iq)+'" style="max-width:300px">'+
     '<select class="in" id="cv-icur" style="max-width:130px"><option value="">Todas as curvas</option>'+["A","B","C","Z"].map(k=>'<option'+(CV.icur===k?" selected":"")+'>'+k+'</option>').join("")+'</select>'+
     '<select class="in" id="cv-iest" style="max-width:150px"><option value="">Toda estrutura</option>'+ests.map(k=>'<option'+(CV.iest===k?" selected":"")+'>'+esc(k)+'</option>').join("")+'</select>'+
     '<select class="in" id="cv-irua" style="max-width:120px"><option value="">Todas as ruas</option>'+ruas.map(r=>'<option value="'+r+'"'+(String(CV.irua)===String(r)?" selected":"")+'>Rua '+r+'</option>').join("")+'</select>'+
-    '<select class="in" id="cv-iord" style="max-width:190px">'+[["apd","Mais apanhas primeiro"],["cob","Menor cobertura primeiro"],["end","Por endereço"],["desc","Por descrição"]].map(([k,l])=>'<option value="'+k+'"'+(o===k?" selected":"")+'>'+l+'</option>').join("")+'</select>'+
     '<button type="button" class="btn" id="cv-ixls">⬇ Excel dos itens</button></div><p class="note">'+L.length.toLocaleString("pt-BR")+' item(ns) neste filtro.</p>'+
-    '<div class="cv-tw"><table class="cv-t"><thead><tr><th>Endereço</th><th>Código</th><th>Descrição</th><th>Curva</th><th>Apanhas</th><th>Dias</th><th>Apanhas/dia</th><th>Média/dia</th><th>Capacidade</th><th>Cobertura</th><th>Estrutura</th><th>Depto.</th><th>Situação</th></tr></thead><tbody>'+
+    '<div class="cv-tw"><table class="cv-t"><thead><tr>'+cvTh("itens")+'</tr></thead><tbody>'+
     L.slice(0,CV.ipag).map(x=>'<tr><td><b>'+cvEnd(x)+'</b></td><td>'+esc(x.cod)+'</td><td>'+esc(x.desc)+'</td><td><span class="cv-cb" style="background:'+CV_CUR[x.cur]+'">'+x.cur+'</span></td><td class="n">'+cvFmt(x.qa)+'</td><td class="n">'+cvFmt(x.qd)+'</td><td class="n"><b>'+cvFmt(x.apd,1)+'</b></td><td class="n">'+cvFmt(x.med)+'</td><td class="n">'+cvFmt(x.cap)+'</td><td class="n"'+(x.med>0&&x.cap<x.need?' style="color:#B91C1C;font-weight:700"':'')+'>'+cvFmt(x.cobAt,1)+' d</td><td>'+esc(x.est||"—")+'</td><td>'+esc(x.dpt||"—")+'</td><td><small>'+(x.mov?'<b style="color:#7C3AED">→ '+esc(x.mov.dest)+(cvDestTxt(x.mov)?' · '+esc(cvDestTxt(x.mov)):'')+'</b>':esc(x.regra||"—"))+'</small></td></tr>').join("")+'</tbody></table></div>'+
     (L.length>CV.ipag?'<button type="button" class="btn" id="cv-imais" style="width:100%;margin-top:8px">Mostrar mais ('+(L.length-CV.ipag)+')</button>':'');}
 /* transferências e cobertura */
 function cvMovRows(){const C=cvCalc();return C.mov.filter(m=>(!CV.motivo||m.mot===CV.motivo)&&(!CV.filtro||norm(m.x.cod+" "+m.x.desc+" "+cvEnd(m.x)).includes(norm(CV.filtro))));}
-function cvLista(C){const M=cvMovRows(),mots=[...new Set(C.mov.map(m=>m.mot))];
+function cvLista(C){const M=cvSortBy(cvMovRows(),"mov"),mots=[...new Set(C.mov.map(m=>m.mot))];
   return '<div class="cv-tools"><select class="in" id="cv-mot" style="max-width:420px"><option value="">Todos os motivos ('+C.mov.length+')</option>'+mots.map(m=>'<option'+(CV.motivo===m?" selected":"")+'>'+esc(m)+'</option>').join("")+'</select><input class="in" type="search" id="cv-q" placeholder="Código, descrição ou endereço" value="'+esc(CV.filtro)+'" style="max-width:260px">'+
     '<button type="button" class="btn" id="cv-xls">⬇ Excel das transferências</button><button type="button" class="btn" id="cv-prt">Imprimir lista</button></div>'+
     '<p class="note">'+C.trocas+' troca(s) sugerida(s) entre itens que precisam sair (um vai para o lugar do outro) · '+C.livres+' endereço(s) vazio(s) da 8022 sobrando. Sem livre e sem troca: libere espaço na área indicada.</p>'+
-    '<div class="cv-tw"><table class="cv-t"><thead><tr><th>#</th><th>Código</th><th>Descrição</th><th>Valor do item</th><th>Curva</th><th>Apanhas/dia</th><th>Depto.</th><th>Origem</th><th>Estrutura</th><th>Destino (regra)</th><th>Endereço destino / troca</th><th>Cobertura</th><th>Motivo</th></tr></thead><tbody>'+
+    '<div class="cv-tw"><table class="cv-t"><thead><tr>'+cvTh("mov")+'</tr></thead><tbody>'+
     (M.slice(0,400).map((m,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(m.x.cod)+'</td><td>'+esc(m.x.desc)+'</td><td class="n">'+(m.x.custo?BRL.format(m.x.custo):'—')+'</td><td><span class="cv-cb" style="background:'+CV_CUR[m.x.cur]+'">'+m.x.cur+'</span></td><td class="n">'+cvFmt(m.x.apd,1)+'</td><td>'+esc(m.x.dpt||"—")+'</td><td><b>'+cvEnd(m.x)+'</b></td><td>'+esc(m.x.est||"—")+'</td><td>'+esc(m.dest)+'</td><td>'+(m.livre?'<b style="color:#16A34A">'+cvEnd(m.livre)+'</b>'+(m.livre.est?' <small>'+esc(m.livre.est)+'</small>':''):m.troca?'<b style="color:#0369A1">Trocar com '+cvEnd(m.troca)+'</b><br><small>'+esc(m.troca.cod)+' – '+esc(m.troca.desc)+'</small>':'<small style="color:#B45309">sem livre: liberar espaço</small>')+'</td><td class="n">'+cvFmt(m.x.cobAt,1)+' d</td><td><small>'+esc(m.mot)+'</small></td></tr>').join("")||'<tr><td colspan="13" style="text-align:center;padding:16px">Nenhuma transferência sugerida neste filtro.</td></tr>')+'</tbody></table></div>'+(M.length>400?'<p class="note">Mostrando 400 de '+M.length+'. O Excel traz todas.</p>':'');}
-function cvCob(C){const L=C.cap;return '<div class="cv-tools"><button type="button" class="btn" id="cv-xls2">⬇ Excel de ajuste de capacidade</button></div><p class="note">Cobertura alvo: curva A '+CV_REG.cob.A+' dias · curva B '+CV_REG.cob.B+' dias · curva C '+CV_REG.cob.C+' dias. Capacidade sugerida = média diária (QTMEDIA) × dias de cobertura, arredondada para o múltiplo.</p>'+
-  '<div class="cv-tw"><table class="cv-t"><thead><tr><th>Código</th><th>Descrição</th><th>Endereço</th><th>Curva</th><th>Média/dia</th><th>Capacidade atual</th><th>Cobertura atual</th><th>Cobertura alvo</th><th>Capacidade sugerida</th><th>Estrutura</th></tr></thead><tbody>'+
+function cvCob(C){const L=cvSortBy(C.cap,"cob");return '<div class="cv-tools"><button type="button" class="btn" id="cv-xls2">⬇ Excel de ajuste de capacidade</button></div><p class="note">Cobertura alvo: curva A '+CV_REG.cob.A+' dias · curva B '+CV_REG.cob.B+' dias · curva C '+CV_REG.cob.C+' dias. Capacidade sugerida = média diária (QTMEDIA) × dias de cobertura, arredondada para o múltiplo.</p>'+
+  '<div class="cv-tw"><table class="cv-t"><thead><tr>'+cvTh("cob")+'</tr></thead><tbody>'+
   (L.slice(0,400).map(x=>'<tr><td>'+esc(x.cod)+'</td><td>'+esc(x.desc)+'</td><td><b>'+cvEnd(x)+'</b></td><td><span class="cv-cb" style="background:'+CV_CUR[x.cur]+'">'+x.cur+'</span></td><td class="n">'+cvFmt(x.med)+'</td><td class="n">'+cvFmt(x.cap)+'</td><td class="n" style="color:#B91C1C">'+cvFmt(x.cobAt,1)+' d</td><td class="n">'+x.alvo+' d</td><td class="n"><b>'+cvFmt(x.capSug)+'</b></td><td>'+esc(x.est||"—")+'</td></tr>').join("")||'<tr><td colspan="10" style="text-align:center;padding:16px">Todas as capacidades cobrem a meta de dias.</td></tr>')+'</tbody></table></div>';}
 async function cvXlsPronto(){if(!window.XLSX){try{await loadScript(XLSX_URL_LOCAL());}catch(e){toast("Para gerar o Excel é preciso internet na primeira vez.");return false;}}return true;}
 async function cvXls(tipo){if(!await cvXlsPronto())return;const C=cvCalc(),wb=XLSX.utils.book_new();
@@ -5195,7 +5207,7 @@ const CA_PAL=["#E0F2FE","#7DD3FC","#38BDF8","#0284C7","#0C4A6E"];
 function caEscala(vals){const s=vals.filter(x=>x>0).sort((a,b)=>a-b);const q=[.2,.4,.6,.8].map(p=>s[Math.min(s.length-1,Math.floor(p*s.length))]||0);return v=>{const i=v?q.filter(x=>v>x).length:-1;return {bg:i<0?"var(--cv-0)":CA_PAL[i],fg:i>=3?"#fff":"#0F172A"};};}
 function cvAeroDados(){if(CV._ad&&CV._adSrc===CV.aero&&CV._adP===CV.pick)return CV._ad;const L=((CV.aero&&CV.aero.L)||[]).filter(r=>r.rua>0&&r.rua<60&&r.dep===1);const pos={};L.forEach(r=>{pos[r.cod]=(pos[r.cod]||0)+1;});
   const pk={};((CV.pick&&CV.pick.L)||[]).forEach(r=>{if(!pk[r.cod])pk[r.cod]={rua:r.rua,pr:r.pr,cur:cvCurva(r.qd>0?r.qa/r.qd:0),end:cvEnd(r)};});
-  const ruas={},cel={};L.forEach(r=>{const a=r.qa/(pos[r.cod]||1),p=pk[r.cod]||(eByProd.has(r.cod)?(()=>{const pt=E.pt[eByProd.get(r.cod)];return {rua:+pt[0],pr:+pt[1],cur:"",end:pt.map(n=>String(n).padStart(2,"0")).join("-")};})():null);
+  const ruas={},cel={};L.forEach(r=>{const a=r.qa/(pos[r.cod]||1),p=pk[r.cod]||(eByProd.has(r.cod)?(()=>{const pt=E.pt[eByProd.get(r.cod)];return {rua:+pt[0],pr:+pt[1],cur:"",end:pt.map(n=>+n||0).join("-")};})():null);
     let sug="",ok=true;if(p){const d=Math.abs(p.rua-r.rua);if(d>5&&(p.cur==="A"||p.cur==="B")){ok=false;sug="Item de curva "+p.cur+" com picking na rua "+p.rua+" ("+p.end+"), a "+d+" ruas daqui: armazenar mais perto do picking";}else sug=d<=5?"Perto do picking (rua "+p.rua+")":"Picking na rua "+p.rua+" ("+p.end+"), curva "+(p.cur||"—")+": distância aceitável para o giro";}else sug="Sem endereço de picking na 8351/8022";
     const o=Object.assign({a,pk:p,sug,ok},r);const R=ruas[r.rua]=ruas[r.rua]||{rua:r.rua,ap:0,n:0,cods:new Set(),maxPr:0,maxNv:0,pr:{},longe:0};R.ap+=a;R.n++;R.cods.add(r.cod);R.maxPr=Math.max(R.maxPr,r.pr);R.maxNv=Math.max(R.maxNv,r.nv);R.pr[r.pr]=(R.pr[r.pr]||0)+a;if(!ok)R.longe++;
     const k=r.rua+"|"+r.pr+"|"+r.nv,c=cel[k]=cel[k]||{rua:r.rua,pr:r.pr,nv:r.nv,ap:0,n:0,it:[]};c.ap+=a;c.n++;c.it.push(o);});
@@ -5266,7 +5278,7 @@ function cvPaintPick(){const box=$("cv");if(!box)return;const C=CV.pick?cvCalc()
 function cvPaintAero(){const box=$("cva");if(!box)return;const t=CV.atab||"planta";box.innerHTML=cvFonte("aero")+'<div class="cv-tabs">'+[["planta","Planta das ruas"],["3d","Depósito 3D"]].map(([k,l])=>'<button type="button" class="cv-tab'+(t===k?" on":"")+'" data-cvat="'+k+'">'+l+'</button>').join("")+'</div>'+(t==="3d"?'<div id="cva3box"></div>':'<div class="ca-wrap">'+cvMapaAero()+'</div>');cvBind(box);if(t==="3d")cd3Mount($("cva3box"));}
 function cvPaintAll(){if($("v-curva")&&!$("v-curva").hidden)cvPaintPick();if($("v-curvaa")&&!$("v-curvaa").hidden)cvPaintAero();}
 function cvBind(box){const on=(sel,fn)=>box.querySelectorAll(sel).forEach(fn);
-  on("[data-cvgo]",b=>b.onclick=()=>go(b.dataset.cvgo));on("[data-cvrx]",b=>b.onclick=()=>{CV.selRua=null;cvPaintPick();});
+  on("[data-cvgo]",b=>b.onclick=()=>go(b.dataset.cvgo));on("[data-cvs]",th=>th.onclick=()=>{const [t,k]=th.dataset.cvs.split("|"),o=CV.srt[t];CV.srt[t]=o&&o.c===k?{c:k,d:-o.d}:{c:k,d:["desc","est","dpt","sit","dest","dd","mot","end","cod","n"].includes(k)?1:-1};CV.ipag=100;cvPaintPick();});on("[data-cvrx]",b=>b.onclick=()=>{CV.selRua=null;cvPaintPick();});
   on("[data-cvat]",b=>b.onclick=()=>{CV.atab=b.dataset.cvat;cvPaintAero();});
   on("[data-cvdep]",b=>b.onclick=()=>{CV.dep=b.dataset.cvdep;if(CV.dep&&CV.cor!=="dep")CV.cor="dep";cvPaintPick();});
   on("[data-cvw3]",b=>b.onclick=()=>{const [r,p]=b.dataset.cvw3.split("|").map(Number);CV.tab="3d";cvPaintPick();const tr=()=>{if(CV3.mPk&&CV3.o)cd3Entrar(r,p||0);else setTimeout(tr,250);};setTimeout(tr,300);});
@@ -5365,22 +5377,22 @@ function cd3Build(){const T=THREE,S=CV3.scene,lay=cdLayout(),L=CDG.L,D=CDG.D,H=C
   const bx=lay.bx,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-8,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+8,Z0=Math.min(bx.A[2],bx.B[2])-8,Z1=Math.max(bx.A[3],bx.B[3])+8,z25=lay.zBar;
   const plano=(x0,x1,z0,z1,cor,y,op)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),new T.MeshLambertMaterial({color:cor,transparent:op<1,opacity:op}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,y,(z0+z1)/2);G.add(m);return m;};
   plano(X0,X1,Z0,Z1,0xD5DBE3,0,1);["A","B","C"].forEach(b=>plano(bx[b][0]-1.5,bx[b][1]+1.5,bx[b][2]-1.5,bx[b][3]+1.5,0xCBD3DD,0.01,1));
-  plano(-L/2,L/2,bx.A[2]-4,bx.A[3]+4,0xFACC15,0.03,0.6);plano(bx.C[0]-4,bx.B[1]+4,z25-L/2,z25+L/2,0xFACC15,0.035,0.6);
+  plano(-L/2,L/2,bx.A[2]+0.3,bx.A[3]-0.3,0xFACC15,0.03,0.6);plano(bx.C[0]+0.3,bx.B[1]-0.3,z25-L/2,z25+L/2,0xFACC15,0.035,0.6);
   const lnV=(x,z0,z1)=>{const m=new T.Mesh(new T.PlaneGeometry(0.12,z1-z0),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set(x,0.05,(z0+z1)/2);G.add(m);};
   const lnH=(z,x0,x1)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,0.12),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,0.05,z);G.add(m);};
-  lnV(-L/2,bx.A[2]-4,bx.A[3]+4);lnV(L/2,bx.A[2]-4,bx.A[3]+4);lnH(z25-L/2,bx.C[0]-4,bx.B[1]+4);lnH(z25+L/2,bx.C[0]-4,bx.B[1]+4);
+  lnV(-L/2,bx.A[2]+0.3,bx.A[3]-0.3);lnV(L/2,bx.A[2]+0.3,bx.A[3]-0.3);lnH(z25-L/2,bx.C[0]+0.3,bx.B[1]-0.3);lnH(z25+L/2,bx.C[0]+0.3,bx.B[1]-0.3);
   /* racks */
   const ruas=["A","B","C"].flatMap(b=>CD_BL[b].filter(r=>lay.R[r])),up=[],bm=[];
   ruas.forEach(r=>{const o=lay.R[r],f=lay.fr[r],nv=Math.max(2,o.maxNv),alt=nv*H+0.25;[-1,1].forEach(s=>{const off=s*(W/2+D/2);for(let k=1;k<=o.maxPos+1;k++){const u=(k-0.5-o.cor)*L;[-1,1].forEach(fb=>{const of2=off+fb*(D/2-0.05);up.push([f.ox+f.ax*u+f.nx*of2,alt/2,f.oz+f.az*u+f.nz*of2,f.ax?0.11:0.11,alt,0.11]);});}
       const u0=(0.5-o.cor)*L,u1=(o.maxPos+0.5-o.cor)*L,uc=(u0+u1)/2,len=u1-u0;for(let l=1;l<=nv;l++)[-1,1].forEach(fb=>{const of2=off+fb*(D/2-0.03);bm.push([f.ox+f.ax*uc+f.nx*of2,l*H,f.oz+f.az*uc+f.nz*of2,f.ax?len:0.09,0.13,f.ax?0.09:len]);});});
-    const lb=cd3Txt("R"+r,{fs:64,bg:"rgba(16,63,121,.92)",fg:"#fff",size:1.5});const ue=(-o.cor-0.4)*L,ue2=(o.maxPos+1.4-o.cor)*L;lb.position.set(f.ox+f.ax*ue,1.2,f.oz+f.az*ue);G.add(lb);const lb2=lb.clone();lb2.position.set(f.ox+f.ax*ue2,1.2,f.oz+f.az*ue2);G.add(lb2);});
+    const lb=cd3Txt(String(r),{fs:64,bg:"rgba(16,63,121,.92)",fg:"#fff",size:1.5});const ue=(-o.cor-0.4)*L,ue2=(o.maxPos+1.4-o.cor)*L;lb.position.set(f.ox+f.ax*ue,1.2,f.oz+f.az*ue);G.add(lb);const lb2=lb.clone();lb2.position.set(f.ox+f.ax*ue2,1.2,f.oz+f.az*ue2);G.add(lb2);});
   const mUp=new T.InstancedMesh(box,new T.MeshLambertMaterial({color:0x1E3A8A}),up.length);up.forEach((a,i)=>{put(mUp,i,a[0],a[1],a[2],a[3],a[4],a[5]);});G.add(mUp);
   const mBm=new T.InstancedMesh(box,new T.MeshLambertMaterial({color:0xF97316,emissive:0x7C2D12,emissiveIntensity:0.25}),bm.length);bm.forEach((a,i)=>{put(mBm,i,a[0],a[1],a[2],a[3],a[4],a[5]);});G.add(mBm);
   /* paletes: picking (nível 1) e aéreo (níveis 2+) */
   const C=CV.pick?cvCalc():null,PK=C?C.it.filter(x=>lay.fr[x.rua]):[],AD=CV.aero?cvAeroDados():null,AE=AD?Object.values(AD.cel).flatMap(c=>c.it).filter(x=>lay.fr[x.rua]):[];
   const nAp={};[PK,AE].forEach(arr=>arr.forEach(x=>{const lv=Math.max(1,x.nv),k=x.rua+"|"+x.pr+"|"+lv;(nAp[k]=nAp[k]||[]).push(x.ap);}));Object.values(nAp).forEach(a=>a.sort((p,q)=>p-q));
-  const geo=(x)=>{const sl=lay.slot(x.rua,x.pr);if(!sl)return null;const lv=Math.max(1,x.nv),aps=nAp[x.rua+"|"+x.pr+"|"+lv],n=new Set(aps).size,i=[...new Set(aps)].indexOf(x.ap),w=L*0.92/n,f=sl.f;
-    const u=sl.u+(-L*0.46+w*(i+0.5)),h=H*(lv===1?0.82:0.74),y=(lv-1)*H+(lv===1?0.02:0.13)+h/2,d=D*0.88;return {x:f.ox+f.ax*u+f.nx*sl.off,y,z:f.oz+f.az*u+f.nz*sl.off,sx:f.ax?w-0.06:d,sy:h,sz:f.ax?d:w-0.06,sl};};
+  const geo=(x)=>{const sl=lay.slot(x.rua,x.pr);if(!sl)return null;const lv=Math.max(1,x.nv),aps=nAp[x.rua+"|"+x.pr+"|"+lv],n=new Set(aps).size,i=[...new Set(aps)].indexOf(x.ap),cp=(lay.R[x.rua].comp||1),w=L*0.92*cp/n,f=sl.f;
+    const u=sl.u+(-L*0.46*cp+w*(i+0.5)),h=H*(lv===1?0.82:0.74),y=(lv-1)*H+(lv===1?0.02:0.13)+h/2,d=D*0.88;return {x:f.ox+f.ax*u+f.nx*sl.off,y,z:f.oz+f.az*u+f.nz*sl.off,sx:f.ax?w-0.06:d,sy:h,sz:f.ax?d:w-0.06,sl};};
   const mk=(arr,mat)=>{const g=arr.map(geo),ok=[];g.forEach((v,i)=>{if(v)ok.push([arr[i],v]);});const m=new T.InstancedMesh(box,mat,Math.max(1,ok.length));ok.forEach(([,v],i)=>put(m,i,v.x,v.y,v.z,v.sx,v.sy,v.sz));m.count=ok.length;m.userData.it=ok.map(a=>a[0]);m.userData.g=ok.map(a=>a[1]);
     m.instanceColor=new T.InstancedBufferAttribute(new Float32Array(Math.max(1,ok.length)*3),3);G.add(m);return m;};
   CV3.mPk=mk(PK,new T.MeshLambertMaterial({color:0xffffff}));CV3.mAe=mk(AE,new T.MeshLambertMaterial({color:0xffffff}));
@@ -5536,8 +5548,10 @@ async function curvaAeroAbrir(){await cvLoad();cvPaintAero();}
 @media (max-width:900px){.cv-mw{grid-template-columns:1fr}.cv-det{position:static;max-height:none}}
 @media (max-width:700px){.cv-bar{grid-template-columns:54px 1fr 64px}.cv-bar small{display:none}.cv-leg{margin-left:0}}
 .cv-plw{border:1px solid var(--line);border-radius:12px;background:#EEF2F6;padding:4px}.cv-plan{display:block;width:100%;height:auto;background:#EEF2F6;border-radius:10px}.cv-out .cv-blk{min-width:0}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
-.cv-plan .cv-pa{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:.12;cursor:pointer}.cv-plan .cv-pa.on{fill:#DBEAFE;stroke:#2563EB}.cv-plan .cv-pa:hover{fill:#EFF6FF}
+.cv-plan .cv-pa{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:.12;cursor:pointer}.cv-plan .cv-pa.on{fill:#DBEAFE;stroke:#2563EB}.cv-plan .cv-pa:hover{fill:#EFF6FF}
 .cv-plan .cv-hov{pointer-events:none;transform-box:fill-box;transform-origin:center;transform:scale(2.1);stroke:#0F172A;stroke-width:.14;filter:drop-shadow(0 .3px .6px rgba(15,23,42,.45));animation:cvhov .12s ease-out}@keyframes cvhov{from{transform:scale(1)}to{transform:scale(2.1)}}
+.cv-th{cursor:pointer;user-select:none}.cv-th i{font-style:normal;opacity:.55;margin-left:4px;font-size:.7em}.cv-th.on i{opacity:1}.cv-th:hover{background:#1E4E8C}
+.cv-plan .cv-pl{stroke:#E2E8F0;stroke-width:.1;stroke-dasharray:.6 .5}
 .cv-plan .cv-prl{font:800 1.9px Inter,system-ui,sans-serif;fill:#475569;cursor:pointer}.cv-plan .cv-prl:hover,.cv-plan .cv-prl.on{fill:#2563EB}
 .cv-plan .cv-c{transform:none!important;outline:none!important;cursor:pointer;stroke:transparent;stroke-width:.25}.cv-plan .cv-c:hover{stroke:#0F172A}.cv-plan .cv-c.sel{stroke:#0F172A;stroke-width:.45}.cv-plan .cv-c.dim{opacity:.16}.cv-plan .cv-c.hit{stroke:#2563EB;stroke-width:.35}
 .cd3-main{display:block}.cd3-view{height:78vh;min-height:460px}
