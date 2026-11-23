@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 72)
+ * Auditoria STA – Santa Therezinha (versão 73)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -654,7 +654,7 @@ function doPost(e) {
       let erro = '';
       if (!cfg) erro = 'Tipo de auditoria desconhecido: ' + aba + '. Atualize o Apps Script.';
       else if (!ehAdm && ![].concat(cfg.perm).some(function (pp) { return sessao.permissoes.indexOf(pp) >= 0; })) erro = 'A matrícula ' + sessao.matricula + ' não tem a permissão ' + [].concat(cfg.perm).join(' ou ') + ' na aba Permissionamento.';
-      if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); if (aba === 'ncaud') { try { atualizarResumoNC(ss); } catch (e2) {} } } catch (e) { erro = String(e && e.message || e); } }
+      if (!erro) { try { adicionados += gravar(ss, cfg, grupos[aba]); if (aba === 'ncaud') { try { ncaudGestorPlanilha(ss); atualizarResumoNC(ss); } catch (e2) {} } } catch (e) { erro = String(e && e.message || e); } }
       if (erro) grupos[aba].forEach(function (r) { rejeitados.push({ id: r && r.ID_Auditoria, aba: aba, erro: erro }); });
     }
     return resposta({ ok: true, adicionados: adicionados, rejeitados: rejeitados });
@@ -704,7 +704,7 @@ function doGet(e) {
         chep: !(tem('aud_chp') || tem('aud_com')) ? vazio : lerTab(ABA_CHEP, COLS_CHEP),
         sobras: s.permissoes.indexOf('aud_adm') < 0 ? [] : lerSobras(ss),
         spkh: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0 || s.permissoes.indexOf('aud_spk') >= 0) ? lerAba(ss, ABAS.spkh.nome, ABAS.spkh.colunas) : vazio,
-        ncaud: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas) : vazio,
+        ncaud: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? ncaudGestorLeitura(lerAba(ss, ABAS.ncaud.nome, ABAS.ncaud.colunas)) : vazio,
         feedback: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? lerAba(ss, ABAS.feedback.nome, ABAS.feedback.colunas) : vazio,
         ncaudExcl: (s.permissoes.indexOf('aud_adm') >= 0 || s.permissoes.indexOf('ce_gest') >= 0) ? ncaudExcluidas(ss) : [],
         quadro: lerQuadro(ss)
@@ -716,7 +716,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 72, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 73, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -917,7 +917,21 @@ function abrirPlanilha() {
   return SpreadsheetApp.openById(SHEET_ID);
 }
 
+/* Toda NC dos auditores sai no nome do gestor MATEUS CARDOSO PEREIRA (10002001) */
+const NC_GESTOR = { mat: '10002001', nome: 'MATEUS CARDOSO PEREIRA' };
+function ncaudGestorPlanilha(ss) {
+  const sh = ss.getSheetByName(ABAS.ncaud.nome); if (!sh || sh.getLastRow() < 2) return;
+  const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), n = sh.getLastRow() - 1;
+  const im = cab.indexOf('Matricula_Auditor'), inn = cab.indexOf('Nome_Auditor');
+  if (im >= 0) { const r = sh.getRange(2, im + 1, n, 1); r.setNumberFormat('@'); r.setValues(Array.from({ length: n }, function () { return [NC_GESTOR.mat]; })); }
+  if (inn >= 0) sh.getRange(2, inn + 1, n, 1).setValues(Array.from({ length: n }, function () { return [NC_GESTOR.nome]; }));
+}
+function ncaudGestorLeitura(b) {
+  if (!b || !b.colunas) return b; const im = b.colunas.indexOf('Matricula_Auditor'), inn = b.colunas.indexOf('Nome_Auditor');
+  (b.registros || []).forEach(function (r) { if (im >= 0) r[im] = NC_GESTOR.mat; if (inn >= 0) r[inn] = NC_GESTOR.nome; }); return b;
+}
 function gravar(ss, cfg, registros) {
+  if (cfg === ABAS.ncaud) (registros || []).forEach(function (r) { if (r && typeof r === 'object' && !Array.isArray(r)) { r.Matricula_Auditor = NC_GESTOR.mat; r.Nome_Auditor = NC_GESTOR.nome; } });
   const sh = ss.getSheetByName(cfg.nome) || ss.insertSheet(cfg.nome);
   if (sh.getLastRow() === 0) sh.appendRow(cfg.colunas);
   const cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);

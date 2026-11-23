@@ -3893,7 +3893,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v173</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v174</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3982,7 +3982,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v173</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v174</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -4476,7 +4476,8 @@ function ncaDoc(r){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v===""||
 function ncaAbrir(r){openDoc({html:ncaDoc(r),multi:false,name:"NC_Auditor_"+r.ID_Auditoria+".pdf",title:"NC do auditor "+r.ID_Auditoria,short:"NC do auditor – "+r.Nome_Colaborador,text:"*NÃO CONFORMIDADE DO AUDITOR*\n"+r.Nome_Colaborador+"\n"+r.Tipo+(r.Meta?" – "+r.Meta:"")});}
 /* NCs apagadas pelo gestor (planilha + este aparelho): não voltam nem são geradas de novo */
 function ncaExcl(){const S=new Set((FECH.dados&&FECH.dados.ncaudExcl)||[]);try{(store.get("audcd_nca_excl",[])||[]).forEach(x=>S.add(String(x)));}catch(e){}return S;}
-function ncaLista(){const X=ncaExcl(),s=fxRows(FECH.dados&&FECH.dados.ncaud),ids=new Set(s.map(r=>r.ID_Auditoria));return s.concat(allRecs().filter(r=>r._aba==="ncaud"&&!ids.has(r.ID_Auditoria))).filter(r=>!X.has(String(r.ID_Auditoria))).sort((a,b)=>(b.ts||0)-(a.ts||0));}
+const NC_GESTOR={mat:"10002001",nome:"MATEUS CARDOSO PEREIRA"},ncaGest=r=>Object.assign({},r,{Matricula_Auditor:NC_GESTOR.mat,Nome_Auditor:NC_GESTOR.nome});
+function ncaLista(){const X=ncaExcl(),s=fxRows(FECH.dados&&FECH.dados.ncaud),ids=new Set(s.map(r=>r.ID_Auditoria));return s.concat(allRecs().filter(r=>r._aba==="ncaud"&&!ids.has(r.ID_Auditoria))).filter(r=>!X.has(String(r.ID_Auditoria))).map(ncaGest).sort((a,b)=>(b.ts||0)-(a.ts||0));}
 async function ncaExcluir(r){const ID=String(r.ID_Auditoria);
   const mot=prompt("Apagar a não conformidade "+ID+" de "+gmTitulo(r.Nome_Colaborador||"")+" ("+(r.Tipo||"")+")?\n\nEla sai do app e da aba NC_Auditores (fica registrada em NC_Auditores_Excluidas) e não é gerada de novo. Não dá para desfazer.\n\nMotivo da exclusão:","");
   if(mot===null)return;if(!mot.trim()){toast("Informe o motivo para apagar.");return;}
@@ -4516,7 +4517,7 @@ function paintNCA(){const box=$("gm-nc");if(!box)return;gmPrep(paintNCA);
   box.querySelectorAll("[data-ncp]").forEach(b=>b.onclick=()=>ncaAbrir(H[+b.dataset.ncp]));box.querySelectorAll("[data-ncx]").forEach(b=>b.onclick=()=>ncaExcluir(H[+b.dataset.ncx]));{const ev=$("nca-env");ncaVersao();if(ev)ev.onclick=async()=>{if(!DEMO&&!(LOGIN&&LOGIN.token)){toast("Entre de novo com matrícula e senha para enviar.");mostrarLogin();return;}ev.disabled=true;ev.textContent="Enviando…";lastSheetErr="";let w=0;while(syncing&&w++<60)await new Promise(r=>setTimeout(r,500));const n=await sheetSync();await ncaStatusPend();toast(n?n+" registro(s) enviados à planilha.":(lastSheetErr?"Não enviou: "+lastSheetErr:"Nada pendente para enviar."));paintNCA();};}ncaAlertaBind(box);ncaAlertas();
   f.onsubmit=async e=>{e.preventDefault();const [mat,nome]=(sel.value||"|").split("|");if(!nome){toast("Escolha o colaborador.");return;}const RR=GM.ncR||R,m=tp.value==="Meta não atingida"&&mt.value&&RR?RR.M[mt.value]:null;
     let mv="",rv="",pc="";if(m){const x=RR.L.find(y=>y.mat===mat||gmNk(y.nome)===gmNk(nome));const r=x?gmInd(RR,x,m.k):null;if(r){mv=m.k==="vld"?r.meta+" itens com prazo":gmFmt(m,r.meta);rv=m.k==="vld"?(r.real||0)+" no prazo":gmFmt(m,r.real);pc=r.pct==null?"":Math.round(r.pct*100)+"%";}}
-    const now=new Date(),rec={_aba:"ncaud",ID_Auditoria:newId("NCA"),Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:meuMat(),Nome_Auditor:nomeAud(),Matricula_Colaborador:mat,Nome_Colaborador:nome,Tipo:tp.value,
+    const now=new Date(),rec={_aba:"ncaud",ID_Auditoria:newId("NCA"),Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:NC_GESTOR.mat,Nome_Auditor:NC_GESTOR.nome,Matricula_Colaborador:mat,Nome_Colaborador:nome,Tipo:tp.value,
       Meta:m?m.t:"",Periodo:m?RR.P.lab:"",Meta_Valor:mv,Realizado:rv,Percentual:pc,Descricao:$("nca-d").value.trim(),Medida:$("nca-me").value,Prazo:$("nca-p").value,Status:"Aberta"};
     await saveRec(rec);setTimeout(()=>{const h=HIST.get(rec.ID_Auditoria);toast(h&&h._sheet===SHEET_URL?"Não conformidade salva na planilha (aba NC_Auditores).":"Não conformidade registrada no aparelho"+(lastSheetErr?" — a planilha não recebeu: "+lastSheetErr:"; enviando à planilha…"));if(!$("v-ncaud").hidden)paintNCA();},4000);toast("Não conformidade registrada. Enviando à planilha…");GM.ncR=null;paintNCA();ncaAbrir(rec);};}
 
@@ -4599,7 +4600,7 @@ async function ncaGerarAuto(){if(GM.autoBusy||!gPerm("ce_gest")||!FECH.fresh||DE
     const R=gmCalc(P);Object.values(R.M).forEach(m=>{m.rit=1;});const wk=new Date(P.de),wkS=wk.getFullYear()+String(wk.getMonth()+1).padStart(2,"0")+String(wk.getDate()).padStart(2,"0");
     const ex=new Set(ncaTodas().map(r=>String(r.ID_Auditoria)));ncaExcl().forEach(x=>ex.add(x));const seg=ncaSeg(P);let n=0;
     for(const x of R.L){const F=ncaFalhas(R,x);if(!F.length)continue;const id="NCA-A"+wkS+"-"+(x.mat||gmNk(x.nome).replace(/ /g,""));if(ex.has(id))continue;const now=new Date();
-      await saveRec({_aba:"ncaud",ID_Auditoria:id,Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:meuMat(),Nome_Auditor:"Sistema (automático) · "+nomeAud(),Matricula_Colaborador:x.mat,Nome_Colaborador:x.nome,Tipo:NCA_TIPO_META,
+      await saveRec({_aba:"ncaud",ID_Auditoria:id,Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:NC_GESTOR.mat,Nome_Auditor:NC_GESTOR.nome,Matricula_Colaborador:x.mat,Nome_Colaborador:x.nome,Tipo:NCA_TIPO_META,
         Meta:F.map(f=>f.m.t).join(" · "),Periodo:P.lab,Meta_Valor:F.map(f=>f.m.k==="vld"?f.meta+" itens":gmFmt(f.m,f.meta)).join(" · "),Realizado:F.map(f=>f.m.k==="vld"?f.real+" itens":gmFmt(f.m,f.real)).join(" · "),Percentual:F.map(f=>Math.round(f.pct*100)+"%").join(" · "),
         Descricao:"Gerada automaticamente no fechamento da semana ("+P.lab+"). O colaborador não atingiu o resultado esperado até sexta-feira: "+F.map(f=>f.txt).join("; ")+". Orientação: "+F.map(f=>GM_DICA[f.k]).filter(Boolean).join(" "),
         Medida:"Orientação e plano de ação",Prazo:seg.toISOString().slice(0,10),Status:"Pendente de aplicação",Origem:"Automática",Chave:id});n++;}
@@ -4650,7 +4651,7 @@ function ncaAdvDoc(c,rec){const row=(k,v)=>'<tr><td class="k">'+k+'</td><td>'+(v
     '<p class="decl">A aplicação da medida disciplinar cabe ao RH, observando a proporcionalidade, a imediatidade e o histórico do colaborador. Este documento registra o histórico de desempenho e não substitui a advertência formal.</p>'+
     '<div class="sg sg2"><div><b>Gestor solicitante</b>'+esc(nomeAud())+'<small>Data: ____/____/______</small></div><div><b>Recebido pelo RH</b>&nbsp;<small>Data: ____/____/______</small></div></div></div>';}
 async function ncaSolicitarAdv(c){if(!confirm("Registrar a solicitação de advertência de "+gmTitulo(c.nome)+" ("+c.novas.length+" NCs por baixa produtividade) e imprimir o documento para o RH?"))return;
-  const now=new Date(),rec={_aba:"ncaud",ID_Auditoria:newId("ADV"),Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:meuMat(),Nome_Auditor:nomeAud(),Matricula_Colaborador:c.mat||"",Nome_Colaborador:c.nome,Tipo:NCA_TIPO_ADV,
+  const now=new Date(),rec={_aba:"ncaud",ID_Auditoria:newId("ADV"),Data:fdISO(todayISO()),DataHora:fmtDT(now),ts:now.getTime(),Matricula_Auditor:NC_GESTOR.mat,Nome_Auditor:NC_GESTOR.nome,Matricula_Colaborador:c.mat||"",Nome_Colaborador:c.nome,Tipo:NCA_TIPO_ADV,
     Meta:"",Periodo:c.novas.map(r=>r.Periodo).join(" · "),Descricao:"Reincidência por baixa produtividade. NCs: "+c.novas.map(r=>r.ID_Auditoria).join(", "),Medida:"Solicitação de advertência ao RH",Status:"Solicitada",Origem:"Alerta automático",Chave:c.novas.map(r=>r.ID_Auditoria).join(",")};
   await saveRec(rec);openDoc({html:ncaAdvDoc(c,rec),multi:false,name:"Solicitacao_Advertencia_"+(c.mat||"")+".pdf",title:"Solicitação de advertência",short:"Solicitação de advertência – "+c.nome,text:"*SOLICITAÇÃO DE ADVERTÊNCIA*\n"+c.nome});ncaAlertas();paintNCA();}
 /* bloco de alertas na tela de NC dos auditores */
@@ -4874,7 +4875,7 @@ function hmNews(){const box=$("hm-news"),tk=$("hm-tick");if(!box)return;const L=
   car.addEventListener("pointerdown",auto);auto();if(HM.i)setTimeout(()=>ir(HM.i),30);}
 function hmContar(el){const fim=+el.dataset.n||0,t0=performance.now();const f=t=>{const p=Math.min(1,(t-t0)/700);el.textContent=Math.round(fim*(1-Math.pow(1-p,3))).toLocaleString("pt-BR");if(p<1)requestAnimationFrame(f);};requestAnimationFrame(f);}
 /* aviso para gestores/ADM: o link do app ainda roda um Apps Script antigo */
-const GS_MIN=71;
+const GS_MIN=73;
 async function gsAviso(){if(DEMO||!SHEET_URL||!(ehAdm()||gPerm("ce_gest"))||!navigator.onLine)return;try{if(!GM.gsv||Date.now()-GM.gsvT>3e5){const j=await sheetVer(SHEET_URL);GM.gsv=j?(+j.versao||0):null;GM.gsvT=Date.now();}}catch(e){return;}
   const box=$("home");if(!box||GM.gsv==null||GM.gsv>=GS_MIN||$("gs-av"))return;
   box.insertAdjacentHTML("afterbegin",'<div id="gs-av" class="hm-card" style="border:1px solid #FCA5A5;background:#FEF2F2;color:#7F1D1D;margin-bottom:12px;text-align:left;padding:12px 14px"><b>Apps Script desatualizado: o link do app roda a versão '+GM.gsv+' e precisa da '+GS_MIN+'.</b><small style="display:block;margin-top:4px">Enquanto isso, NC dos auditores, exclusões e acessos novos não chegam à planilha. No editor do Apps Script: cole o código novo, salve e vá em Implantar → Gerenciar implantações → escolha a implantação com ID terminado em <b>'+esc(sheetIdCurto(SHEET_URL))+'</b> → lápis → Versão: Nova versão → Implantar.</small></div>');}
@@ -5086,10 +5087,15 @@ function cdLayout(){const key=(CV.pick?CV.pick.em:"")+"|"+(CV.aero?CV.aero.em:""
   ["A","B","C"].forEach(b=>{const rs=CD_BL[b].filter(r=>R[r]),ant=Math.max(1,pct(rs.map(r=>R[r].cor-1),0.85)),dep=Math.max(1,pct(rs.map(r=>R[r].maxPos-R[r].cor),0.85));lay.bl[b]={rs,ant,dep};
     /* rua fora do padrão (ex.: numeração maior que as vizinhas): comprime para caber no mesmo comprimento do bloco */
     rs.forEach(r=>{const o=R[r],e=Math.min(1,ant/Math.max(1,o.cor-1),dep/Math.max(1,o.maxPos-o.cor));if(e<1){const p0=o.pos,c=o.cor;o.pos=pr=>c+Math.round((p0(pr)-c)*e);o.maxPos=c+dep;o.comp=e;}});});
-  const nA=CD_BL.A.length;CD_BL.A.forEach((r,i)=>{lay.fr[r]={ox:0,oz:CDG.HALL/2+P*(nA-i)-P/2,ax:1,az:0,nx:0,nz:1,b:"A"};});
-  const BC=CD_BL.B.concat(CD_BL.C),depBC=Math.max(lay.bl.B.dep,lay.bl.C.dep),antBC=Math.max(lay.bl.B.ant,lay.bl.C.ant),zBar=-CDG.HALL/2-(depBC+0.5)*L;
-  BC.forEach((r,j)=>{lay.fr[r]={ox:(j-(BC.length-1)/2)*P,oz:zBar,ax:0,az:1,nx:1,nz:0,b:cdBloco(r)};});
-  lay.zBar=zBar;lay.antBC=antBC;lay.depBC=depBC;lay.xBar=(BC.length/2)*P;lay.zA1=CDG.HALL/2+P*nA;
+  const nA=CD_BL.A.length,xA=(lay.bl.A.ant+0.5)*L,xA2=(lay.bl.A.dep+0.5)*L,GAP=7;
+  CD_BL.A.forEach((r,i)=>{lay.fr[r]={ox:0,oz:P*i+P/2,ax:1,az:0,nx:0,nz:1,b:"A"};});
+  const z25=lay.fr[25].oz,depBC=Math.max(lay.bl.B.dep,lay.bl.C.dep),antBC=Math.max(lay.bl.B.ant,lay.bl.C.ant),nB=CD_BL.B.length,nC=CD_BL.C.length;
+  /* bloco B à direita e C à esquerda; o corredor dos dois passa pela rua 25 (liga os dois lados atravessando o bloco A) */
+  CD_BL.B.forEach((r,j)=>{lay.fr[r]={ox:xA2+GAP+P/2+j*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"B"};});
+  CD_BL.C.forEach((r,j)=>{lay.fr[r]={ox:-xA-GAP-P/2-(nC-1-j)*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"C"};});
+  const zb0=z25-(antBC+0.5)*L,zb1=z25+(depBC+0.5)*L;
+  lay.bx={A:[-xA-0.5,xA2+0.5,0,nA*P],B:[xA2+GAP,xA2+GAP+nB*P,zb0,zb1],C:[-xA-GAP-nC*P,-xA-GAP,zb0,zb1]};
+  lay.zBar=z25;lay.antBC=antBC;lay.depBC=depBC;
   lay.slot=(r,pr)=>{const o=R[r],f=lay.fr[r];if(!o||!f)return null;const k=o.pos(pr),s=o.lado(pr),u=(k-o.cor)*L,off=s*(CDG.W/2+CDG.D/2);return {k,s,u,off,x:f.ox+f.ax*u+f.nx*off,z:f.oz+f.az*u+f.nz*off,f};};
   CV._lay=lay;CV._layK=key;return lay;}
 function cvGrid(cells,corDe,opt){const lay=cdLayout(),by={};cells.forEach(c=>{by[c.rua+"|"+c.pr]=c;});const ruasC=new Set(cells.map(c=>c.rua));
@@ -5098,12 +5104,23 @@ function cvGrid(cells,corDe,opt){const lay=cdLayout(),by={};cells.forEach(c=>{by
     for(let p=1;p<=o.maxPr;p++){const c=by[r+"|"+p];if(!c)continue;const col=comCor?o.pos(p)-o.cor+c0:o.pos(p)-1;if(col<0||col>=cols)continue;ln[o.lado(p)][col]=cel(c,r,p);}
     const lane=s=>'<div class="cv-ln">'+ln[s].map((h,i)=>h||(comCor&&i===c0?'<i class="cv-cor"></i>':'<i class="cv-nx"></i>')).join("")+'</div>';
     return '<div class="cv-rr'+(opt.rua===r?" on":"")+'"><button type="button" class="cv-rl" data-cvrua="'+r+'" title="Ver a rua '+r+'">R'+r+'<small>ímpar<br>par</small></button>'+lane(-1)+lane(1)+'</div>';};
-  let h='<div class="cv-hm" style="--cz:'+opt.zoom+'px" data-grid="'+opt.id+'">';
+  let h='<div class="cv-hm" style="--cz:'+opt.zoom+'px" data-grid="pick">';
   [["A","Bloco A · ruas 2 a 31 · corredor central vertical"],["B","Bloco B · ruas 32 a 40 · corredor horizontal"],["C","Bloco C · ruas 41 a 49 · corredor horizontal"]].forEach(([b,t])=>{const B=lay.bl[b],rs=CD_BL[b].filter(r=>ruasC.has(r));if(!rs.length)return;
     const cols=B.ant+1+B.dep,c0=B.ant;h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>'+t+'</b></div><div class="cv-rr cv-rul"><span></span><div class="cv-ln">'+Array.from({length:cols},(_,i)=>i===c0?'<i class="cv-corh">▼</i>':'<i class="cv-nx"></i>').join("")+'</div></div>'+
       (b==="A"?rs.slice().reverse():rs).map(r=>rua(r,cols,c0,true)).join("")+'</div>';});
   const out=[...ruasC].filter(r=>!cdBloco(r)).sort((a,b)=>a-b);if(out.length){const cols=Math.max(...out.map(r=>lay.R[r]?lay.R[r].maxPos:1));h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>Outras ruas</b> <small>fora dos blocos A, B e C</small></div>'+out.map(r=>rua(r,cols,0,false)).join("")+'</div>';}
   return h+'</div>';}
+/* planta 2D no mesmo desenho do 3D (T: bloco A no centro, B à direita, C à esquerda, corredor pela rua 25) */
+function cvPlan(cells,corDe,opt){const lay=cdLayout(),L=CDG.L,D=CDG.D,bx=lay.bx,z25=lay.zBar,X0=Math.min(bx.A[0],bx.C[0])-6,X1=Math.max(bx.A[1],bx.B[1])+6,Z0=Math.min(bx.A[2],bx.B[2])-10,Z1=Math.max(bx.A[3],bx.B[3])+4,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100;
+  let h='<svg class="cv-plan" data-vw="'+f2(VW)+'" viewBox="'+f2(X0)+' '+f2(Z0)+' '+f2(VW)+' '+f2(VH)+'" width="'+Math.round(VW*opt.zoom/L*0.8)+'" xmlns="http://www.w3.org/2000/svg">';
+  ["A","B","C"].forEach(b=>{const q=bx[b];h+='<rect x="'+f2(q[0]-1.5)+'" y="'+f2(q[2]-1.5)+'" width="'+f2(q[1]-q[0]+3)+'" height="'+f2(q[3]-q[2]+3)+'" rx="2" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(q[2]-4)+'" class="cv-pt">BLOCO '+b+'</text>';});
+  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2]-3)+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.C[0]-3)+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.B[1]-bx.C[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
+  ["A","B","C"].forEach(b=>CD_BL[b].forEach(r=>{const f=lay.fr[r],o=lay.R[r];if(!f||!o)return;const sel=opt.rua===r?" on":"";
+    if(f.ax)h+='<text x="'+f2(bx.A[0]-1)+'" y="'+f2(f.oz+0.55)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';
+    else h+='<text x="'+f2(f.ox)+'" y="'+f2(bx[b][2]-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}));
+  cells.forEach(c=>{const sl=lay.slot(c.rua,c.pr);if(!sl)return;const f=sl.f,w=f.ax?L*0.86:D*0.9,hh=f.ax?D*0.9:L*0.86,k=c.rua+"|"+c.pr;
+    h+='<rect x="'+f2(sl.x-w/2)+'" y="'+f2(sl.z-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
+  return h+'</svg>';}
 function cvZoom(k){return '<label class="cv-zoom"><span>Tamanho</span><input type="range" min="12" max="34" step="2" value="'+CV[k]+'" data-cvzoom="'+k+'"></label>';}
 function cvPickCells(C){const g={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const k=x.rua+"|"+x.pr,o=g[k]=g[k]||{rua:x.rua,pr:x.pr,apd:0,n:0,cur:{A:0,B:0,C:0},est:{},dp:{},it:[],mov:0};o.apd+=x.apd;o.n++;o.cur[x.cur]++;if(x.est)o.est[x.est]=(o.est[x.est]||0)+1;o.dp[x.dpt||""]=(o.dp[x.dpt||""]||0)+1+x.apd;if(x.mov)o.mov++;o.it.push(x);});return g;}
 function cvDeps(){const s={};const C=CV.pick?cvCalc():null;if(C)C.it.forEach(x=>{if(x.dpt)s[x.dpt]=(s[x.dpt]||0)+1;});return Object.entries(s).sort((a,b)=>b[1]-a[1]).map(x=>x[0]);}
@@ -5117,7 +5134,7 @@ function cvMapaPick(C){const g=cvPickCells(C);CV._gp=g;const cells=Object.values
   return '<div class="cv-tools"><span>Cor por</span>'+[["apd","Apanhas por dia"],["cur","Curva ABC"],["est","Estrutura"],["dep","Departamento"],["mov","Transferências"]].map(([k,l])=>'<button type="button" class="cv-chip'+(CV.cor===k?" on":"")+'" data-cvcor="'+k+'">'+l+'</button>').join("")+
     '<span style="margin-left:8px">Mostrar</span>'+["A","B","C"].map(k=>'<button type="button" class="cv-chip cv-cc'+(CV.cur[k]?" on":"")+'" style="--cc:'+CV_CUR[k]+'" data-cvcur="'+k+'">Curva '+k+'</button>').join("")+'</div>'+cvDepChips(dep,"data-cvdep")+
     '<div class="cv-tools"><input class="in" type="search" id="cv-mq" placeholder="Achar item no mapa: código ou descrição" value="'+esc(CV.q)+'" style="max-width:340px">'+(hit?'<small class="note" style="margin:0">'+nh+' prédio(s) encontrados</small>':'')+cvZoom("zoom")+'<div class="cv-leg">'+leg+'</div></div>'+
-    '<div class="cv-mw"><div>'+cvGrid(cells,cor,{id:"pick",zoom:CV.zoom,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'<p class="note">Cada rua tem duas linhas: em cima o lado ímpar, embaixo o lado par. A faixa amarela é o corredor. Passe o mouse para ver o item; toque para abrir o detalhe.</p></div>'+
+    '<div class="cv-mw"><div><div class="cv-hm" data-grid="pick">'+cvPlan(cells,cor,{zoom:CV.zoom,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:CV.zoom,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Mesmo desenho do Depósito 3D: bloco A no centro (rua 2 no alto até a 31), bloco B à direita, bloco C à esquerda, e o corredor que liga os dois pela rua 25. Cada rua tem o lado ímpar de um lado e o par do outro. Passe o mouse para ver o item; toque para abrir o detalhe.</p></div>'+
     '<aside class="cv-det" id="cv-det">'+cvDetPick(g)+'</aside></div>'+
     '<div class="block" style="margin-top:12px"><h3>Ruas com mais apanhas por dia</h3>'+rk.map(([r,o])=>'<button type="button" class="cv-bar" data-cvrua="'+r+'"><span>Rua '+r+'</span><div><i style="width:'+Math.max(2,o.apd/rmx*100)+'%"></i></div><b>'+cvFmt(o.apd,0)+'/dia</b><small>'+o.A+' item(ns) A · '+o.n+' end.</small></button>').join("")+'</div>';}
 function cvDetPick(g){let L=[],tit="",wr=0,wp=0;if(CV.sel&&g[CV.sel]){const c=g[CV.sel];L=c.it;tit="Rua "+c.rua+" · prédio "+c.pr;wr=c.rua;wp=c.pr;}else if(CV.selRua){L=Object.values(g).filter(c=>c.rua===CV.selRua).flatMap(c=>c.it);tit="Rua "+CV.selRua+" inteira";wr=CV.selRua;}
@@ -5240,7 +5257,7 @@ function cvPaintPick(){const box=$("cv");if(!box)return;const C=CV.pick?cvCalc()
   else if(CV.tab==="3d")h+='<div id="cv3box"></div>';
   else if(!C)h+='<div class="block"><p class="note">Importe a <b>8351 – Picking</b> do dia em <b>Bases e planilhas</b> para montar a curva, o mapa de calor e as listas de transferência.</p></div>';
   else h+=CV.tab==="itens"?cvItens(C):CV.tab==="mov"?cvLista(C):CV.tab==="cob"?cvCob(C):cvMapaPick(C);
-  box.innerHTML=h;cvBind(box);if(CV.tab==="3d")cd3Mount($("cv3box"));}
+  const hm0=box.querySelector(".cv-hm"),sc0=hm0?[hm0.scrollLeft,hm0.scrollTop]:null;box.innerHTML=h;cvBind(box);if(sc0){const hm1=box.querySelector(".cv-hm");if(hm1){hm1.scrollLeft=sc0[0];hm1.scrollTop=sc0[1];}}if(CV.tab==="3d")cd3Mount($("cv3box"));}
 function cvPaintAero(){const box=$("cva");if(!box)return;const t=CV.atab||"planta";box.innerHTML=cvFonte("aero")+'<div class="cv-tabs">'+[["planta","Planta das ruas"],["3d","Depósito 3D"]].map(([k,l])=>'<button type="button" class="cv-tab'+(t===k?" on":"")+'" data-cvat="'+k+'">'+l+'</button>').join("")+'</div>'+(t==="3d"?'<div id="cva3box"></div>':'<div class="ca-wrap">'+cvMapaAero()+'</div>');cvBind(box);if(t==="3d")cd3Mount($("cva3box"));}
 function cvPaintAll(){if($("v-curva")&&!$("v-curva").hidden)cvPaintPick();if($("v-curvaa")&&!$("v-curvaa").hidden)cvPaintAero();}
 function cvBind(box){const on=(sel,fn)=>box.querySelectorAll(sel).forEach(fn);
@@ -5253,7 +5270,7 @@ function cvBind(box){const on=(sel,fn)=>box.querySelectorAll(sel).forEach(fn);
   on("[data-cvcor]",b=>b.onclick=()=>{CV.cor=b.dataset.cvcor;cvPaintPick();});
   on("[data-cvcur]",b=>b.onclick=()=>{CV.cur[b.dataset.cvcur]=CV.cur[b.dataset.cvcur]?0:1;if(!CV.cur.A&&!CV.cur.B&&!CV.cur.C)CV.cur[b.dataset.cvcur]=1;cvPaintPick();});
   on("[data-cvacor]",b=>b.onclick=()=>{CV.aCor=b.dataset.cvacor;cvPaintAero();});
-  on("[data-cvzoom]",i=>i.oninput=()=>{CV[i.dataset.cvzoom]=+i.value;box.querySelectorAll(".cv-hm").forEach(g=>g.style.setProperty("--cz",i.value+"px"));});
+  on("[data-cvzoom]",i=>i.oninput=()=>{CV[i.dataset.cvzoom]=+i.value;box.querySelectorAll(".cv-hm").forEach(g=>g.style.setProperty("--cz",i.value+"px"));box.querySelectorAll("svg.cv-plan").forEach(g=>g.setAttribute("width",Math.round(+g.dataset.vw*i.value/CDG.L*0.8)));});
   /* clique no mapa: prédio ou rua */
   on('.cv-hm[data-grid="pick"]',g=>g.onclick=e=>{cvTipHide();const c=e.target.closest("[data-cell]"),r=e.target.closest("[data-cvrua]");if(c){CV.sel=CV.sel===c.dataset.cell?null:c.dataset.cell;CV.selRua=null;}else if(r){CV.selRua=+r.dataset.cvrua;CV.sel=null;}else return;cvPaintPick();const d=$("cv-det");if(d&&innerWidth<900)d.scrollIntoView({behavior:"smooth"});});
   on(".cv-bar[data-cvrua]",b=>b.onclick=()=>{CV.selRua=+b.dataset.cvrua;CV.sel=null;cvPaintPick();$("cv-det")&&$("cv-det").scrollIntoView({behavior:"smooth",block:"nearest"});});
@@ -5269,17 +5286,58 @@ function cvBind(box){const on=(sel,fn)=>box.querySelectorAll(sel).forEach(fn);
 const CV3={r:null,modo:"calor",cam:{pk:1,ae:1},dep:"",q:"",walk:null,pin:null,need:true,key:""};
 const THREE_SRC=["lib/three.min.js","https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"];
 async function cd3Lib(){if(window.THREE)return true;for(const s of THREE_SRC){try{await loadScript(s);if(window.THREE)return true;}catch(e){}}return false;}
-function cd3Shell(){const deps=cvDeps(),lay=CV.pick||CV.aero?cdLayout():null,ruas=lay?["A","B","C"].flatMap(b=>lay.bl[b].rs):[];
+function cd3Shell(){const deps=cvDeps(),lay=CV.pick||CV.aero?cdLayout():null,ruas=lay?["A","B","C"].flatMap(b=>lay.bl[b].rs).sort((a,b)=>a-b):[];
   return '<div class="cd3"><div class="cv-tools"><span>Mostrar</span><button type="button" class="cv-chip'+(CV3.cam.pk?" on":"")+'" data-c3l="pk">Picking (nível 1)</button><button type="button" class="cv-chip'+(CV3.cam.ae?" on":"")+'" data-c3l="ae">Aéreo</button>'+
     '<span style="margin-left:8px">Cor por</span>'+[["calor","Mapa de calor"],["cur","Curva ABC"],["est","Estrutura"],["dep","Departamento"]].map(([k,l])=>'<button type="button" class="cv-chip'+(CV3.modo===k?" on":"")+'" data-c3m="'+k+'">'+l+'</button>').join("")+
     '<input class="in" type="search" id="c3-q" placeholder="Achar item no depósito" value="'+esc(CV3.q)+'" style="max-width:240px"></div>'+
     '<div class="cv-tools cv-deps"><span>Departamento</span><button type="button" class="cv-chip'+(CV3.dep?"":" on")+'" data-c3d="">Todos</button>'+deps.map(d=>'<button type="button" class="cv-chip cv-dc'+(CV3.dep===d?" on":"")+'" style="--dc:'+cdDepCor(d)+'" data-c3d="'+esc(d)+'"><i></i>'+esc(cdDepNome(d))+'</button>').join("")+'</div>'+
     '<div class="cd3-main"><div class="cd3-view" id="c3-view"><div class="cd3-load" id="c3-load">Montando o depósito em 3D…</div>'+
       '<div class="cd3-hud" id="c3-hud"><button type="button" data-c3v="geral">Visão geral</button><button type="button" data-c3v="A">Bloco A</button><button type="button" data-c3v="B">Bloco B</button><button type="button" data-c3v="C">Bloco C</button><button type="button" data-c3z="-1" aria-label="Aproximar">＋</button><button type="button" data-c3z="1" aria-label="Afastar">－</button>'+
-        '<select id="c3-rua"><option value="">Entrar na rua…</option>'+ruas.map(r=>'<option value="'+r+'">Rua '+r+'</option>').join("")+'</select></div>'+
-      '<div class="cd3-walk" id="c3-walk" hidden><button type="button" data-c3w="turnL" aria-label="Virar à esquerda">↺</button><button type="button" data-c3w="back">◀ Voltar</button><input type="range" id="c3-pos" min="0" max="100" value="0"><button type="button" data-c3w="fwd">Avançar ▶</button><button type="button" data-c3w="turnR" aria-label="Virar à direita">↻</button><button type="button" class="cd3-sair" data-c3w="sair">Sair da rua</button></div>'+
-      '<div class="cd3-leg" id="c3-leg"></div><div class="cd3-help" id="c3-help">Arraste para girar · roda do mouse ou pinça para ampliar · botão direito ou dois dedos para mover · duplo clique em um palete para entrar na rua</div></div>'+
-    '<aside class="cd3-side" id="c3-side"></aside></div></div>';}
+        '<select id="c3-rua"><option value="">Entrar na rua…</option>'+ruas.map(r=>'<option value="'+r+'">Rua '+r+'</option>').join("")+'</select><button type="button" class="cd3-fs" data-c3fs title="Tela cheia">⛶ Tela cheia</button></div>'+
+      '<div class="cd3-info" id="c3-info" hidden></div><div class="cd3-alerts" id="c3-alerts"></div><div class="cd3-card" id="c3-card" hidden></div>'+
+      '<button type="button" class="cd3-sugbt" id="c3-sugbt" hidden></button><div class="cd3-sug" id="c3-sug" hidden></div>'+
+      '<div class="cd3-walk" id="c3-walk" hidden><button type="button" data-c3w="prev" title="Sugestão anterior">⏮</button><button type="button" data-c3w="turnL" aria-label="Virar à esquerda">↺</button><button type="button" data-c3w="back">◀ Voltar</button><input type="range" id="c3-pos" min="0" max="100" value="0"><button type="button" data-c3w="fwd">Avançar ▶</button><button type="button" data-c3w="turnR" aria-label="Virar à direita">↻</button><button type="button" data-c3w="next" title="Próxima sugestão">⏭</button><button type="button" class="cd3-sair" data-c3w="sair">Sair da rua</button></div>'+
+      '<div class="cd3-leg" id="c3-leg"></div><div class="cd3-help" id="c3-help"></div></div></div></div>';}
+/* sugestões e alertas de uma rua, em ordem de caminhada */
+function cd3Sugs(r){if(CV3._sgR&&CV3._sgR.r===r&&CV3._sgR.k===CV3.key)return CV3._sgR.L;const lay=cdLayout(),L=[];
+  CV3.mPk.userData.it.forEach((x,i)=>{if(x.rua!==r)return;const u=lay.slot(x.rua,x.pr).u,g=CV3.mPk.userData.g[i];
+    if(x.apd>=1&&(x.epk||0)<=0)L.push({x,i,ae:false,u,g,c:"#DC2626",ic:"⚠",t:"Picking zerado com giro de "+cvFmt(x.apd,1)+" apanhas/dia: abastecer"});
+    if(x.mov)L.push({x,i,ae:false,u,g,c:"#7C3AED",ic:"→",t:x.mov.mot+(cvDestTxt(x.mov)?" · "+cvDestTxt(x.mov):" · destino: "+x.mov.dest)});
+    else if(x.med>0&&x.cap<x.need&&x.cur!=="C")L.push({x,i,ae:false,u,g,c:"#D97706",ic:"!",t:"Capacidade "+cvFmt(x.cap)+" não cobre "+x.alvo+" dias: sugerido "+cvFmt(x.capSug)});});
+  CV3.mAe.userData.it.forEach((x,i)=>{if(x.rua!==r||x.ok)return;L.push({x,i,ae:true,u:lay.slot(x.rua,x.pr).u,g:CV3.mAe.userData.g[i],c:"#EA580C",ic:"↓",t:x.sug});});
+  L.sort((a,b)=>a.u-b.u);CV3._sgR={r,k:CV3.key,L};return L;}
+function cd3Foco(s){const ww=CV3.walk;if(!ww||!s)return;const lay=cdLayout(),sl=lay.slot(s.x.rua,s.x.pr),m=s.ae?CV3.mAe:CV3.mPk,rg=cd3Range(ww.rua);
+  CV3.pin={m,i:s.i,ae:s.ae,x:s.x,g:s.g};cd3Box(CV3.pinM,s.g);ww.s=Math.max(rg[0]-1.5,Math.min(rg[1],sl.u-5));const da=sl.u-ww.s;ww.yaw=Math.atan2(sl.off,Math.max(0.6,da));ww.pitch=Math.max(-0.5,Math.min(0.55,Math.atan((s.g.y-1.65)/Math.hypot(sl.off,da))));
+  CV3.need=true;const p=$("c3-pos");if(p)p.value=Math.round((ww.s-rg[0])/(rg[1]-rg[0])*100);CV3.wLast=null;cd3Side();}
+function cd3Alertas(){const ww=CV3.walk,box=$("c3-alerts");if(!ww||!box)return;CV3.vistos=CV3.vistos||new Set();const dir=Math.cos(ww.yaw)>=0?1:-1;
+  cd3Sugs(ww.rua).forEach(s=>{const d=(s.u-ww.s)*dir,k=s.x.rua+"|"+cvEnd(s.x)+"|"+s.ic;if(d<-1||d>CDG.L*2.5||CV3.vistos.has(k))return;CV3.vistos.add(k);
+    const el=document.createElement("button");el.type="button";el.className="cd3-al";el.style.setProperty("--ac",s.c);el.innerHTML='<span class="cvc-b" style="background:'+s.c+'">'+s.ic+'</span><span><b>'+cvEnd(s.x)+'</b> · '+esc(s.x.desc)+'<small>'+esc(s.t)+'</small></span>';
+    el.onclick=()=>{cd3Foco(s);el.remove();};box.prepend(el);while(box.children.length>3)box.lastChild.remove();setTimeout(()=>{el.classList.add("out");setTimeout(()=>el.remove(),400);},6000);});}
+function cd3Side(){const v=$("c3-view");if(!v)return;const lay=cdLayout(),ww=CV3.walk,card=$("c3-card"),info=$("c3-info"),sug=$("c3-sug"),bt=$("c3-sugbt"),help=$("c3-help");
+  if(help)help.textContent=ww?"Arraste para olhar · setas ou botões para andar · ⏮ ⏭ pulam entre as sugestões · Esc sai da rua":"Arraste para girar · roda do mouse ou pinça para ampliar · botão direito ou dois dedos para mover · duplo clique em um palete para entrar na rua";
+  if(CV3.pin){card.hidden=false;const x=CV3.pin.x;card.innerHTML='<button type="button" class="cd3-x" data-c3x aria-label="Fechar">✕</button>'+(CV3.pin.ae?cvCardAero(x):cvCardPick(x))+(ww&&ww.rua===x.rua?'':'<button type="button" class="btn cd3-go" data-c3e="'+x.rua+'|'+x.pr+'">Caminhar até aqui</button>');
+    card.querySelector("[data-c3x]").onclick=()=>{CV3.pin=null;CV3.pinM.visible=false;CV3.need=true;cd3Side();};const ge=card.querySelector("[data-c3e]");if(ge)ge.onclick=()=>{const [r,p]=ge.dataset.c3e.split("|").map(Number);cd3Entrar(r,p);};}
+  else card.hidden=true;
+  if(!ww){info.hidden=true;sug.hidden=true;bt.hidden=true;v.classList.remove("sg-on");return;}
+  const o=lay.R[ww.rua],S=cd3Sugs(ww.rua),pos=Math.max(1,Math.min(o.maxPos,Math.round(ww.s/CDG.L+o.cor))),dir=Math.cos(ww.yaw)>=0?1:-1,prox=S.filter(s=>(s.u-ww.s)*dir>CDG.L*0.5).sort((a,b)=>Math.abs(a.u-ww.s)-Math.abs(b.u-ww.s))[0],aqui=S.filter(s=>Math.abs(s.u-ww.s)<=CDG.L*1.5);
+  const apd=CV3.mPk.userData.it.filter(x=>x.rua===ww.rua).reduce((a,x)=>a+x.apd,0),cnt={};S.forEach(s=>{cnt[s.ic]=(cnt[s.ic]||0)+1;});
+  info.hidden=!!(CV3.pin&&innerWidth<700);info.innerHTML='<b>Rua '+ww.rua+'</b> · Bloco '+cdBloco(ww.rua)+' · posição '+pos+' de '+o.maxPos+' · '+cvFmt(apd,0)+' apanhas/dia'+
+    '<div class="cd3-ic">'+[["⚠","#DC2626","picking zerado"],["→","#7C3AED","transferir"],["!","#D97706","capacidade"],["↓","#EA580C","aéreo longe"]].map(([i,c,l])=>'<span style="--ac:'+c+'"><i>'+i+'</i>'+(cnt[i]||0)+' '+l+'</span>').join("")+'</div>'+
+    (prox?'<div class="cd3-nx">Próxima sugestão em '+Math.max(1,Math.round(Math.abs(prox.u-ww.s)/CDG.L))+' posição(ões): <b>'+cvEnd(prox.x)+'</b></div>':'<div class="cd3-nx">Sem sugestões à frente nesta direção.</div>');
+  bt.hidden=false;bt.textContent=(CV3.sugAberto?"✕ ":"")+"Sugestões da rua ("+S.length+")"+(aqui.length?" · "+aqui.length+" aqui":"");bt.onclick=()=>{CV3.sugAberto=!CV3.sugAberto;cd3Side();};
+  sug.hidden=!CV3.sugAberto;v.classList.toggle("sg-on",!!CV3.sugAberto);if(CV3.sugAberto){const L=S.slice().sort((a,b)=>Math.abs(a.u-ww.s)-Math.abs(b.u-ww.s)).slice(0,40);CV3._sg=L;
+    sug.innerHTML=L.map((s,j)=>'<button type="button" class="cd3-sg" data-c3s="'+j+'"><span class="cvc-b" style="background:'+s.c+'">'+s.ic+'</span><span><b>'+cvEnd(s.x)+'</b> · '+esc(s.x.desc)+'<small>'+esc(s.t)+'</small></span><em>'+(Math.abs(s.u-ww.s)<=CDG.L*1.5?"aqui":cvFmt(Math.abs(s.u-ww.s)/CDG.L,0)+" pos.")+'</em></button>').join("")||'<p class="note" style="margin:8px">Nenhuma sugestão nesta rua. ✓</p>';
+    sug.querySelectorAll("[data-c3s]").forEach(b=>b.onclick=()=>cd3Foco(CV3._sg[+b.dataset.c3s]));}}
+function cd3Pula(d){const ww=CV3.walk;if(!ww)return;const S=cd3Sugs(ww.rua);if(!S.length)return;const cur=CV3.pin&&S.findIndex(s=>s.x===CV3.pin.x);let i;
+  if(cur!=null&&cur>=0)i=(cur+d+S.length)%S.length;else{i=d>0?S.findIndex(s=>s.u>ww.s+0.5):(()=>{let k=-1;S.forEach((s,j)=>{if(s.u<ww.s-0.5)k=j;});return k;})();if(i<0)i=d>0?0:S.length-1;}cd3Foco(S[i]);}
+function cd3Marks(r){if(CV3.marks)CV3.marks.forEach(m=>{CV3.grp.remove(m);m.material.map.dispose();m.material.dispose();});CV3.marks=null;if(r==null){CV3.need=true;return;}const M=[],vis=new Set();
+  cd3Sugs(r).forEach(s=>{const k=(s.ae?"a":"p")+s.i;if(vis.has(k)||M.length>240)return;vis.add(k);const sp=cd3Txt(s.ic,{fs:60,bg:s.c,fg:"#fff",size:0.8});sp.position.set(s.g.x,s.g.y+s.g.sy/2+0.6,s.g.z);sp.userData.b=[sp.scale.x,sp.scale.y];CV3.grp.add(sp);M.push(sp);});CV3.marks=M;CV3.need=true;}
+function cd3Tela(box){const el=box.querySelector(".cd3");if(!el)return;const fim=()=>setTimeout(()=>{cd3Size();},120);
+  if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});el.classList.remove("cd3-full");fim();return;}
+  if(el.classList.contains("cd3-full")){el.classList.remove("cd3-full");document.body.classList.remove("cd3-lock");fim();return;}
+  const alt=()=>{el.classList.add("cd3-full");document.body.classList.add("cd3-lock");fim();};
+  if(el.requestFullscreen)el.requestFullscreen().then(fim).catch(alt);else alt();}
+document.addEventListener("fullscreenchange",()=>{const el=document.querySelector(".cd3");if(el)el.classList.toggle("cd3-fsn",document.fullscreenElement===el);const b=document.querySelector("[data-c3fs]");if(b)b.textContent=document.fullscreenElement||(el&&el.classList.contains("cd3-full"))?"✕ Sair da tela cheia":"⛶ Tela cheia";setTimeout(cd3Size,120);});
 async function cd3Mount(box){document.querySelectorAll(".cd3").forEach(x=>{if(!box.contains(x))x.remove();});box.innerHTML=cd3Shell();cd3BindUI(box);const v=$("c3-view");if(!CV.pick&&!CV.aero){$("c3-load").textContent="Importe a 8351 Picking ou a 8351 Aéreo em Bases e planilhas para montar o depósito.";return;}
   if(!await cd3Lib()){$("c3-load").textContent="Para abrir o 3D é preciso internet na primeira vez.";return;}
   try{cd3Init(v);}catch(e){console.error(e);$("c3-load").textContent="Este aparelho não conseguiu abrir o 3D ("+(e.message||e)+").";}}
@@ -5298,13 +5356,14 @@ function cd3Build(){const T=THREE,S=CV3.scene,lay=cdLayout(),L=CDG.L,D=CDG.D,H=C
   if(CV3.grp){S.remove(CV3.grp);CV3.grp.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose();}});}
   const G=new T.Group();CV3.grp=G;S.add(G);const box=new T.BoxGeometry(1,1,1),M=new T.Matrix4();
   const put=(mesh,i,x,y,z,sx,sy,sz)=>{M.makeScale(sx,sy,sz);M.setPosition(x,y,z);mesh.setMatrixAt(i,M);};
-  /* piso, corredores e hall */
-  const zA0=CDG.HALL/2,zA1=lay.zA1,xA=(lay.bl.A.ant+0.5)*L,xA2=(lay.bl.A.dep+0.5)*L,zB0=lay.zBar-(lay.antBC+0.5)*L,zB1=-CDG.HALL/2;
+  /* piso e corredores */
+  const bx=lay.bx,X0=Math.min(bx.A[0],bx.C[0])-8,X1=Math.max(bx.A[1],bx.B[1])+8,Z0=Math.min(bx.A[2],bx.B[2])-8,Z1=Math.max(bx.A[3],bx.B[3])+8,z25=lay.zBar;
   const plano=(x0,x1,z0,z1,cor,y,op)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),new T.MeshLambertMaterial({color:cor,transparent:op<1,opacity:op}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,y,(z0+z1)/2);G.add(m);return m;};
-  plano(-lay.xBar-6,lay.xBar+6,zB0-6,zB1,0xD5DBE3,0,1);plano(-xA-6,xA2+6,zB1,zA1+6,0xD5DBE3,0,1);plano(-lay.xBar-6,lay.xBar+6,zB1,zA0,0xC7D2DE,0.01,1);
-  plano(-L/2,L/2,zA0,zA1+3,0xFACC15,0.03,0.55);plano(-lay.xBar-3,lay.xBar+3,lay.zBar-L/2,lay.zBar+L/2,0xFACC15,0.03,0.55);
-  const fx=(x0,x1,z0,z1)=>{[x0,x1].forEach(x=>{const m=new T.Mesh(new T.PlaneGeometry(0.12,z1-z0),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set(x,0.04,(z0+z1)/2);G.add(m);});};fx(-L/2,L/2,zA0,zA1+3);
-  [lay.zBar-L/2,lay.zBar+L/2].forEach(z=>{const m=new T.Mesh(new T.PlaneGeometry(lay.xBar*2+6,0.12),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set(0,0.04,z);G.add(m);});
+  plano(X0,X1,Z0,Z1,0xD5DBE3,0,1);["A","B","C"].forEach(b=>plano(bx[b][0]-1.5,bx[b][1]+1.5,bx[b][2]-1.5,bx[b][3]+1.5,0xCBD3DD,0.01,1));
+  plano(-L/2,L/2,bx.A[2]-4,bx.A[3]+4,0xFACC15,0.03,0.6);plano(bx.C[0]-4,bx.B[1]+4,z25-L/2,z25+L/2,0xFACC15,0.035,0.6);
+  const lnV=(x,z0,z1)=>{const m=new T.Mesh(new T.PlaneGeometry(0.12,z1-z0),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set(x,0.05,(z0+z1)/2);G.add(m);};
+  const lnH=(z,x0,x1)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,0.12),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,0.05,z);G.add(m);};
+  lnV(-L/2,bx.A[2]-4,bx.A[3]+4);lnV(L/2,bx.A[2]-4,bx.A[3]+4);lnH(z25-L/2,bx.C[0]-4,bx.B[1]+4);lnH(z25+L/2,bx.C[0]-4,bx.B[1]+4);
   /* racks */
   const ruas=["A","B","C"].flatMap(b=>CD_BL[b].filter(r=>lay.R[r])),up=[],bm=[];
   ruas.forEach(r=>{const o=lay.R[r],f=lay.fr[r],nv=Math.max(2,o.maxNv),alt=nv*H+0.25;[-1,1].forEach(s=>{const off=s*(W/2+D/2);for(let k=1;k<=o.maxPos+1;k++){const u=(k-0.5-o.cor)*L;[-1,1].forEach(fb=>{const of2=off+fb*(D/2-0.05);up.push([f.ox+f.ax*u+f.nx*of2,alt/2,f.oz+f.az*u+f.nz*of2,f.ax?0.11:0.11,alt,0.11]);});}
@@ -5322,12 +5381,12 @@ function cd3Build(){const T=THREE,S=CV3.scene,lay=cdLayout(),L=CDG.L,D=CDG.D,H=C
   CV3.mPk=mk(PK,new T.MeshLambertMaterial({color:0xffffff}));CV3.mAe=mk(AE,new T.MeshLambertMaterial({color:0xffffff}));
   CV3.hl=new T.Mesh(box,new T.MeshBasicMaterial({color:0x0F172A,wireframe:true}));CV3.hl.visible=false;G.add(CV3.hl);
   CV3.pinM=new T.Mesh(box,new T.MeshBasicMaterial({color:0x2563EB,wireframe:true}));CV3.pinM.visible=false;G.add(CV3.pinM);
-  /* nomes dos blocos e do corredor */
-  const t1=cd3Txt("BLOCO A",{fs:90,fg:"#103F79",size:9});t1.position.set(-xA-10,6,(zA0+zA1)/2);G.add(t1);
-  const t2=cd3Txt("BLOCO B",{fs:90,fg:"#103F79",size:9});t2.position.set(-lay.xBar/2,lay.bl.B.rs.length?11:6,zB0-8);G.add(t2);const t3=cd3Txt("BLOCO C",{fs:90,fg:"#103F79",size:9});t3.position.set(lay.xBar/2,11,zB0-8);G.add(t3);
-  const t4=cd3Txt("Corredor central",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t4.position.set(0,1.4,zA1+2);G.add(t4);const t5=cd3Txt("Corredor",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t5.position.set(-lay.xBar-2,1.4,lay.zBar);G.add(t5);
-  const t6=cd3Txt("Hall / circulação",{fs:56,fg:"#475569",size:2});t6.position.set(0,1,0);G.add(t6);
-  CV3.cent={A:[(xA2-xA)/2,(zA0+zA1)/2,zA1-zA0],B:[-lay.xBar/2,(zB0+zB1)/2,lay.xBar],C:[lay.xBar/2,(zB0+zB1)/2,lay.xBar],geral:[0,(zB0+zA1)/2,Math.max(zA1-zB0,lay.xBar*2)]};CV3.marks=null;CV3.pin=null;CV3.need=true;}
+  /* nomes dos blocos e dos corredores */
+  const cx=b=>(bx[b][0]+bx[b][1])/2,cz=b=>(bx[b][2]+bx[b][3])/2;
+  [["A",cx("A"),bx.A[2]-9],["B",cx("B"),bx.B[2]-9],["C",cx("C"),bx.C[2]-9]].forEach(([b,x,z])=>{const t=cd3Txt("BLOCO "+b,{fs:90,fg:"#103F79",size:9});t.position.set(x,9,z);G.add(t);});
+  const t4=cd3Txt("Corredor central",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t4.position.set(0,1.4,bx.A[2]-2.5);G.add(t4);
+  [[bx.C[0]-3],[bx.B[1]+3]].forEach(([x])=>{const t=cd3Txt("Corredor · liga pela rua 25",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t.position.set(x,1.4,z25);G.add(t);});
+  CV3.cent={A:[cx("A"),cz("A"),bx.A[3]-bx.A[2]],B:[cx("B"),cz("B"),Math.max(bx.B[1]-bx.B[0],bx.B[3]-bx.B[2])],C:[cx("C"),cz("C"),Math.max(bx.C[1]-bx.C[0],bx.C[3]-bx.C[2])],geral:[(X0+X1)/2,(Z0+Z1)/2,Math.max(X1-X0,Z1-Z0)]};CV3.marks=null;CV3.pin=null;CV3.need=true;}
 function cd3Cor(x,ae){const m=CV3.modo,q=norm(CV3.q||"").trim(),dp=ae?(cvE().prod[x.cod]||""):x.dpt||"";
   if((CV3.dep&&dp!==CV3.dep)||(q&&!norm(x.cod+" "+x.desc).includes(q)))return 0xE2E8F0;
   if(m==="cur"){const c=ae?(x.pk&&x.pk.cur):x.cur;return c?parseInt(CV_CUR[c].slice(1),16):0xCBD5E1;}
@@ -5340,7 +5399,7 @@ function cd3Cores(){if(!CV3.mPk)return;const T=THREE,c=new T.Color();const fP=cv
 function cd3Leg(){const e=$("c3-leg");if(!e)return;const m=CV3.modo;e.innerHTML=m==="cur"?Object.entries(CV_CUR).map(([k,c])=>'<span><i style="background:'+c+'"></i>Curva '+k+'</span>').join(""):m==="est"?Object.entries(CV_EST).map(([k,c])=>'<span><i style="background:'+c+'"></i>'+k+'</span>').join("")+'<span><i style="background:#DBE4EE"></i>Aéreo</span>':m==="dep"?cvDeps().slice(0,8).map(d=>'<span><i style="background:'+cdDepCor(d)+'"></i>'+esc(cdDepNome(d))+'</span>').join(""):
   '<span>Picking</span>'+CV_PAL.map(c=>'<span><i style="background:'+c+'"></i></span>').join("")+'<span style="margin-left:8px">Aéreo</span>'+CA_PAL.map(c=>'<span><i style="background:'+c+'"></i></span>').join("")+'<span>mais apanhas →</span>';}
 /* câmera: órbita (panorama) e caminhada dentro da rua */
-function cd3Vista(k,ja){const c=CV3.cent[k]||CV3.cent.geral,o={tx:c[0],ty:0,tz:c[1],r:c[2]*(k==="geral"?0.62:0.72)+14,th:k==="geral"?-0.55:-0.35,ph:k==="geral"?0.95:0.85};CV3.walk=null;cd3WalkUI();if(ja||!CV3.o){CV3.o=o;CV3.need=true;return;}cd3Tween(cd3PoseO(o),()=>{CV3.o=o;});}
+function cd3Vista(k,ja){const c=CV3.cent[k]||CV3.cent.geral,o={tx:c[0],ty:0,tz:c[1],r:c[2]*(k==="geral"?0.66:0.8)+14,th:k==="geral"?-0.18:-0.25,ph:k==="geral"?0.92:0.85};CV3.walk=null;cd3WalkUI();if(ja||!CV3.o){CV3.o=o;CV3.need=true;return;}cd3Tween(cd3PoseO(o),()=>{CV3.o=o;});}
 function cd3PoseO(o){const p=[o.tx+o.r*Math.sin(o.ph)*Math.sin(o.th),o.ty+o.r*Math.cos(o.ph),o.tz+o.r*Math.sin(o.ph)*Math.cos(o.th)];return {p,l:[o.tx,o.ty,o.tz]};}
 function cd3PoseW(w){const f=cdLayout().fr[w.rua],ax=[f.ax,f.az],nx=[f.nx,f.nz],cy=Math.cos(w.yaw),sy=Math.sin(w.yaw),p=[f.ox+ax[0]*w.s,1.65,f.oz+ax[1]*w.s],d=[ax[0]*cy+nx[0]*sy,ax[1]*cy+nx[1]*sy];return {p,l:[p[0]+d[0]*10,1.65+Math.tan(w.pitch||0)*10,p[2]+d[1]*10]};}
 function cd3Tween(to,fim){const c=CV3.cam3,from={p:c.position.toArray(),l:CV3.look||[0,0,0]};CV3.tw={t0:performance.now(),dur:750,from,to,fim};CV3.need=true;}
@@ -5373,34 +5432,11 @@ function cd3Hover(e){const h=cd3Hit(e);if(!h){if(CV3.hl.visible){CV3.hl.visible=
 function cd3Click(e){const h=cd3Hit(e);if(!h){CV3.pin=null;CV3.pinM.visible=false;CV3.need=true;cd3Side();return;}CV3.pin=h;cd3Box(CV3.pinM,h.g);if(e.pointerType!=="mouse")cvTipShow(h.ae?cvCardAero(h.x):cvCardPick(h.x),e.clientX,e.clientY);cd3Side();}
 function cd3Range(r){const o=cdLayout().R[r];return [(-0.8-o.cor)*CDG.L,(o.maxPos+1.8-o.cor)*CDG.L];}
 function cd3Entrar(r,pr){const lay=cdLayout();if(!lay.fr[r]||!lay.R[r])return;const rg=cd3Range(r),s=pr?Math.max(rg[0],Math.min(rg[1],lay.slot(r,pr).u-CDG.L*3)):rg[0];
-  const w={rua:r,s,yaw:0,pitch:-0.05};cvTipHide();CV3.pin=null;CV3.pinM.visible=false;CV3.walk=null;cd3Marks(r);cd3WalkUI(w);cd3Tween(cd3PoseW(w),()=>{CV3.walk=w;CV3.need=true;cd3WalkUI();const p=$("c3-pos"),rg=cd3Range(r);if(p)p.value=Math.round((w.s-rg[0])/(rg[1]-rg[0])*100);});}
+  const w={rua:r,s,yaw:0,pitch:-0.05};cvTipHide();CV3.vistos=new Set();CV3.sugAberto=false;CV3.pin=null;CV3.pinM.visible=false;CV3.walk=null;cd3Marks(r);cd3WalkUI(w);cd3Tween(cd3PoseW(w),()=>{CV3.walk=w;CV3.need=true;cd3WalkUI();const p=$("c3-pos"),rg=cd3Range(r);if(p)p.value=Math.round((w.s-rg[0])/(rg[1]-rg[0])*100);});}
 function cd3Mover(d){const w=CV3.walk;if(!w)return;const rg=cd3Range(w.rua),c=Math.cos(w.yaw)>=0?1:-1;w.s=Math.max(rg[0],Math.min(rg[1],w.s+d*c));CV3.need=true;const p=$("c3-pos");if(p)p.value=Math.round((w.s-rg[0])/(rg[1]-rg[0])*100);
-  const pr=Math.round(w.s/CDG.L);if(pr!==CV3.wLast){CV3.wLast=pr;cd3Side();}}
-function cd3Marks(r){if(CV3.marks)CV3.marks.forEach(m=>{CV3.grp.remove(m);m.material.map.dispose();m.material.dispose();});CV3.marks=null;if(r==null){CV3.need=true;return;}const M=[];
-  const add=(g,t,bg)=>{if(M.length>220)return;const s=cd3Txt(t,{fs:60,bg,fg:"#fff",size:0.8});s.position.set(g.x,g.y+g.sy/2+0.6,g.z);s.userData.b=[s.scale.x,s.scale.y];CV3.grp.add(s);M.push(s);};
-  CV3.mPk.userData.it.forEach((x,i)=>{if(x.rua!==r)return;if(x.mov)add(CV3.mPk.userData.g[i],"→","#7C3AED");else if(x.med>0&&x.cap<x.need&&x.cur!=="C")add(CV3.mPk.userData.g[i],"!","#D97706");});
-  CV3.mAe.userData.it.forEach((x,i)=>{if(x.rua===r&&!x.ok)add(CV3.mAe.userData.g[i],"↓","#EA580C");});CV3.marks=M;CV3.need=true;}
+  const pr=Math.round(w.s/CDG.L);if(pr!==CV3.wLast){CV3.wLast=pr;cd3Side();cd3Alertas();}}
 function cd3WalkUI(w){w=w||CV3.walk;const wk=$("c3-walk"),hud=$("c3-hud"),help=$("c3-help");if(!wk)return;wk.hidden=!w;if(hud)hud.classList.toggle("walking",!!w);if(help)help.textContent=w?"Rua "+w.rua+": arraste para olhar · setas ou botões para andar · Esc para sair":"Arraste para girar · roda do mouse ou pinça para ampliar · botão direito ou dois dedos para mover · duplo clique em um palete para entrar na rua";
   if(!w&&CV3.marks&&!CV3.tw){cd3Marks(null);}cd3Side();}
-function cd3Side(){const e=$("c3-side");if(!e)return;const lay=cdLayout();
-  const ww=CV3.walk;if(ww){const L=CDG.L,o=lay.R[ww.rua],perto=[];const near=(g,x)=>Math.abs(lay.slot(x.rua,x.pr).u-ww.s);
-    CV3.mPk.userData.it.forEach((x,i)=>{if(x.rua!==ww.rua)return;const prob=x.mov||(x.med>0&&x.cap<x.need&&x.cur!=="C");if(prob)perto.push({x,i,ae:false,d:near(null,x)});});
-    CV3.mAe.userData.it.forEach((x,i)=>{if(x.rua===ww.rua&&!x.ok)perto.push({x,i,ae:true,d:near(null,x)});});perto.sort((a,b)=>a.d-b.d);const prAqui=Math.round(ww.s/L+o.cor);
-    const pkR=CV3.mPk.userData.it.filter(x=>x.rua===ww.rua),apd=pkR.reduce((s,x)=>s+x.apd,0);
-    e.innerHTML='<div class="cd3-sh"><b>Dentro da rua '+ww.rua+'</b><small>Bloco '+cdBloco(ww.rua)+' · posição '+Math.max(1,Math.min(o.maxPos,prAqui))+' de '+o.maxPos+' · '+cvFmt(apd,0)+' apanhas/dia no picking</small></div>'+
-      '<div class="cd3-st"><span><i style="background:#7C3AED"></i>→ transferir</span><span><i style="background:#D97706"></i>! capacidade</span><span><i style="background:#EA580C"></i>↓ aéreo longe do picking</span></div>'+
-      '<h4>Sugestões aqui perto ('+perto.length+' na rua)</h4>'+(perto.slice(0,12).map((s,j)=>'<button type="button" class="cd3-sg" data-c3s="'+j+'"><span class="cvc-b" style="background:'+(s.ae?"#EA580C":s.x.mov?"#7C3AED":"#D97706")+'">'+(s.ae?"↓":s.x.mov?"→":"!")+'</span><span><b>'+cvEnd(s.x)+'</b> · '+esc(s.x.desc)+'<small>'+esc(s.ae?s.x.sug:s.x.mov?s.x.mov.mot+(cvDestTxt(s.x.mov)?" · "+cvDestTxt(s.x.mov):""):"Capacidade "+cvFmt(s.x.cap)+" → sugerido "+cvFmt(s.x.capSug))+'</small></span><em>'+(s.d<CDG.L?"aqui":cvFmt(s.d/CDG.L,0)+" pos.")+'</em></button>').join("")||'<p class="note">Nenhuma sugestão nesta rua. ✓</p>')+
-      (CV3.pin?'<h4>Selecionado</h4>'+(CV3.pin.ae?cvCardAero(CV3.pin.x):cvCardPick(CV3.pin.x)):'');
-    CV3._sg=perto.slice(0,12);e.querySelectorAll("[data-c3s]").forEach(b=>b.onclick=()=>{const s=CV3._sg[+b.dataset.c3s],m=s.ae?CV3.mAe:CV3.mPk,g=m.userData.g[s.i],sl=lay.slot(s.x.rua,s.x.pr);CV3.pin={m,i:s.i,ae:s.ae,x:s.x,g};cd3Box(CV3.pinM,g);
-      const rg=cd3Range(ww.rua);ww.s=Math.max(rg[0]-1.5,Math.min(rg[1],sl.u-5));const da=sl.u-ww.s;ww.yaw=Math.atan2(sl.off,Math.max(0.6,da));ww.pitch=Math.max(-0.5,Math.min(0.55,Math.atan((g.y-1.65)/Math.hypot(sl.off,da))));CV3.need=true;cd3Side();});return;}
-  if(CV3.pin){e.innerHTML='<div class="cd3-sh"><b>Selecionado</b><small>Rua '+CV3.pin.x.rua+'</small></div>'+(CV3.pin.ae?cvCardAero(CV3.pin.x):cvCardPick(CV3.pin.x))+'<button type="button" class="btn" style="width:100%;margin-top:8px" data-c3e="'+CV3.pin.x.rua+'|'+CV3.pin.x.pr+'">Entrar na rua '+CV3.pin.x.rua+' e caminhar até aqui</button>';
-    const b=e.querySelector("[data-c3e]");b.onclick=()=>{const [r,p]=b.dataset.c3e.split("|").map(Number);cd3Entrar(r,p);};return;}
-  const pk=CV3.mPk?CV3.mPk.userData.it:[],ae=CV3.mAe?CV3.mAe.userData.it:[],blk={A:{n:0,a:0},B:{n:0,a:0},C:{n:0,a:0}};pk.forEach(x=>{const b=cdBloco(x.rua);if(b){blk[b].n++;blk[b].a+=x.apd;}});
-  const fora=[...new Set(((CV.pick&&CV.pick.L)||[]).concat((CV.aero&&CV.aero.L)||[]).filter(x=>x.rua&&x.rua<60&&!cdBloco(x.rua)).map(x=>x.rua))].sort((a,b)=>a-b);
-  e.innerHTML='<div class="cd3-sh"><b>Panorama do depósito</b><small>'+cvFmt(pk.length)+' endereços de picking · '+cvFmt(ae.length)+' posições no aéreo</small></div>'+
-    ["A","B","C"].map(b=>'<button type="button" class="cd3-blk" data-c3v="'+b+'"><b>Bloco '+b+'</b><span>'+cvFmt(blk[b].n)+' endereços · '+cvFmt(blk[b].a,0)+' apanhas/dia</span></button>').join("")+
-    '<p class="note">Passe o mouse em um palete para ver item e apanhas; clique para fixar; duplo clique (ou escolha "Entrar na rua") para caminhar dentro da rua com as sugestões ao lado.</p>'+(fora.length?'<p class="note">Fora dos blocos A, B e C (aparecem só no mapa 2D): ruas '+fora.join(", ")+'.</p>':'');
-  e.querySelectorAll("[data-c3v]").forEach(b=>b.onclick=()=>cd3Vista(b.dataset.c3v));}
 function cd3BindUI(box){const on=(s,f)=>box.querySelectorAll(s).forEach(f);
   on("[data-c3l]",b=>b.onclick=()=>{const k=b.dataset.c3l;CV3.cam[k]=CV3.cam[k]?0:1;if(!CV3.cam.pk&&!CV3.cam.ae)CV3.cam[k]=1;b.classList.toggle("on",!!CV3.cam[k]);box.querySelectorAll("[data-c3l]").forEach(x=>x.classList.toggle("on",!!CV3.cam[x.dataset.c3l]));cd3Cores();});
   on("[data-c3m]",b=>b.onclick=()=>{CV3.modo=b.dataset.c3m;box.querySelectorAll("[data-c3m]").forEach(x=>x.classList.toggle("on",x===b));cd3Cores();});
@@ -5409,7 +5445,8 @@ function cd3BindUI(box){const on=(s,f)=>box.querySelectorAll(s).forEach(f);
   const sr=box.querySelector("#c3-rua");if(sr)sr.onchange=()=>{if(sr.value)cd3Entrar(+sr.value);sr.value="";};
   const q=box.querySelector("#c3-q");if(q){let t;q.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{CV3.q=q.value;cd3Cores();},300);};}
   const pos=box.querySelector("#c3-pos");if(pos)pos.oninput=()=>{const w=CV3.walk;if(!w)return;const rg=cd3Range(w.rua);w.s=rg[0]+(rg[1]-rg[0])*(+pos.value/100);CV3.need=true;const pr=Math.round(w.s/CDG.L);if(pr!==CV3.wLast){CV3.wLast=pr;cd3Side();}};
-  on("[data-c3w]",b=>{const a=b.dataset.c3w;if(a==="sair"){b.onclick=()=>cd3Vista("geral");return;}const set=v=>{const m=CV3.mv=CV3.mv||{};m[{fwd:"f",back:"b",turnL:"l",turnR:"r"}[a]]=v;};
+  on("[data-c3fs]",b=>b.onclick=()=>cd3Tela(box));
+  on("[data-c3w]",b=>{const a=b.dataset.c3w;if(a==="sair"){b.onclick=()=>cd3Vista("geral");return;}if(a==="next"||a==="prev"){b.onclick=()=>cd3Pula(a==="next"?1:-1);return;}const set=v=>{const m=CV3.mv=CV3.mv||{};m[{fwd:"f",back:"b",turnL:"l",turnR:"r"}[a]]=v;};
     b.onpointerdown=e=>{e.preventDefault();set(true);};b.onpointerup=b.onpointerleave=b.onpointercancel=()=>set(false);});}
 function cvBasesPaint(){[["pick","b8351p"],["aero","b8351a"]].forEach(([t,id])=>{const o=CV[t],sr=$(id+"-src"),n=$(id+"-n");if(sr)sr.textContent=o?"Importada em "+o.em+" ("+o.nome+")":"Nenhum arquivo importado neste aparelho";if(n)n.textContent=o?o.L.length.toLocaleString("pt-BR"):"0";});}
 [["b8351p-file","pick"],["b8351a-file","aero"]].forEach(([id,t])=>{const i=$(id);if(i)i.addEventListener("change",async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;await cvLoad();const m=$(id.replace("file","msg"));if(m)m.textContent="Lendo "+f.name+"…";cvImport(t,f);});});
@@ -5490,7 +5527,30 @@ async function curvaAeroAbrir(){await cvLoad();cvPaintAero();}
 .ca-rk{margin:0;padding-left:22px}.ca-rk button{display:flex;justify-content:space-between;width:100%;border:0;background:transparent;font:inherit;color:inherit;padding:5px 6px;border-radius:8px;cursor:pointer}.ca-rk button:hover{background:#E0F2FE}
 
 @media (max-width:900px){.cv-mw{grid-template-columns:1fr}.cv-det{position:static;max-height:none}}
-@media (max-width:700px){.cv-bar{grid-template-columns:54px 1fr 64px}.cv-bar small{display:none}.cv-leg{margin-left:0}}`;document.head.appendChild(s);})();
+@media (max-width:700px){.cv-bar{grid-template-columns:54px 1fr 64px}.cv-bar small{display:none}.cv-leg{margin-left:0}}
+.cv-plan{display:block;height:auto;background:#EEF2F6;border-radius:10px}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
+.cv-plan .cv-prl{font:800 2.1px Inter,system-ui,sans-serif;fill:#475569;cursor:pointer}.cv-plan .cv-prl:hover,.cv-plan .cv-prl.on{fill:#2563EB}
+.cv-plan .cv-c{transform:none!important;outline:none!important;cursor:pointer;stroke:transparent;stroke-width:.25}.cv-plan .cv-c:hover{stroke:#0F172A}.cv-plan .cv-c.sel{stroke:#0F172A;stroke-width:.45}.cv-plan .cv-c.dim{opacity:.16}.cv-plan .cv-c.hit{stroke:#2563EB;stroke-width:.35}
+.cd3-main{display:block}.cd3-view{height:78vh;min-height:460px}
+.cd3-fs{background:#103F79!important;color:#fff!important}
+.cd3-info{position:absolute;top:54px;left:10px;max-width:min(420px,calc(100% - 20px));background:rgba(255,255,255,.95);border-radius:12px;padding:8px 11px;font-size:.76rem;box-shadow:0 4px 16px rgba(15,23,42,.15)}.cd3-info b{color:#103F79}
+.cd3-ic{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:5px;font-size:.68rem;color:#475569}.cd3-ic i{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:5px;background:var(--ac);color:#fff;font-style:normal;font-weight:900;font-size:.62rem;margin-right:3px}
+.cd3-nx{margin-top:5px;font-size:.72rem;color:#5B21B6}
+.cd3-alerts{position:absolute;top:54px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;width:min(420px,calc(100% - 20px));pointer-events:none;z-index:3}
+.cd3-al{pointer-events:auto;display:flex;gap:8px;align-items:flex-start;text-align:left;border:0;border-left:4px solid var(--ac);background:#fff;border-radius:12px;padding:8px 10px;font:inherit;font-size:.74rem;box-shadow:0 10px 28px rgba(15,23,42,.25);cursor:pointer;color:#0F172A;animation:cd3in .25s ease-out;transition:opacity .4s,transform .4s}.cd3-al small{display:block;color:#64748B;margin-top:2px}.cd3-al.out{opacity:0;transform:translateY(-8px)}
+@keyframes cd3in{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.cd3-card{position:absolute;top:54px;right:10px;width:min(330px,calc(100% - 20px));max-height:calc(100% - 120px);overflow:auto;z-index:4;filter:drop-shadow(0 12px 28px rgba(15,23,42,.28))}.cd3-card .cvc{border:0}
+.cd3-x{position:absolute;top:6px;right:6px;z-index:2;border:0;background:rgba(15,23,42,.08);border-radius:8px;width:26px;height:26px;cursor:pointer;font:inherit}
+.cd3-go{width:100%;margin-top:6px;min-height:38px;background:#fff}
+.cd3-sugbt{position:absolute;right:10px;bottom:96px;z-index:4;border:0;background:#7C3AED;color:#fff;font:inherit;font-weight:800;font-size:.76rem;padding:8px 12px;border-radius:999px;box-shadow:0 6px 18px rgba(124,58,237,.35);cursor:pointer}
+.cd3-sug{position:absolute;right:10px;bottom:136px;width:min(340px,calc(100% - 20px));max-height:min(52vh,calc(100% - 200px));overflow:auto;background:rgba(255,255,255,.97);border-radius:14px;padding:8px;z-index:4;box-shadow:0 12px 32px rgba(15,23,42,.25)}
+.cd3-card:not([hidden])~.cd3-sug{bottom:136px}
+.cd3.cd3-full{position:fixed;inset:0;z-index:6000;background:#F1F5F9;padding:8px 10px;display:flex;flex-direction:column;overflow:hidden}.cd3.cd3-full .cd3-main,.cd3.cd3-fsn .cd3-main{flex:1;min-height:0}.cd3.cd3-full .cd3-view,.cd3.cd3-fsn .cd3-view{height:100%;min-height:0}
+.cd3.cd3-fsn{background:#F1F5F9;padding:8px 10px;display:flex;flex-direction:column}
+body.cd3-lock{overflow:hidden}
+.cd3-view.sg-on .cd3-card{right:auto;left:10px;top:150px;max-height:calc(100% - 260px)}@media (max-width:700px){.cd3-view.sg-on .cd3-card{display:none}}
+@media (max-width:900px){.cd3-view{height:76vh;min-height:440px}}
+@media (max-width:700px){.cd3-view{height:74vh;min-height:420px}.cd3-info{top:auto;bottom:96px;font-size:.7rem}.cd3-card{top:auto;bottom:96px;max-height:55%}.cd3-sugbt{bottom:auto;top:52px}.cd3-sug{bottom:auto;top:92px;max-height:55%}.cd3.cd3-full .cv-tools,.cd3.cd3-fsn .cv-tools{display:none}.cd3-walk .cd3-sair{white-space:nowrap}}`;document.head.appendChild(s);})();
 if(!DEMO&&!LOGIN){mostrarLogin();}else{if(!DEMO&&LOGIN.mat){auditor=LOGIN.mat;store.set("audcd_auditor",auditor);try{paintWho();}catch(e){}setTimeout(()=>sheetSync(),400);setTimeout(()=>{if(SHEET_URL&&navigator.onLine)carregarFech(false);},3000);}go((location.hash||"").slice(1)||"inicio");setTimeout(revalidar,800);setTimeout(carregarApoio,1500);setTimeout(()=>novMostrar(),2500);}
 
 })();
