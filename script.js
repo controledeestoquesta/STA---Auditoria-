@@ -3893,7 +3893,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa"]],["Setores",["dev","cesta"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v177</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v178</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -3982,7 +3982,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v177</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v178</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   const grupos=()=>{GRUPOS.forEach(([id])=>{const g=$("dk-g-"+id),h=![...g.querySelectorAll("button[data-v]")].some(b=>!b.hidden);if(g.hidden!==h)g.hidden=h;});
     /* "Lançamentos de auditoria" só abre quando o usuário clica */};
@@ -5094,11 +5094,11 @@ function cdLayout(){const key=(CV.pick?CV.pick.em:"")+"|"+(CV.aero?CV.aero.em:""
   const nA=CD_BL.A.length,xA=(lay.bl.A.ant+0.5)*L,xA2=(lay.bl.A.dep+0.5)*L,GAP=7;
   CD_BL.A.forEach((r,i)=>{lay.fr[r]={ox:0,oz:P*(nA-1-i)+P/2,ax:1,az:0,nx:0,nz:1,b:"A"};});
   const z25=lay.fr[25].oz,depBC=Math.max(lay.bl.B.dep,lay.bl.C.dep),antBC=Math.max(lay.bl.B.ant,lay.bl.C.ant),nB=CD_BL.B.length,nC=CD_BL.C.length;
-  /* bloco B (32–40) à esquerda e C (41–49) à direita; o corredor dos dois passa pela rua 25 (liga os dois lados atravessando o bloco A) */
-  CD_BL.B.forEach((r,j)=>{lay.fr[r]={ox:-xA-GAP-P/2-(nB-1-j)*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"B"};});
-  CD_BL.C.forEach((r,j)=>{lay.fr[r]={ox:xA2+GAP+P/2+j*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"C"};});
+  /* bloco B (32–40) à direita e C (41–49) à esquerda; o corredor dos dois passa pela rua 25 (liga os dois lados atravessando o bloco A) */
+  CD_BL.B.forEach((r,j)=>{lay.fr[r]={ox:xA2+GAP+P/2+j*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"B"};});
+  CD_BL.C.forEach((r,j)=>{lay.fr[r]={ox:-xA-GAP-P/2-(nC-1-j)*P,oz:z25,ax:0,az:1,nx:1,nz:0,b:"C"};});
   const zb0=z25-(antBC+0.5)*L,zb1=z25+(depBC+0.5)*L;
-  lay.bx={A:[-xA-0.5,xA2+0.5,0,nA*P],B:[-xA-GAP-nB*P,-xA-GAP,zb0,zb1],C:[xA2+GAP,xA2+GAP+nC*P,zb0,zb1]};
+  lay.bx={A:[-xA-0.5,xA2+0.5,0,nA*P],B:[xA2+GAP,xA2+GAP+nB*P,zb0,zb1],C:[-xA-GAP-nC*P,-xA-GAP,zb0,zb1]};
   lay.zBar=z25;lay.antBC=antBC;lay.depBC=depBC;
   lay.slot=(r,pr)=>{const o=R[r],f=lay.fr[r];if(!o||!f)return null;const k=o.pos(pr),s=o.lado(pr),u=(k-o.cor)*L,off=s*(CDG.W/2+CDG.D/2);return {k,s,u,off,x:f.ox+f.ax*u+f.nx*off,z:f.oz+f.az*u+f.nz*off,f};};
   CV._lay=lay;CV._layK=key;return lay;}
@@ -5114,17 +5114,17 @@ function cvGrid(cells,corDe,opt){const lay=cdLayout(),by={};cells.forEach(c=>{by
       (b==="A"?rs.slice().reverse():rs).map(r=>rua(r,cols,c0,true)).join("")+'</div>';});
   const out=[...ruasC].filter(r=>!cdBloco(r)).sort((a,b)=>a-b);if(out.length){const cols=Math.max(...out.map(r=>lay.R[r]?lay.R[r].maxPos:1));h+='<div class="cv-blk" style="--cols:'+cols+'"><div class="cv-bh"><b>Outras ruas</b> <small>fora dos blocos A, B e C</small></div>'+out.map(r=>rua(r,cols,0,false)).join("")+'</div>';}
   return h+'</div>';}
-/* planta 2D: mesmo desenho do 3D — bloco A embaixo, blocos B (esquerda) e C (direita) em cima, ligados pelo corredor da rua 25; cabe inteira na tela */
+/* planta 2D: mesmo desenho do 3D — bloco A embaixo, blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25; cabe inteira na tela */
 function cvPlan(cells,corDe,opt){const lay=cdLayout(),L=CDG.L,D=CDG.D,W=CDG.W,bx=lay.bx,z25=lay.zBar,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-7,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+3,Z0=Math.min(bx.A[2],bx.B[2])-9,Z1=Math.max(bx.A[3],bx.B[3])+9,VW=X1-X0,VH=Z1-Z0,f2=n=>Math.round(n*100)/100;
   let h='<svg class="cv-plan" viewBox="'+f2(X0)+' '+f2(Z0)+' '+f2(VW)+' '+f2(VH)+'" preserveAspectRatio="xMidYMin meet" xmlns="http://www.w3.org/2000/svg">';
   ["A","B","C"].forEach(b=>{const q=bx[b];h+='<rect x="'+f2(q[0]-1.5)+'" y="'+f2(q[2]-1.5)+'" width="'+f2(q[1]-q[0]+3)+'" height="'+f2(q[3]-q[2]+3)+'" rx="2" class="cv-pb"/><text x="'+f2((q[0]+q[1])/2)+'" y="'+f2(b==="A"?q[3]+6.5:q[2]-3.5)+'" class="cv-pt">BLOCO '+b+'</text>';});
   /* faixa de cada rua (o corredor entre o lado ímpar e o par), com o nome alinhado nela */
   ["A","B","C"].forEach(b=>CD_BL[b].forEach(r=>{const f=lay.fr[r],o=lay.R[r];if(!f||!o)return;const u0=(0.5-o.cor)*L,u1=(o.maxPos+0.5-o.cor)*L,sel=opt.rua===r?" on":"";
-    if(f.ax){h+='<rect x="'+f2(f.ox+u0)+'" y="'+f2(f.oz-W*0.42)+'" width="'+f2(u1-u0)+'" height="'+f2(W*0.84)+'" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(bx.A[0]-1)+'" y="'+f2(f.oz+0.6)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';}
-    else{h+='<rect x="'+f2(f.ox-W*0.42)+'" y="'+f2(f.oz+u0)+'" width="'+f2(W*0.84)+'" height="'+f2(u1-u0)+'" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(f.ox)+'" y="'+f2(bx[b][2]-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}}));
-  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2]-3)+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.B[0]-3)+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.C[1]-bx.B[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
-  cells.forEach(c=>{const sl=lay.slot(c.rua,c.pr);if(!sl)return;const f=sl.f,w=f.ax?L*0.86:D*0.9,hh=f.ax?D*0.9:L*0.86,k=c.rua+"|"+c.pr;
-    h+='<rect x="'+f2(sl.x-w/2)+'" y="'+f2(sl.z-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
+    if(f.ax){h+='<rect x="'+f2(f.ox+u0)+'" y="'+f2(f.oz-0.75)+'" width="'+f2(u1-u0)+'" height="1.5" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(bx.A[0]-1)+'" y="'+f2(f.oz+0.6)+'" class="cv-prl'+sel+'" text-anchor="end" data-cvrua="'+r+'">R'+r+'</text>';}
+    else{h+='<rect x="'+f2(f.ox-0.75)+'" y="'+f2(f.oz+u0)+'" width="1.5" height="'+f2(u1-u0)+'" rx="0.6" class="cv-pa'+sel+'" data-cvrua="'+r+'"/><text x="'+f2(f.ox)+'" y="'+f2(bx[b][2]-0.9)+'" class="cv-prl'+sel+'" text-anchor="middle" data-cvrua="'+r+'">'+r+'</text>';}}));
+  h+='<rect x="'+f2(-L/2)+'" y="'+f2(bx.A[2]-3)+'" width="'+f2(L)+'" height="'+f2(bx.A[3]-bx.A[2]+6)+'" class="cv-pc"/><rect x="'+f2(bx.C[0]-3)+'" y="'+f2(z25-L/2)+'" width="'+f2(bx.B[1]-bx.C[0]+6)+'" height="'+f2(L)+'" class="cv-pc"/>';
+  cells.forEach(c=>{const sl=lay.slot(c.rua,c.pr);if(!sl)return;const f=sl.f,DP=1.7,off=sl.s*(0.75+DP/2),cx=f.ox+f.ax*sl.u+f.nx*off,cz=f.oz+f.az*sl.u+f.nz*off,w=f.ax?L*0.92:DP,hh=f.ax?DP:L*0.92,k=c.rua+"|"+c.pr;
+    h+='<rect x="'+f2(cx-w/2)+'" y="'+f2(cz-hh/2)+'" width="'+f2(w)+'" height="'+f2(hh)+'" rx="0.18" class="cv-c'+(opt.sel===k?" sel":"")+(opt.hit&&!opt.hit(c)?" dim":"")+(opt.hit&&opt.hit(c)&&opt.ativo?" hit":"")+'" fill="'+corDe(c)+'" data-cell="'+k+'"/>';});
   return h+'</svg>';}
 function cvZoom(k){return '<label class="cv-zoom"><span>Tamanho</span><input type="range" min="12" max="34" step="2" value="'+CV[k]+'" data-cvzoom="'+k+'"></label>';}
 function cvPickCells(C){const g={};C.it.forEach(x=>{if(!CV.cur[x.cur])return;const k=x.rua+"|"+x.pr,o=g[k]=g[k]||{rua:x.rua,pr:x.pr,apd:0,n:0,cur:{A:0,B:0,C:0,Z:0},est:{},dp:{},it:[],mov:0};o.apd+=x.apd;o.n++;o.cur[x.cur]++;if(x.est)o.est[x.est]=(o.est[x.est]||0)+1;o.dp[x.dpt||""]=(o.dp[x.dpt||""]||0)+1+x.apd;if(x.mov)o.mov++;o.it.push(x);});return g;}
@@ -5139,7 +5139,7 @@ function cvMapaPick(C){const g=cvPickCells(C);CV._gp=g;const cells=Object.values
   return '<div class="cv-tools"><span>Cor por</span>'+[["apd","Apanhas por dia"],["cur","Curva ABC"],["est","Estrutura"],["dep","Departamento"],["mov","Transferências"]].map(([k,l])=>'<button type="button" class="cv-chip'+(CV.cor===k?" on":"")+'" data-cvcor="'+k+'">'+l+'</button>').join("")+
     '<span style="margin-left:8px">Mostrar</span>'+["A","B","C","Z"].map(k=>'<button type="button" class="cv-chip cv-cc'+(CV.cur[k]?" on":"")+'" style="--cc:'+CV_CUR[k]+'" data-cvcur="'+k+'">Curva '+k+'</button>').join("")+'</div>'+cvDepChips(dep,"data-cvdep")+
     '<div class="cv-tools"><input class="in" type="search" id="cv-mq" placeholder="Achar item no mapa: código ou descrição" value="'+esc(CV.q)+'" style="max-width:340px">'+(hit?'<small class="note" style="margin:0">'+nh+' prédio(s) encontrados'+(sr?' · rua '+sr+' <button type="button" class="link" data-cvrx>mostrar todas</button>':'')+'</small>':'')+'<div class="cv-leg">'+leg+'</div></div>'+
-    '<div class="cv-plw" data-grid="pick">'+cvPlan(cells,cor,{sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:12,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Bloco A embaixo (rua 31 encostada no corredor até a rua 2), blocos B (esquerda) e C (direita) em cima, ligados pelo corredor da rua 25. Passe o mouse ou toque em um quadrado para ver o item; toque no nome da rua para caminhar nela no Depósito 3D.</p>'+
+    '<div class="cv-plw" data-grid="pick">'+cvPlan(cells,cor,{sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua})+'</div>'+(cells.some(c=>!cdBloco(c.rua))?cvGrid(cells.filter(c=>!cdBloco(c.rua)),cor,{id:"pick2",zoom:12,sel:CV.sel,hit,ativo:!!hit,rua:CV.selRua}):'')+'<p class="note">Bloco A embaixo (rua 31 encostada no corredor até a rua 2), blocos C (esquerda) e B (direita) em cima, ligados pelo corredor da rua 25. Passe o mouse ou toque em um quadrado para ver o item; toque no nome da rua para caminhar nela no Depósito 3D.</p>'+
     '<div class="block" style="margin-top:12px"><h3>Ruas com mais apanhas por dia</h3>'+rk.map(([r,o])=>'<button type="button" class="cv-bar" data-cvrua="'+r+'"><span>Rua '+r+'</span><div><i style="width:'+Math.max(2,o.apd/rmx*100)+'%"></i></div><b>'+cvFmt(o.apd,0)+'/dia</b><small>'+o.A+' item(ns) A · '+o.n+' end.</small></button>').join("")+'</div>';}
 function cvDetPick(g){let L=[],tit="",wr=0,wp=0;if(CV.sel&&g[CV.sel]){const c=g[CV.sel];L=c.it;tit="Rua "+c.rua+" · prédio "+c.pr;wr=c.rua;wp=c.pr;}else if(CV.selRua){L=Object.values(g).filter(c=>c.rua===CV.selRua).flatMap(c=>c.it);tit="Rua "+CV.selRua+" inteira";wr=CV.selRua;}
   if(!L.length)return '<div class="cv-dv"><b>Detalhe</b><p class="note">Toque em um prédio ou em uma rua do mapa para ver os itens: curva, apanhas por dia, cobertura, estrutura e a transferência sugerida.</p></div>';
@@ -5365,10 +5365,10 @@ function cd3Build(){const T=THREE,S=CV3.scene,lay=cdLayout(),L=CDG.L,D=CDG.D,H=C
   const bx=lay.bx,X0=Math.min(bx.A[0],bx.B[0],bx.C[0])-8,X1=Math.max(bx.A[1],bx.B[1],bx.C[1])+8,Z0=Math.min(bx.A[2],bx.B[2])-8,Z1=Math.max(bx.A[3],bx.B[3])+8,z25=lay.zBar;
   const plano=(x0,x1,z0,z1,cor,y,op)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,z1-z0),new T.MeshLambertMaterial({color:cor,transparent:op<1,opacity:op}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,y,(z0+z1)/2);G.add(m);return m;};
   plano(X0,X1,Z0,Z1,0xD5DBE3,0,1);["A","B","C"].forEach(b=>plano(bx[b][0]-1.5,bx[b][1]+1.5,bx[b][2]-1.5,bx[b][3]+1.5,0xCBD3DD,0.01,1));
-  plano(-L/2,L/2,bx.A[2]-4,bx.A[3]+4,0xFACC15,0.03,0.6);plano(bx.B[0]-4,bx.C[1]+4,z25-L/2,z25+L/2,0xFACC15,0.035,0.6);
+  plano(-L/2,L/2,bx.A[2]-4,bx.A[3]+4,0xFACC15,0.03,0.6);plano(bx.C[0]-4,bx.B[1]+4,z25-L/2,z25+L/2,0xFACC15,0.035,0.6);
   const lnV=(x,z0,z1)=>{const m=new T.Mesh(new T.PlaneGeometry(0.12,z1-z0),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set(x,0.05,(z0+z1)/2);G.add(m);};
   const lnH=(z,x0,x1)=>{const m=new T.Mesh(new T.PlaneGeometry(x1-x0,0.12),new T.MeshBasicMaterial({color:0xCA8A04}));m.rotation.x=-Math.PI/2;m.position.set((x0+x1)/2,0.05,z);G.add(m);};
-  lnV(-L/2,bx.A[2]-4,bx.A[3]+4);lnV(L/2,bx.A[2]-4,bx.A[3]+4);lnH(z25-L/2,bx.B[0]-4,bx.C[1]+4);lnH(z25+L/2,bx.B[0]-4,bx.C[1]+4);
+  lnV(-L/2,bx.A[2]-4,bx.A[3]+4);lnV(L/2,bx.A[2]-4,bx.A[3]+4);lnH(z25-L/2,bx.C[0]-4,bx.B[1]+4);lnH(z25+L/2,bx.C[0]-4,bx.B[1]+4);
   /* racks */
   const ruas=["A","B","C"].flatMap(b=>CD_BL[b].filter(r=>lay.R[r])),up=[],bm=[];
   ruas.forEach(r=>{const o=lay.R[r],f=lay.fr[r],nv=Math.max(2,o.maxNv),alt=nv*H+0.25;[-1,1].forEach(s=>{const off=s*(W/2+D/2);for(let k=1;k<=o.maxPos+1;k++){const u=(k-0.5-o.cor)*L;[-1,1].forEach(fb=>{const of2=off+fb*(D/2-0.05);up.push([f.ox+f.ax*u+f.nx*of2,alt/2,f.oz+f.az*u+f.nz*of2,f.ax?0.11:0.11,alt,0.11]);});}
@@ -5390,7 +5390,7 @@ function cd3Build(){const T=THREE,S=CV3.scene,lay=cdLayout(),L=CDG.L,D=CDG.D,H=C
   const cx=b=>(bx[b][0]+bx[b][1])/2,cz=b=>(bx[b][2]+bx[b][3])/2;
   [["A",cx("A"),bx.A[3]+9],["B",cx("B"),bx.B[2]-9],["C",cx("C"),bx.C[2]-9]].forEach(([b,x,z])=>{const t=cd3Txt("BLOCO "+b,{fs:90,fg:"#103F79",size:9});t.position.set(x,9,z);G.add(t);});
   const t4=cd3Txt("Corredor central",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t4.position.set(0,1.4,bx.A[3]+2.5);G.add(t4);
-  [[bx.B[0]-3],[bx.C[1]+3]].forEach(([x])=>{const t=cd3Txt("Corredor · liga pela rua 25",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t.position.set(x,1.4,z25);G.add(t);});
+  [[bx.C[0]-3],[bx.B[1]+3]].forEach(([x])=>{const t=cd3Txt("Corredor · liga pela rua 25",{fs:56,bg:"rgba(250,204,21,.95)",fg:"#713F12",size:1.6});t.position.set(x,1.4,z25);G.add(t);});
   CV3.cent={A:[cx("A"),cz("A"),bx.A[3]-bx.A[2]],B:[cx("B"),cz("B"),Math.max(bx.B[1]-bx.B[0],bx.B[3]-bx.B[2])],C:[cx("C"),cz("C"),Math.max(bx.C[1]-bx.C[0],bx.C[3]-bx.C[2])],geral:[(X0+X1)/2,(Z0+Z1)/2,Math.max(X1-X0,Z1-Z0)]};CV3.marks=null;CV3.pin=null;CV3.need=true;}
 function cd3Cor(x,ae){const m=CV3.modo,q=norm(CV3.q||"").trim(),dp=ae?(cvE().prod[x.cod]||""):x.dpt||"";
   if((CV3.dep&&dp!==CV3.dep)||(q&&!norm(x.cod+" "+x.desc).includes(q)))return 0xE2E8F0;
@@ -5535,9 +5535,9 @@ async function curvaAeroAbrir(){await cvLoad();cvPaintAero();}
 
 @media (max-width:900px){.cv-mw{grid-template-columns:1fr}.cv-det{position:static;max-height:none}}
 @media (max-width:700px){.cv-bar{grid-template-columns:54px 1fr 64px}.cv-bar small{display:none}.cv-leg{margin-left:0}}
-.cv-plw{border:1px solid var(--line);border-radius:12px;background:#EEF2F6;padding:4px}.cv-plan{display:block;width:100%;height:auto;max-height:calc(100vh - 150px);background:#EEF2F6;border-radius:10px}.cv-out .cv-blk{min-width:0}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
+.cv-plw{border:1px solid var(--line);border-radius:12px;background:#EEF2F6;padding:4px}.cv-plan{display:block;width:100%;height:auto;background:#EEF2F6;border-radius:10px}.cv-out .cv-blk{min-width:0}.cv-plan .cv-pb{fill:#E2E8F0;stroke:#CBD5E1;stroke-width:.2}.cv-plan .cv-pc{fill:#FDE68A;opacity:.75}.cv-plan .cv-pt{font:800 4px Inter,system-ui,sans-serif;fill:#103F79;text-anchor:middle}
 .cv-plan .cv-pa{fill:#F8FAFC;stroke:#E2E8F0;stroke-width:.12;cursor:pointer}.cv-plan .cv-pa.on{fill:#DBEAFE;stroke:#2563EB}.cv-plan .cv-pa:hover{fill:#EFF6FF}
-.cv-plan .cv-hov{pointer-events:none;transform-box:fill-box;transform-origin:center;transform:scale(2.6);stroke:#0F172A;stroke-width:.14;filter:drop-shadow(0 .3px .6px rgba(15,23,42,.45));animation:cvhov .12s ease-out}@keyframes cvhov{from{transform:scale(1)}to{transform:scale(2.6)}}
+.cv-plan .cv-hov{pointer-events:none;transform-box:fill-box;transform-origin:center;transform:scale(2.1);stroke:#0F172A;stroke-width:.14;filter:drop-shadow(0 .3px .6px rgba(15,23,42,.45));animation:cvhov .12s ease-out}@keyframes cvhov{from{transform:scale(1)}to{transform:scale(2.1)}}
 .cv-plan .cv-prl{font:800 1.9px Inter,system-ui,sans-serif;fill:#475569;cursor:pointer}.cv-plan .cv-prl:hover,.cv-plan .cv-prl.on{fill:#2563EB}
 .cv-plan .cv-c{transform:none!important;outline:none!important;cursor:pointer;stroke:transparent;stroke-width:.25}.cv-plan .cv-c:hover{stroke:#0F172A}.cv-plan .cv-c.sel{stroke:#0F172A;stroke-width:.45}.cv-plan .cv-c.dim{opacity:.16}.cv-plan .cv-c.hit{stroke:#2563EB;stroke-width:.35}
 .cd3-main{display:block}.cd3-view{height:78vh;min-height:460px}
