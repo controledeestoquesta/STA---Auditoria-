@@ -526,8 +526,22 @@
       <h3>Base de endereços (8022)</h3>
       <div class="bstat"><span id="b8022-src">Base original</span><span><b id="b8022-n">0</b> endereços</span></div>
       <label class="filebtn" style="width:100%">Escolher arquivo 8022 (.xlsx ou .xls)<input type="file" id="b8022-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
-      <p class="hint">Colunas usadas: CODPROD, RUA, PREDIO, NIVEL, APTO e QTUNITCX.</p>
+      <p class="hint">Colunas usadas: CODPROD, RUA, PREDIO, NIVEL, APTO, QTUNITCX, PK_END (estrutura) e DEPTO (departamento).</p>
       <p class="okline" id="b8022-msg"></p>
+    </div>
+    <div class="block">
+      <h3>8351 – Picking (curva de apanha)</h3>
+      <div class="bstat"><span id="b8351p-src">Nenhum arquivo importado neste aparelho</span><span><b id="b8351p-n">0</b> linhas</span></div>
+      <label class="filebtn" style="width:100%">Importar 8351 – Picking do dia (.xlsx ou .xls)<input type="file" id="b8351p-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Colunas usadas: RUA, PREDIO, NIVEL, APTO, CODPROD, DESCRICAO, QTAPANHA, QTDIAS, QTMEDIA, CAPACIDADE, MULTIPLO e estoques. Alimenta a Curva Picking e o Depósito 3D.</p>
+      <p class="okline" id="b8351p-msg"></p>
+    </div>
+    <div class="block">
+      <h3>8351 – Aéreo (mapa de calor)</h3>
+      <div class="bstat"><span id="b8351a-src">Nenhum arquivo importado neste aparelho</span><span><b id="b8351a-n">0</b> linhas</span></div>
+      <label class="filebtn" style="width:100%">Importar 8351 – Aéreo do dia (.xlsx ou .xls)<input type="file" id="b8351a-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Mesmas colunas da 8351, extraída do aéreo. Alimenta o Mapa Aéreo e o Depósito 3D.</p>
+      <p class="okline" id="b8351a-msg"></p>
     </div>
     <div class="block">
       <h3>Base de funcionários (Quadro)</h3>
