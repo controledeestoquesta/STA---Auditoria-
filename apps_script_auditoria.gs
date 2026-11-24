@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 74)
+ * Auditoria STA – Santa Therezinha (versão 75)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -717,7 +717,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 74, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 75, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -796,6 +796,8 @@ function lerPermissoes() {
   GESTORES_CE.forEach(function (g) { if (mapa[g]) PERMS_GESTOR.forEach(function (x) { if (mapa[g].permissoes.indexOf(x) < 0) mapa[g].permissoes.push(x); }); });
   /* Joel Marques (supervisor de roteirização): acesso à Roteirização */
   if (mapa['10000514'] && mapa['10000514'].permissoes.indexOf('ce_rtz') < 0) mapa['10000514'].permissoes.push('ce_rtz');
+  /* Leonardo Domiense Cabral (faturamento): lança as notas emitidas em Rotinas diárias */
+  if (mapa['10000985'] && mapa['10000985'].permissoes.indexOf('aud_rot') < 0) mapa['10000985'].permissoes.push('aud_rot');
   return mapa;
 }
 
@@ -1225,7 +1227,9 @@ const ROTINAS = {
   os51: { aba: 'OS51_Pendentes', cols: ['Data_Importacao', 'Quantidade', 'Observacao', 'Importado_Por', 'ID_Import'] },
   r8066: { aba: 'Rotina_8066_Historico', cols: ['Data_Importacao', 'Codigo', 'Descricao', 'Ultimo_Inventario', 'Dt_Ultima_Atualizacao', 'Importado_Por', 'ID_Import'] },
   r8173: { aba: 'Rotina_8173_Historico', cols: ['Data_Importacao', 'Matricula', 'Nome', 'Pontos', 'Valor', 'Funcao', 'Periodo', 'Importado_Por', 'ID_Import'] },
-  cped: { aba: 'Central_Pedidos_Historico', cols: ['Data_Importacao', 'Pedido', 'Qtd_Itens', 'Data_Pedido', 'Observacao', 'Importado_Por', 'ID_Import'] }
+  cped: { aba: 'Central_Pedidos_Historico', cols: ['Data_Importacao', 'Pedido', 'Qtd_Itens', 'Data_Pedido', 'Observacao', 'Importado_Por', 'ID_Import'] },
+  /* Faturamento: notas emitidas no dia (lançadas pelo Leonardo) e a quantidade de cada colaborador (Leonardo 35%, demais 33%) */
+  fat: { aba: 'Faturamento_Notas_Historico', cols: ['Data_Importacao', 'Quantidade_Notas', 'Qtd_10000985', 'Qtd_10002802', 'Qtd_10003396', 'Qtd_10003341', 'Distribuicao', 'Observacao', 'Importado_Por', 'ID_Import'] }
 };
 const ABA_ROT_LOG = 'Rotinas_Importacoes';
 const COLS_ROT_LOG = ['Data_Importacao', 'Rotina', 'Arquivo', 'Linhas', 'Matricula', 'Importado_Por', 'Importado_Em', 'ID_Import'];
