@@ -275,6 +275,9 @@
   <section class="view" id="v-rtz" hidden>
     <div id="rtz"></div>
   </section>
+  <section class="view" id="v-shl" hidden>
+    <div id="shl"></div>
+  </section>
   <section class="view" id="v-lib" hidden>
     <div class="block cb-bar">
       <div class="cb-txt"><b>Liberação de mercadorias</b><small id="pinfo-lib">Entra com o mesmo login do app. Liberações, cadastros e assinaturas ficam online para todos que têm acesso.</small></div>
@@ -417,10 +420,10 @@
 
   <section class="view" id="v-chep" hidden>
     <div class="block">
-      <h3 style="margin:0 0 6px">Importar documentos Chep (PDF)</h3>
+      <h3 style="margin:0 0 6px">Importar documentos Chep (PDF ou foto)</h3>
       <div class="field" id="h-tipo-f"><span class="lbl">Tipo do documento *</span><div class="mot" id="h-tipo" role="radiogroup" aria-label="Tipo"><button type="button" role="radio" aria-checked="false" data-t="Nota">NOTA EMITIDA <small>(coleta / transferência para lojas Adega)</small></button><button type="button" role="radio" aria-checked="false" data-t="Inventário">AJUSTE DE INVENTÁRIO</button></div></div>
-      <label class="btn ro-up" id="h-up" style="display:inline-flex;margin-top:4px">Escolher PDF(s)<input type="file" id="h-pdf" accept="application/pdf,.pdf" multiple hidden></label>
-      <p class="note" id="h-msg" style="margin:8px 0 0">Escolha o tipo e os arquivos. O app lê o PDF e preenche número, data, destino e quantidade de paletes; confira antes de enviar.</p>
+      <label class="btn ro-up" id="h-up" style="display:inline-flex;margin-top:4px">Escolher PDF(s) ou foto(s)<input type="file" id="h-pdf" accept="application/pdf,.pdf,image/*" multiple hidden></label> <label class="btn ro-up" style="display:inline-flex;margin-top:4px">📷 Tirar foto<input type="file" id="h-foto" accept="image/*" capture="environment" hidden></label>
+      <p class="note" id="h-msg" style="margin:8px 0 0">Escolha o tipo e os arquivos. O app lê o PDF e preenche número, data, destino e quantidade de paletes; na foto, preencha esses dados você mesmo. Confira antes de enviar.</p>
       <div id="h-prev"></div>
     </div>
     <div id="h-hist" style="margin-top:12px"></div>
@@ -564,6 +567,13 @@
       <p class="okline" id="b8268-msg"></p>
     </div>
     <div class="block">
+      <h3>8361 – Entrada Shelf Life (O.S. de entrada)</h3>
+      <div class="bstat"><span id="b8361-src">Nenhum arquivo importado</span><span><b id="b8361-n">0</b> O.S. com validade</span></div>
+      <label class="filebtn" style="width:100%">Importar 8361 (.xlsx ou .xls)<input type="file" id="b8361-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Colunas usadas: NUMOS, NUMBONUS, CODPROD, DESCRICAO, QT, DTVALIDADE, DATA (dia do recebimento) e TIPOOS. Só entram linhas com validade preenchida; CODENDERECO não é usada. O painel mostra os tipos de O.S. 51 e 98 (dá para trocar lá). Cada importação soma à base e é publicada para todos com acesso.</p>
+      <p class="okline" id="b8361-msg"></p>
+    </div>
+    <div class="block">
       <h3>Base de funcionários (Quadro)</h3>
       <div class="bstat"><span id="bq-src">Base original</span><span><b id="bq-n">0</b> colaboradores</span></div>
       <label class="filebtn" style="width:100%">Importar quadro de funcionários (.xls ou .xlsx)<input type="file" id="bq-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
@@ -615,6 +625,7 @@
   <button type="button" data-v="curva" hidden>Curva Picking</button>
   <button type="button" data-v="curvaa" hidden>Mapa Aéreo</button>
   <button type="button" data-v="rtz" hidden>Roteirização</button>
+  <button type="button" data-v="shl" hidden>Entrada Shelf Life</button>
   <button type="button" data-v="dev" hidden>Devoluções</button>
   <button type="button" data-v="noticias" hidden>Notícias</button>
   <button type="button" data-v="vales" hidden>Vales</button>
