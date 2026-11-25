@@ -1,6 +1,6 @@
 {
-  "name": "Auditoria de Ruas – Santa Therezinha",
-  "short_name": "Auditoria STA",
+  "name": "Controle de Estoque - Santa Therezinha",
+  "short_name": "Controle Estoque",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
