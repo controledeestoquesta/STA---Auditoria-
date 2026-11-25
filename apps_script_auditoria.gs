@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 75)
+ * Auditoria STA – Santa Therezinha (versão 76)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -112,7 +112,7 @@ ABAS.solicit = {
 const CAMPOS_SOL = ['ID_Auditoria', 'Data', 'DataHora', 'Tipo_Contagem', 'Filial', 'Carregamento', 'Matricula_Motorista', 'Motorista', 'UF', 'Codigo_Produto', 'Descricao_Produto', 'Quantidade', 'NF', 'Motivo', 'Matricula_Solicitante', 'Nome_Solicitante', 'Status', 'DataHora_Resposta', 'Qtd_Contada', 'Resultado', 'Respondido_Por', 'Tempo_Resposta_Min', 'Codigo_Invertido', 'Descricao_Invertido'];
 /* ===================== Setor Chep: PDFs de notas de paletes e ajustes de inventário ===================== */
 const ABA_CHEP = 'Chep_Documentos', PASTA_CHEP = 'Auditoria_Chep';
-const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em', 'Paletes_CHEP', 'Paletes_PBR'];
+const COLS_CHEP = ['ID', 'Data_Importacao', 'Tipo', 'Numero_Documento', 'Data_Documento', 'Destino', 'Quantidade_Paletes', 'Arquivo', 'Paginas', 'Link_Arquivo', 'Matricula', 'Importado_Por', 'Importado_Em', 'Paletes_CHEP', 'Paletes_PBR', 'Origem'];
 function chepSalvar(doc, b64, sessao) {
   if (!doc || !sessao) return { ok: false, erro: 'chepSalvar é chamada pelo aplicativo. Para testar as notícias, escolha testeNoticias no menu de funções.' };
   const A = abaRot(ABA_CHEP, COLS_CHEP), sh = A.sh, cab = A.cab, tipo = doc.Tipo === 'Inventário' ? 'Inventário' : 'Nota', num = String(doc.Numero_Documento || '').trim();
@@ -124,8 +124,9 @@ function chepSalvar(doc, b64, sessao) {
   let link = '';
   if (b64) {
     const it = DriveApp.getFoldersByName(PASTA_CHEP), pasta = it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_CHEP);
-    const nome = tipo + '_' + (num || 'sem-numero') + '_' + String(doc.Arquivo || 'documento.pdf').replace(/[^\w.\-]+/g, '_');
-    link = pasta.createFile(Utilities.newBlob(Utilities.base64Decode(b64), 'application/pdf', nome)).getUrl();
+    const mime = /^image\/(jpeg|png|webp|heic|heif)$/.test(String(doc.Mime || '')) ? String(doc.Mime) : 'application/pdf';
+    const nome = tipo + '_' + (num || 'sem-numero') + '_' + String(doc.Arquivo || (mime === 'application/pdf' ? 'documento.pdf' : 'foto.jpg')).replace(/[^\w.\-]+/g, '_');
+    link = pasta.createFile(Utilities.newBlob(Utilities.base64Decode(b64), mime, nome)).getUrl();
   }
   const agora = new Date(), tz = Session.getScriptTimeZone();
   const o = Object.assign({}, doc, { ID: 'CHEP-' + Utilities.formatDate(agora, tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 1000), Data_Importacao: Utilities.formatDate(agora, tz, 'dd/MM/yyyy'), Tipo: tipo, Numero_Documento: num,
@@ -570,8 +571,8 @@ function doPost(e) {
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
-    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(dados.painel === 'shl8361' ? ['ce_bas', 'ce_gest', 'ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
     if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
     if (dados.acao === 'painel_ver') { const pv = painelLer(dados.painel); return resposta({ ok: true, versao: pv.versao, em: pv.em, por: pv.por }); }
@@ -717,7 +718,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 75, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 76, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -755,13 +756,14 @@ const PERMISSOES_CONHECIDAS = {
   ce_est: 'Acesso ao Controle de Estoque (rotinas e liberacao de mercadorias)',
   ce_tra: 'Acesso ao setor de transferencias (curva de apanha, mapas de calor e listas de transferencia)',
   ce_rtz: 'Acesso a Roteirizacao (pedidos, notas, picos de horario e tempo de geracao do WMS)',
+  ce_shl: 'Acesso a Entrada Shelf Life (rotina 8361: validade dos produtos recebidos)',
   ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
   ce_bas: 'Acesso a Bases e planilha',
   aud_adm: 'Acesso a tela de administracao'
 };
 /* gestores do Controle de Estoque: acesso completo automático (precisam ter uma linha com senha no Permissionamento) */
 const GESTORES_CE = ['10002001', '10002939'];
-const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_tra', 'ce_rtz', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
+const PERMS_GESTOR = ['aud_adm', 'ce_est', 'ce_tra', 'ce_rtz', 'ce_shl', 'ce_gest', 'ce_bas', 'aud_fch', 'aud_reg', 'aud_com', 'aud_cha'];
 
 /** Lê a aba Permissionamento (cria a coluna Status se não existir). */
 function tabelaPermissoes() {
