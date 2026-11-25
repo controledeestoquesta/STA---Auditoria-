@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 79)
+ * Auditoria STA – Santa Therezinha (versão 80)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -502,7 +502,7 @@ function doPost(e) {
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
   if (['mot_ler', 'mot_salvar'].indexOf(dados.acao) >= 0) {
-    if (['aud_adm', 'aud_sol', 'aud_lib', 'ce_est'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
+    if (['aud_adm', 'aud_sol', 'aud_lib', 'ce_est', 'ce_pcg', 'ce_rtz', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
     try {
       const M = abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']);
       if (dados.acao === 'mot_ler') return resposta(Object.assign({ ok: true }, lerTab('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em'])));
@@ -723,7 +723,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 79, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 80, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
