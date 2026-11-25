@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 76)
+ * Auditoria STA – Santa Therezinha (versão 77)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -571,8 +571,8 @@ function doPost(e) {
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
-    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(dados.painel === 'shl8361' ? ['ce_bas', 'ce_gest', 'ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
     if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
     if (dados.acao === 'painel_ver') { const pv = painelLer(dados.painel); return resposta({ ok: true, versao: pv.versao, em: pv.em, por: pv.por }); }
@@ -718,7 +718,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 76, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 77, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
