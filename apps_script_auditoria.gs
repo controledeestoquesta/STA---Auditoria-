@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 78)
+ * Auditoria STA – Santa Therezinha (versão 79)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -570,6 +570,11 @@ function doPost(e) {
       try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
+  if (dados.acao === 'pcg_reg_salvar') {
+    if (['aud_adm', 'aud_com', 'ce_pcg', 'ce_gest', 'ce_rtz'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para a Prévia de Cargas (ce_pcg).' });
+    const lkr = LockService.getScriptLock(); lkr.waitLock(30000);
+    try { const rr = pcgRegSalvar(dados.itens, sessao); if (Array.isArray(dados.mot)) rr.motoristas = pcgMotSalvar(dados.mot); return resposta(rr); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); } finally { lkr.releaseLock(); }
+  }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
     const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl', pcg: 'ce_pcg' }[dados.painel] || 'aud_com';
     const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).concat(dados.painel === 'pcg' ? ['ce_gest', 'ce_rtz'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
@@ -718,7 +723,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 78, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 79, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1242,6 +1247,44 @@ function abaRot(nome, cols) {
   const cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String);
   cols.forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
   return { sh: sh, cab: cab };
+}
+/** Prévia de Cargas: cadastro de motoristas na aba Previa_Cargas_Motoristas (reescrita a cada gravação, só os ativos). */
+const ABA_PCG_MOT = 'Previa_Cargas_Motoristas', COLS_PCG_MOT = ['Codigo', 'Nome', 'Atualizado_Em', 'Atualizado_Por'];
+function pcgMotSalvar(lista) {
+  const A = abaRot(ABA_PCG_MOT, COLS_PCG_MOT), sh = A.sh, cab = A.cab, W = cab.length, tz = Session.getScriptTimeZone();
+  const L = lista.filter(function (m) { return m && m.cod && !m.del; }).sort(function (a, b) { return String(a.cod).localeCompare(String(b.cod), 'pt-BR', { numeric: true }); }).slice(0, 5000);
+  if (sh.getLastRow() > 1) sh.getRange(2, 1, sh.getLastRow() - 1, W).clearContent();
+  if (L.length) {
+    const rows = L.map(function (m) { const o = { Codigo: String(m.cod), Nome: String(m.nome || ''), Atualizado_Em: Utilities.formatDate(new Date(Number(m.t) || Date.now()), tz, 'dd/MM/yyyy HH:mm:ss'), Atualizado_Por: String(m.por || '') }; return cab.map(function (c) { return o[c] != null ? o[c] : ''; }); });
+    sh.getRange(2, 1, rows.length, W).setNumberFormat('@').setValues(rows);
+  }
+  return { total: L.length, aba: ABA_PCG_MOT };
+}
+/** Prévia de Cargas: grava o registro de cargas faturadas na aba Previa_Cargas_Registro (uma linha por lançamento; atualiza pelo ID e remove os excluídos). */
+const ABA_PCG_REG = 'Previa_Cargas_Registro', COLS_PCG_REG = ['ID', 'Data', 'Rota', 'Veiculo', 'Cod_Motorista', 'Motorista', 'Valor_Faturado', 'Lancado_Por', 'Carga_ID', 'Atualizado_Em', 'Gravado_Por'];
+function pcgRegSalvar(itens, sessao) {
+  if (!Array.isArray(itens)) throw new Error('Lista de lançamentos inválida.');
+  const A = abaRot(ABA_PCG_REG, COLS_PCG_REG), sh = A.sh, cab = A.cab, W = cab.length, tz = Session.getScriptTimeZone();
+  const n = sh.getLastRow(), vals = n > 1 ? sh.getRange(2, 1, n - 1, W).getValues() : [], iId = cab.indexOf('ID'), pos = {};
+  vals.forEach(function (r, i) { pos[String(r[iId])] = i; });
+  const br = function (s) { s = String(s || ''); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : s; };
+  const quem = (sessao.nome || '') + ' (' + sessao.matricula + ')', novos = [], apagar = [];
+  let alt = 0;
+  itens.slice(0, 20000).forEach(function (x) {
+    const id = String((x && x.id) || ''); if (!id) return;
+    if (x.del) { if (pos[id] >= 0) apagar.push(pos[id] + 2); return; }
+    const o = { ID: id, Data: br(x.d), Rota: String(x.rota || ''), Veiculo: String(x.veic || ''), Cod_Motorista: String(x.mcod || ''), Motorista: String(x.mot || ''), Valor_Faturado: Number(x.val) || 0, Lancado_Por: String(x.por || ''), Carga_ID: String(x.carga || ''), Atualizado_Em: Utilities.formatDate(new Date(Number(x.t) || Date.now()), tz, 'dd/MM/yyyy HH:mm:ss'), Gravado_Por: quem };
+    const row = cab.map(function (c) { return o[c] != null ? o[c] : ''; });
+    if (pos[id] === -1) return;
+    if (pos[id] >= 0) { const old = vals[pos[id]]; if (String(old[cab.indexOf('Atualizado_Em')]) !== o.Atualizado_Em || Number(old[cab.indexOf('Valor_Faturado')]) !== o.Valor_Faturado) { vals[pos[id]] = row; alt++; } }
+    else { novos.push(row); pos[id] = -1; }
+  });
+  if (alt) sh.getRange(2, 1, vals.length, W).setValues(vals);
+  if (novos.length) sh.getRange(sh.getLastRow() + 1, 1, novos.length, W).setValues(novos);
+  apagar.sort(function (a, b) { return b - a; }).forEach(function (r) { sh.deleteRow(r); });
+  const iv = cab.indexOf('Valor_Faturado') + 1;
+  if (sh.getLastRow() > 1) sh.getRange(2, iv, sh.getLastRow() - 1, 1).setNumberFormat('"R$" #,##0.00');
+  return { ok: true, novos: novos.length, alterados: alt, excluidos: apagar.length, total: Math.max(0, sh.getLastRow() - 1), aba: ABA_PCG_REG };
 }
 /** Grava a importação do dia (substitui a importação anterior do mesmo dia) e registra no log. */
 function rotSalvar(rotina, data, linhas, arquivo, sessao) {
