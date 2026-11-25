@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 80)
+ * Auditoria STA – Santa Therezinha (versão 81)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -502,7 +502,7 @@ function doPost(e) {
 
   if (dados.acao === 'fotos') return resposta(lerFotos(dados.ids));
   if (['mot_ler', 'mot_salvar'].indexOf(dados.acao) >= 0) {
-    if (['aud_adm', 'aud_sol', 'aud_lib', 'ce_est', 'ce_pcg', 'ce_rtz', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
+    if (dados.acao === 'mot_salvar' && ['aud_adm', 'aud_sol', 'aud_lib', 'ce_est', 'ce_pcg', 'ce_rtz', 'ce_gest'].every(function (x) { return sessao.permissoes.indexOf(x) < 0; })) return resposta({ ok: false, erro: 'Sem permissão para motoristas.' });
     try {
       const M = abaRot('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em']);
       if (dados.acao === 'mot_ler') return resposta(Object.assign({ ok: true }, lerTab('Motoristas_Cadastro', ['Matricula', 'Nome', 'Tipo', 'Cadastrado_Por', 'Cadastrado_Em'])));
@@ -576,9 +576,10 @@ function doPost(e) {
     try { const rr = pcgRegSalvar(dados.itens, sessao); if (Array.isArray(dados.mot)) rr.motoristas = pcgMotSalvar(dados.mot); return resposta(rr); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); } finally { lkr.releaseLock(); }
   }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
-    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl', pcg: 'ce_pcg' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).concat(dados.painel === 'pcg' ? ['ce_gest', 'ce_rtz'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
-    if (!okP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
+    const permP = { cesta: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl', pcg: 'ce_pcg', cv: 'ce_bas' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).concat(dados.painel === 'pcg' ? ['ce_gest', 'ce_rtz'] : []).concat(dados.painel === 'cv' ? ['ce_gest', 'ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    const pubP = dados.acao !== 'painel_salvar' && ['cv', 'rtz72', 'rtz68', 'pcg', 'shl8361', 'shlval'].indexOf(String(dados.painel)) >= 0; // acompanhamento aberto a todos os logados
+    if (!okP && !pubP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
     if (dados.acao === 'painel_ver') { const pv = painelLer(dados.painel); return resposta({ ok: true, versao: pv.versao, em: pv.em, por: pv.por }); }
     const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
@@ -723,7 +724,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 80, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 81, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -804,6 +805,7 @@ function lerPermissoes() {
   GESTORES_CE.forEach(function (g) { if (mapa[g]) PERMS_GESTOR.forEach(function (x) { if (mapa[g].permissoes.indexOf(x) < 0) mapa[g].permissoes.push(x); }); });
   /* Joel Marques (supervisor de roteirização): acesso à Roteirização */
   if (mapa['10000514'] && mapa['10000514'].permissoes.indexOf('ce_rtz') < 0) mapa['10000514'].permissoes.push('ce_rtz');
+  ['10000514', '10002959'].forEach(function (m) { if (mapa[m] && mapa[m].permissoes.indexOf('ce_bas') < 0) mapa[m].permissoes.push('ce_bas'); }); // Joel e Diego importam as bases
   /* Leonardo Domiense Cabral (faturamento): lança as notas emitidas em Rotinas diárias */
   if (mapa['10000985'] && mapa['10000985'].permissoes.indexOf('aud_rot') < 0) mapa['10000985'].permissoes.push('aud_rot');
   return mapa;
