@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 84)
+ * Auditoria STA – Santa Therezinha (versão 85)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -727,7 +727,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 84, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 85, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1441,10 +1441,9 @@ function cvlAcao(dados, sessao) {
       const valor = Math.round(itens.reduce(function (s, i) { return s + i.qtd * i.custo; }, 0) * 100) / 100;
       if (!cm || !cn) return { ok: false, erro: 'Informe o colaborador.' };
       if (!(valor > 0) || valor > 100000) return { ok: false, erro: 'Valor do vale inválido.' };
-      if (!String(v.motivo || '').trim()) return { ok: false, erro: 'Informe o motivo do vale.' };
-      const o = { ID: 'VL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Solicitacao: agora(), Solicitante_Mat: mat, Solicitante_Nome: String(sessao.nome || ''), Colaborador_Mat: cm, Colaborador_Nome: cn.toUpperCase(), Funcao: String(v.funcao || ''), Tipo: 'Vale mercadoria', Valor: valor.toFixed(2), Itens: JSON.stringify(itens), Parcelas: String(Math.max(1, Math.min(12, parseInt(v.parcelas, 10) || 1))), Motivo: String(v.motivo).trim().slice(0, 500), Status: 'Pendente', Decidido_Por_Mat: '', Decidido_Por: '', Decidido_Em: '', Obs_Decisao: '', Atualizado_Em: agora() };
+      const o = { ID: 'VL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Solicitacao: agora(), Solicitante_Mat: mat, Solicitante_Nome: String(sessao.nome || ''), Colaborador_Mat: cm, Colaborador_Nome: cn.toUpperCase(), Funcao: String(v.funcao || ''), Tipo: 'Vale mercadoria', Valor: valor.toFixed(2), Itens: JSON.stringify(itens), Parcelas: String(Math.max(1, Math.min(12, parseInt(v.parcelas, 10) || 1))), Motivo: String(v.motivo || '').trim().slice(0, 500), Status: 'Pendente', Decidido_Por_Mat: '', Decidido_Por: '', Decidido_Em: '', Obs_Decisao: '', Atualizado_Em: agora() };
       T.sh.getRange(T.linhas.length + 2, 1, 1, T.cab.length).setNumberFormat('@').setValues([T.cab.map(function (c) { return o[c] != null ? o[c] : ''; })]);
-      cvlHist('Solicitado', sessao, o, itens.length + ' produto(s) · ' + o.Parcelas + 'x · ' + o.Motivo);
+      cvlHist('Solicitado', sessao, o, itens.length + ' produto(s) · ' + o.Parcelas + 'x');
       return { ok: true, vale: o };
     }
     const i = T.linhas.findIndex(function (l) { return String(l[0]) === String(dados.id || ''); });
