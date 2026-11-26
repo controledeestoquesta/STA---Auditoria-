@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 82)
+ * Auditoria STA – Santa Therezinha (versão 83)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -570,7 +570,7 @@ function doPost(e) {
       try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
-  if (['vc_listar', 'vc_solicitar', 'vc_decidir', 'vc_cancelar'].indexOf(dados.acao) >= 0) {
+  if (['vc_listar', 'vc_solicitar', 'vc_decidir', 'vc_cancelar', 'vc_assinatura_salvar'].indexOf(dados.acao) >= 0) {
     try { return resposta(cvlAcao(dados, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
   if (dados.acao === 'pcg_reg_salvar') {
@@ -727,7 +727,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 82, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 83, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -767,7 +767,7 @@ const PERMISSOES_CONHECIDAS = {
   ce_rtz: 'Acesso a Roteirizacao (pedidos, notas, picos de horario e tempo de geracao do WMS)',
   ce_shl: 'Acesso a Entrada Shelf Life (rotina 8361: validade dos produtos recebidos)',
   vc_sol: 'Central de Vales: solicitar vales para os colaboradores (encarregados e lideres)',
-  vc_apr: 'Central de Vales: aprovar ou recusar vales (Amauri, Matheus Cardoso e Alexandre Alencar)',
+  vc_apr: 'Central de Vales: aprovar ou recusar vales com assinatura digital (Amauri, Matheus Cardoso, Alexandre Alencar e Wagner Fernandes)',
   ce_pcg: 'Acesso a Previa de Cargas (cargas do dia, metas por rota e faturamento)',
   ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
   ce_bas: 'Acesso a Bases e planilha',
@@ -1386,8 +1386,15 @@ function obterPasta() {
 /* ===================== Central de Vales =====================
    Encarregados e líderes (vc_sol) solicitam; Amauri, Matheus Cardoso ou Alexandre Alencar (vc_apr) aprovam.
    Uma aprovação basta. Aba Central_Vales (um vale por linha) e Central_Vales_Historico (cada ação). */
-const APROVADORES_VALE = ['10002378', '10002001', '10002081']; // Amauri Felix de Sousa, Matheus Cardoso, Alexandre Gomes de Alencar
-const ABA_CVL = 'Central_Vales', COLS_CVL = ['ID', 'Data_Solicitacao', 'Solicitante_Mat', 'Solicitante_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Funcao', 'Tipo', 'Valor', 'Parcelas', 'Motivo', 'Status', 'Decidido_Por_Mat', 'Decidido_Por', 'Decidido_Em', 'Obs_Decisao', 'Atualizado_Em'];
+const APROVADORES_VALE = ['10002378', '10002001', '10002081', '10002939']; // Amauri Felix de Sousa, Matheus Cardoso, Alexandre Gomes de Alencar, Wagner Fernandes
+const ABA_CVL = 'Central_Vales', COLS_CVL = ['ID', 'Data_Solicitacao', 'Solicitante_Mat', 'Solicitante_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Funcao', 'Tipo', 'Valor', 'Parcelas', 'Motivo', 'Status', 'Decidido_Por_Mat', 'Decidido_Por', 'Decidido_Em', 'Obs_Decisao', 'Atualizado_Em', 'Itens', 'Assinatura_ID', 'Codigo_Validacao'];
+const ABA_CVL_SIG = 'Central_Vales_Assinaturas', COLS_CVL_SIG = ['ID', 'Matricula', 'Nome', 'Assinatura', 'Criada_Em'];
+function cvlSigs() {
+  const A = abaRot(ABA_CVL_SIG, COLS_CVL_SIG), n = A.sh.getLastRow() - 1, ix = function (c) { return A.cab.indexOf(c); };
+  const v = n > 0 ? A.sh.getRange(2, 1, n, A.cab.length).getValues() : [];
+  return { A: A, L: v.map(function (l) { return { id: String(l[ix('ID')]), mat: String(l[ix('Matricula')]), img: String(l[ix('Assinatura')]) }; }).filter(function (s) { return s.id; }) };
+}
+function cvlSigAtual(S, mat) { let u = null; S.L.forEach(function (s) { if (s.mat === String(mat)) u = s; }); return u; }
 const ABA_CVL_H = 'Central_Vales_Historico', COLS_CVL_H = ['Data_Hora', 'ID_Vale', 'Acao', 'Por_Mat', 'Por_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Valor', 'Status_Apos', 'Detalhe'];
 function cvlLer() {
   const A = abaRot(ABA_CVL, COLS_CVL), sh = A.sh, cab = A.cab, n = sh.getLastRow() - 1;
@@ -1405,21 +1412,37 @@ function cvlAcao(dados, sessao) {
   if (dados.acao === 'vc_listar') {
     if (!sol) return { ok: false, erro: 'Sem permissão para a Central de Vales (vc_sol).' };
     const T = cvlLer(), todos = apr || tem('aud_adm');
-    const L = T.linhas.map(T.obj).filter(function (o) { return o.ID && (todos || String(o.Solicitante_Mat) === mat); });
-    return { ok: true, aprovador: apr, todos: todos, vales: L.slice(-3000) };
+    const L = T.linhas.map(T.obj).filter(function (o) { return o.ID && (todos || String(o.Solicitante_Mat) === mat); }).slice(-3000);
+    const S = cvlSigs(), quero = {}, mapa = {};
+    L.forEach(function (o) { if (o.Assinatura_ID) quero[o.Assinatura_ID] = 1; });
+    const minha = apr ? cvlSigAtual(S, mat) : null; if (minha) quero[minha.id] = 1;
+    S.L.forEach(function (s) { if (quero[s.id]) mapa[s.id] = s.img; });
+    return { ok: true, aprovador: apr, todos: todos, vales: L, assinaturas: mapa, minhaAssinatura: minha ? minha.id : '' };
   }
   const lk = LockService.getScriptLock(); lk.waitLock(30000);
   try {
+    if (dados.acao === 'vc_assinatura_salvar') {
+      if (!apr) return { ok: false, erro: 'Só os aprovadores de vale registram assinatura.' };
+      const img = String(dados.img || '');
+      if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(img) || img.length > 49000) return { ok: false, erro: 'Assinatura inválida ou grande demais: refaça com traço mais simples.' };
+      const S = cvlSigs(), id = 'SIG-' + mat + '-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss');
+      const r = { ID: id, Matricula: mat, Nome: String(sessao.nome || ''), Assinatura: img, Criada_Em: agora() };
+      S.A.sh.appendRow(S.A.cab.map(function (c) { return r[c] != null ? r[c] : ''; }));
+      return { ok: true, id: id };
+    }
     const T = cvlLer();
     if (dados.acao === 'vc_solicitar') {
       if (!sol) return { ok: false, erro: 'Sem permissão para solicitar vales (vc_sol).' };
-      const v = dados.vale || {}, valor = Number(v.valor), cm = String(v.colMat || '').replace(/\D/g, ''), cn = String(v.colNome || '').trim();
+      const v = dados.vale || {}, cm = String(v.colMat || '').replace(/\D/g, ''), cn = String(v.colNome || '').trim();
+      const itens = (Array.isArray(v.itens) ? v.itens : []).slice(0, 80).map(function (i) { return { cod: String(i.cod || '').slice(0, 20), desc: String(i.desc || '').slice(0, 120), qtd: Math.round(Number(i.qtd) * 1000) / 1000, custo: Math.round(Number(i.custo) * 10000) / 10000 }; }).filter(function (i) { return i.cod && i.qtd > 0 && i.custo >= 0; });
+      if (!itens.length) return { ok: false, erro: 'Adicione ao menos um produto ao vale.' };
+      const valor = Math.round(itens.reduce(function (s, i) { return s + i.qtd * i.custo; }, 0) * 100) / 100;
       if (!cm || !cn) return { ok: false, erro: 'Informe o colaborador.' };
       if (!(valor > 0) || valor > 100000) return { ok: false, erro: 'Valor do vale inválido.' };
       if (!String(v.motivo || '').trim()) return { ok: false, erro: 'Informe o motivo do vale.' };
-      const o = { ID: 'VL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Solicitacao: agora(), Solicitante_Mat: mat, Solicitante_Nome: String(sessao.nome || ''), Colaborador_Mat: cm, Colaborador_Nome: cn.toUpperCase(), Funcao: String(v.funcao || ''), Tipo: String(v.tipo || 'Vale'), Valor: valor.toFixed(2), Parcelas: String(Math.max(1, Math.min(12, parseInt(v.parcelas, 10) || 1))), Motivo: String(v.motivo).trim().slice(0, 500), Status: 'Pendente', Decidido_Por_Mat: '', Decidido_Por: '', Decidido_Em: '', Obs_Decisao: '', Atualizado_Em: agora() };
+      const o = { ID: 'VL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Solicitacao: agora(), Solicitante_Mat: mat, Solicitante_Nome: String(sessao.nome || ''), Colaborador_Mat: cm, Colaborador_Nome: cn.toUpperCase(), Funcao: String(v.funcao || ''), Tipo: 'Vale mercadoria', Valor: valor.toFixed(2), Itens: JSON.stringify(itens), Parcelas: String(Math.max(1, Math.min(12, parseInt(v.parcelas, 10) || 1))), Motivo: String(v.motivo).trim().slice(0, 500), Status: 'Pendente', Decidido_Por_Mat: '', Decidido_Por: '', Decidido_Em: '', Obs_Decisao: '', Atualizado_Em: agora() };
       T.sh.getRange(T.linhas.length + 2, 1, 1, T.cab.length).setNumberFormat('@').setValues([T.cab.map(function (c) { return o[c] != null ? o[c] : ''; })]);
-      cvlHist('Solicitado', sessao, o, o.Tipo + ' · ' + o.Parcelas + 'x · ' + o.Motivo);
+      cvlHist('Solicitado', sessao, o, itens.length + ' produto(s) · ' + o.Parcelas + 'x · ' + o.Motivo);
       return { ok: true, vale: o };
     }
     const i = T.linhas.findIndex(function (l) { return String(l[0]) === String(dados.id || ''); });
@@ -1427,12 +1450,16 @@ function cvlAcao(dados, sessao) {
     const o = T.obj(T.linhas[i]), grava = function () { o.Atualizado_Em = agora(); T.sh.getRange(i + 2, 1, 1, T.cab.length).setNumberFormat('@').setValues([T.cab.map(function (c) { return o[c] != null ? o[c] : ''; })]); };
     if (o.Status !== 'Pendente') return { ok: false, erro: 'Este vale já foi ' + String(o.Status).toLowerCase() + (o.Decidido_Por ? ' por ' + o.Decidido_Por : '') + '.', vale: o };
     if (dados.acao === 'vc_decidir') {
-      if (!apr) return { ok: false, erro: 'Só Amauri, Matheus Cardoso ou Alexandre Alencar aprovam vales.' };
+      if (!apr) return { ok: false, erro: 'Só Amauri, Matheus Cardoso, Alexandre Alencar ou Wagner Fernandes aprovam vales.' };
+      const sg = cvlSigAtual(cvlSigs(), mat);
+      if (!sg) return { ok: false, semAssinatura: true, erro: 'Crie sua assinatura digital antes de decidir.' };
       if (String(o.Colaborador_Mat) === mat) return { ok: false, erro: 'Você não pode decidir um vale para você mesmo.' };
       const aprova = dados.decisao === 'aprovar', obs = String(dados.obs || '').trim().slice(0, 500);
       if (!aprova && !obs) return { ok: false, erro: 'Informe o motivo da recusa.' };
-      o.Status = aprova ? 'Aprovado' : 'Recusado'; o.Decidido_Por_Mat = mat; o.Decidido_Por = String(sessao.nome || mat); o.Decidido_Em = agora(); o.Obs_Decisao = obs; grava();
-      cvlHist(o.Status, sessao, o, obs);
+      o.Status = aprova ? 'Aprovado' : 'Recusado'; o.Decidido_Por_Mat = mat; o.Decidido_Por = String(sessao.nome || mat); o.Decidido_Em = agora(); o.Obs_Decisao = obs; o.Assinatura_ID = sg.id;
+      o.Codigo_Validacao = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, [o.ID, mat, o.Status, o.Decidido_Em, sg.id, o.Valor].join('|')).slice(0, 6).map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('').toUpperCase();
+      grava();
+      cvlHist(o.Status, sessao, o, (obs ? obs + ' · ' : '') + 'assinatura ' + sg.id + ' · validação ' + o.Codigo_Validacao);
       return { ok: true, vale: o };
     }
     if (dados.acao === 'vc_cancelar') {
