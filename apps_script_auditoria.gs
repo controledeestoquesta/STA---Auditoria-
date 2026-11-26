@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 87)
+ * Auditoria STA – Santa Therezinha (versão 88)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -731,7 +731,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 87, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 88, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -771,7 +771,7 @@ const PERMISSOES_CONHECIDAS = {
   ce_rtz: 'Acesso a Roteirizacao (pedidos, notas, picos de horario e tempo de geracao do WMS)',
   ce_shl: 'Acesso a Entrada Shelf Life (rotina 8361: validade dos produtos recebidos)',
   vc_sol: 'Central de Vales: solicitar vales para os colaboradores (encarregados e lideres)',
-  vc_apr: 'Central de Vales: aprovar ou recusar vales com assinatura digital (Amauri, Matheus Cardoso, Alexandre Alencar e Wagner Fernandes)',
+  vc_apr: 'Central de Vales: aprovar ou recusar vales com assinatura digital (Amauri, Matheus Cardoso, Alexandre Alencar, Wagner Fernandes e Diego Alves Costa)',
   ce_pcg: 'Acesso a Previa de Cargas (cargas do dia, metas por rota e faturamento)',
   ce_gest: 'Acesso a Gestao Controle de Estoque (chamada, comissao, fechamento, registros, metas, feedback e NC dos auditores)',
   ce_bas: 'Acesso a Bases e planilha',
@@ -1428,7 +1428,7 @@ function obterPasta() {
 /* ===================== Central de Vales =====================
    Encarregados e líderes (vc_sol) solicitam; Amauri, Matheus Cardoso ou Alexandre Alencar (vc_apr) aprovam.
    Uma aprovação basta. Aba Central_Vales (um vale por linha) e Central_Vales_Historico (cada ação). */
-const APROVADORES_VALE = ['10002378', '10002001', '10002081', '10002939'];
+const APROVADORES_VALE = ['10002378', '10002001', '10002081', '10002939', '10002959']; // + Diego Alves Costa
 const EMISSORES_VALE = ['10002874', '10003923']; // Cainã e Jessica (financeiro): confirmam a emissão dos vales // Amauri Felix de Sousa, Matheus Cardoso, Alexandre Gomes de Alencar, Wagner Fernandes
 const ABA_CVL = 'Central_Vales', COLS_CVL = ['ID', 'Data_Solicitacao', 'Solicitante_Mat', 'Solicitante_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Funcao', 'Tipo', 'Valor', 'Parcelas', 'Motivo', 'Status', 'Decidido_Por_Mat', 'Decidido_Por', 'Decidido_Em', 'Obs_Decisao', 'Atualizado_Em', 'Itens', 'Assinatura_ID', 'Codigo_Validacao', 'Emissao_Status', 'Emissao_Por', 'Emissao_Em', 'Vale_Assumido_Mat', 'Vale_Assumido_Por', 'Vale_Assumido_Em'];
 const ABA_CVL_SIG = 'Central_Vales_Assinaturas', COLS_CVL_SIG = ['ID', 'Matricula', 'Nome', 'Assinatura', 'Criada_Em'];
@@ -1502,7 +1502,7 @@ function cvlAcao(dados, sessao) {
     }
     if (o.Status !== 'Pendente') return { ok: false, erro: 'Este vale já foi ' + String(o.Status).toLowerCase() + (o.Decidido_Por ? ' por ' + o.Decidido_Por : '') + '.', vale: o };
     if (dados.acao === 'vc_decidir') {
-      if (!apr) return { ok: false, erro: 'Só Amauri, Matheus Cardoso, Alexandre Alencar ou Wagner Fernandes aprovam vales.' };
+      if (!apr) return { ok: false, erro: 'Só Amauri, Matheus Cardoso, Alexandre Alencar, Wagner Fernandes ou Diego Alves Costa aprovam vales.' };
       const sg = cvlSigAtual(cvlSigs(), mat);
       if (!sg) return { ok: false, semAssinatura: true, erro: 'Crie sua assinatura digital antes de decidir.' };
       if (String(o.Colaborador_Mat) === mat) return { ok: false, erro: 'Você não pode decidir um vale para você mesmo.' };
