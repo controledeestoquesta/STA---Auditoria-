@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 86)
+ * Auditoria STA – Santa Therezinha (versão 87)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -485,7 +485,7 @@ const STATUS_VALE = ['Pendente', 'Emitido', 'Não emitido'];
 const CAMPOS_PP = ['ID_Auditoria', 'Data', 'DataHora', 'Matricula_Seguranca', 'Nome_Seguranca', 'Codigo_Produto', 'Descricao', 'Quantidade', 'Valor',
   'Rua', 'Predio', 'Nivel', 'Apartamento', 'Motivo', 'Matricula_Colaborador', 'Colaborador_Responsavel', 'Funcao_Colaborador',
   'Matricula_Encarregado', 'Encarregado_Setor', 'Assinatura_Encarregado', 'Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em',
-  'Observacao', 'Vl_Unitario', 'Links_Fotos', 'Recebido_Em'];
+  'Observacao', 'Vl_Unitario', 'Links_Fotos', 'Recebido_Em', 'Vale_Assumido_Mat', 'Vale_Assumido_Por', 'Vale_Assumido_Em'];
 const MOTIVOS_CARGA = ['Falta', 'Avaria', 'Abastecimento', 'Sobras', 'Produto trocado', 'Produto próximo ao vencimento'];
 
 /* ===================== Entradas ===================== */
@@ -569,6 +569,10 @@ function doPost(e) {
       const lkr = LockService.getScriptLock(); lkr.waitLock(30000);
       try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
+  if (dados.acao === 'vale_assumir') {
+    const lka = LockService.getScriptLock(); lka.waitLock(30000);
+    try { return resposta(valeAssumir(dados, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); } finally { lka.releaseLock(); }
   }
   if (['vc_listar', 'vc_solicitar', 'vc_decidir', 'vc_cancelar', 'vc_assinatura_salvar', 'vc_emissao'].indexOf(dados.acao) >= 0) {
     try { return resposta(cvlAcao(dados, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
@@ -727,7 +731,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 86, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 87, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1216,12 +1220,45 @@ function statusSac(id, status, nota, sessao) {
 }
 
 /** Confirma (ou não) a emissão do vale de uma ocorrência de Prevenção de Perdas. */
+/** Assumir (ou liberar) um vale para emissão: trava para que só uma pessoa trate o mesmo vale. origem 'pp' (Prevenção) ou 'cvl' (Central). */
+function valeAssumir(dados, sessao) {
+  const mat = String(sessao.matricula), nome = String(sessao.nome || mat), adm = sessao.permissoes.indexOf('aud_adm') >= 0, lib = !!dados.liberar;
+  const pode = adm || sessao.permissoes.indexOf('aud_vale') >= 0 || EMISSORES_VALE.indexOf(mat) >= 0;
+  if (!pode) return { ok: false, erro: 'Só quem emite vales (aud_vale) pode assumir um vale.' };
+  const quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), id = String(dados.id || '');
+  let atual, grava;
+  if (dados.origem === 'cvl') {
+    const T = cvlLer(), i = T.linhas.findIndex(function (l) { return String(l[0]) === id; });
+    if (i < 0) return { ok: false, erro: 'Vale não encontrado.' };
+    const o = T.obj(T.linhas[i]); if (o.Status !== 'Aprovado') return { ok: false, erro: 'Só vales aprovados podem ser assumidos.' };
+    atual = { m: String(o.Vale_Assumido_Mat || ''), n: String(o.Vale_Assumido_Por || ''), e: String(o.Vale_Assumido_Em || '') };
+    grava = function (m, n, e) { o.Vale_Assumido_Mat = m; o.Vale_Assumido_Por = n; o.Vale_Assumido_Em = e; o.Atualizado_Em = quando; T.sh.getRange(i + 2, 1, 1, T.cab.length).setNumberFormat('@').setValues([T.cab.map(function (c) { return o[c] != null ? o[c] : ''; })]); cvlHist(m ? 'Vale assumido para emissão' : 'Vale liberado', sessao, o, ''); };
+  } else {
+    const sh = abrirPlanilha().getSheetByName(ABAS.pp.nome);
+    if (!sh || sh.getLastRow() < 2) return { ok: false, erro: 'Aba ' + ABAS.pp.nome + ' sem registros.' };
+    const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+    ['Vale_Assumido_Mat', 'Vale_Assumido_Por', 'Vale_Assumido_Em'].forEach(function (c) { if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); } });
+    const ids = sh.getRange(2, cab.indexOf('ID_Auditoria') + 1, sh.getLastRow() - 1, 1).getValues().map(function (l) { return String(l[0]); }), k = ids.indexOf(id);
+    if (k < 0) return { ok: false, erro: 'Ocorrência não encontrada na planilha.' };
+    const lin = k + 2, c = function (n) { return sh.getRange(lin, cab.indexOf(n) + 1); };
+    atual = { m: String(c('Vale_Assumido_Mat').getValue() || ''), n: String(c('Vale_Assumido_Por').getValue() || ''), e: String(c('Vale_Assumido_Em').getDisplayValue() || '') };
+    grava = function (m, n, e) { c('Vale_Assumido_Mat').setNumberFormat('@').setValue(m); c('Vale_Assumido_Por').setValue(n); c('Vale_Assumido_Em').setNumberFormat('@').setValue(e); };
+  }
+  if (lib) {
+    if (!atual.m) return { ok: true, assumido: null };
+    if (atual.m !== mat && !adm) return { ok: false, erro: 'Só ' + (atual.n || atual.m) + ' (quem assumiu) pode liberar este vale.', assumido: { mat: atual.m, por: atual.n, em: atual.e } };
+    grava('', '', ''); return { ok: true, assumido: null };
+  }
+  if (atual.m && atual.m !== mat) return { ok: false, erro: 'Este vale já foi assumido por ' + (atual.n || atual.m) + ' em ' + atual.e + '.', assumido: { mat: atual.m, por: atual.n, em: atual.e } };
+  if (atual.m === mat) return { ok: true, assumido: { mat: atual.m, por: atual.n, em: atual.e } };
+  grava(mat, nome, quando); return { ok: true, assumido: { mat: mat, por: nome, em: quando } };
+}
 function confirmarVale(id, status, sessao) {
   if (STATUS_VALE.indexOf(status) < 0) throw new Error('Situação do vale inválida.');
   const sh = abrirPlanilha().getSheetByName(ABAS.pp.nome);
   if (!sh || sh.getLastRow() < 2) throw new Error('Aba ' + ABAS.pp.nome + ' sem registros.');
   const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
-  ['Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em'].forEach(function (c) {
+  ['Status_Vale', 'Vale_Confirmado_Por', 'Vale_Confirmado_Em', 'Vale_Assumido_Mat', 'Vale_Assumido_Por', 'Vale_Assumido_Em'].forEach(function (c) {
     if (cab.indexOf(c) < 0) { sh.getRange(1, cab.length + 1).setValue(c); cab.push(c); }
   });
   const iId = cab.indexOf('ID_Auditoria');
@@ -1229,11 +1266,15 @@ function confirmarVale(id, status, sessao) {
   const k = ids.indexOf(String(id));
   if (k < 0) throw new Error('Ocorrência não encontrada na planilha: ' + id);
   const lin = k + 2, quando = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss');
+  const am = String(sh.getRange(lin, cab.indexOf('Vale_Assumido_Mat') + 1).getValue() || ''), an = String(sh.getRange(lin, cab.indexOf('Vale_Assumido_Por') + 1).getValue() || '');
+  if (am && am !== String(sessao.matricula) && sessao.permissoes.indexOf('aud_adm') < 0) throw new Error('Este vale já foi assumido por ' + (an || am) + '. Só quem assumiu pode alterar.');
+  let ass = null;
+  if (!am) { ass = { mat: String(sessao.matricula), por: String(sessao.nome || sessao.matricula), em: quando }; sh.getRange(lin, cab.indexOf('Vale_Assumido_Mat') + 1, 1, 1).setNumberFormat('@').setValue(ass.mat); sh.getRange(lin, cab.indexOf('Vale_Assumido_Por') + 1).setValue(ass.por); sh.getRange(lin, cab.indexOf('Vale_Assumido_Em') + 1).setNumberFormat('@').setValue(quando); }
   const por = status === 'Pendente' ? '' : (sessao.nome || '') + ' (' + sessao.matricula + ')';
   sh.getRange(lin, cab.indexOf('Status_Vale') + 1).setValue(status);
   sh.getRange(lin, cab.indexOf('Vale_Confirmado_Por') + 1).setValue(por);
   sh.getRange(lin, cab.indexOf('Vale_Confirmado_Em') + 1).setNumberFormat('@').setValue(status === 'Pendente' ? '' : quando);
-  return { ok: true, id: String(id), status: status, por: por, em: status === 'Pendente' ? '' : quando };
+  return { ok: true, id: String(id), status: status, por: por, em: status === 'Pendente' ? '' : quando, assumido: ass };
 }
 
 /* ===================== Rotinas diárias (1707, 8597, 1350, cadastro preventivo, O.S. 51) ===================== */
@@ -1389,7 +1430,7 @@ function obterPasta() {
    Uma aprovação basta. Aba Central_Vales (um vale por linha) e Central_Vales_Historico (cada ação). */
 const APROVADORES_VALE = ['10002378', '10002001', '10002081', '10002939'];
 const EMISSORES_VALE = ['10002874', '10003923']; // Cainã e Jessica (financeiro): confirmam a emissão dos vales // Amauri Felix de Sousa, Matheus Cardoso, Alexandre Gomes de Alencar, Wagner Fernandes
-const ABA_CVL = 'Central_Vales', COLS_CVL = ['ID', 'Data_Solicitacao', 'Solicitante_Mat', 'Solicitante_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Funcao', 'Tipo', 'Valor', 'Parcelas', 'Motivo', 'Status', 'Decidido_Por_Mat', 'Decidido_Por', 'Decidido_Em', 'Obs_Decisao', 'Atualizado_Em', 'Itens', 'Assinatura_ID', 'Codigo_Validacao', 'Emissao_Status', 'Emissao_Por', 'Emissao_Em'];
+const ABA_CVL = 'Central_Vales', COLS_CVL = ['ID', 'Data_Solicitacao', 'Solicitante_Mat', 'Solicitante_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Funcao', 'Tipo', 'Valor', 'Parcelas', 'Motivo', 'Status', 'Decidido_Por_Mat', 'Decidido_Por', 'Decidido_Em', 'Obs_Decisao', 'Atualizado_Em', 'Itens', 'Assinatura_ID', 'Codigo_Validacao', 'Emissao_Status', 'Emissao_Por', 'Emissao_Em', 'Vale_Assumido_Mat', 'Vale_Assumido_Por', 'Vale_Assumido_Em'];
 const ABA_CVL_SIG = 'Central_Vales_Assinaturas', COLS_CVL_SIG = ['ID', 'Matricula', 'Nome', 'Assinatura', 'Criada_Em'];
 function cvlSigs() {
   const A = abaRot(ABA_CVL_SIG, COLS_CVL_SIG), n = A.sh.getLastRow() - 1, ix = function (c) { return A.cab.indexOf(c); };
@@ -1453,6 +1494,8 @@ function cvlAcao(dados, sessao) {
       if (!emi) return { ok: false, erro: 'Só o financeiro (Cainã e Jessica) confirma a emissão do vale.' };
       if (o.Status !== 'Aprovado') return { ok: false, erro: 'Só vales aprovados podem ser emitidos.' };
       const s = String(dados.status || ''); if (['Emitido', 'Não emitido', 'Pendente'].indexOf(s) < 0) return { ok: false, erro: 'Situação de emissão inválida.' };
+      if (o.Vale_Assumido_Mat && String(o.Vale_Assumido_Mat) !== mat && !tem('aud_adm')) return { ok: false, erro: 'Este vale já foi assumido por ' + (o.Vale_Assumido_Por || o.Vale_Assumido_Mat) + '. Só quem assumiu pode alterar.', vale: o };
+      if (!o.Vale_Assumido_Mat) { o.Vale_Assumido_Mat = mat; o.Vale_Assumido_Por = String(sessao.nome || mat); o.Vale_Assumido_Em = agora(); }
       o.Emissao_Status = s === 'Pendente' ? '' : s; o.Emissao_Por = s === 'Pendente' ? '' : String(sessao.nome || mat); o.Emissao_Em = s === 'Pendente' ? '' : agora(); grava();
       cvlHist(s === 'Pendente' ? 'Emissão reaberta' : 'Vale ' + s.toLowerCase(), sessao, o, '');
       return { ok: true, vale: o, status: s, por: o.Emissao_Por, em: o.Emissao_Em };
