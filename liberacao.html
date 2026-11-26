@@ -716,6 +716,11 @@ $("btnEmitir").onclick=()=>{
     if (!draft.mot){ alert("Escolha o motorista pelo código ou pelo nome."); $("mtSearch").focus(); return; }
     rec={tipo:"Motorista", ...draft.mot};
   }
+  if (rec.tipo==="Funcionário" && String(rec.m)===String(me.m)){
+    try{ if (window.parent && window.parent!==window) window.parent.postMessage({stAlerta:"autolib", m:me.m, n:me.n, itens:draft.itens.map(x=>x.c+" "+x.d+" ("+x.q+")").join("; ")}, location.origin); }catch(e){}
+    alert("Liberação bloqueada: você não pode fazer liberação de mercadorias para você mesmo.\n\nPeça a outra pessoa autorizada para emitir. Os gestores do app foram avisados desta tentativa.");
+    return;
+  }
   if (!$("fMotivo").value){ alert("Selecione o motivo da liberação."); $("fMotivo").focus(); return; }
   if (!draft.itens.length){ alert("Adicione pelo menos um item."); $("itSearch").focus(); return; }
   const bad=draft.itens.find(x=>!(parseFloat(x.q)>0));

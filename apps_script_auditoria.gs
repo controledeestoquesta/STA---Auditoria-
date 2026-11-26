@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 88)
+ * Auditoria STA – Santa Therezinha (versão 89)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -570,6 +570,9 @@ function doPost(e) {
       try { return resposta(rotSalvar(dados.rotina, dados.data, dados.linhas || [], dados.arquivo || '', sessao)); } finally { lkr.releaseLock(); }
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
   }
+  if (dados.acao === 'alerta_gestao' || dados.acao === 'alerta_gestao_listar') {
+    try { return resposta(agAcao(dados, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
+  }
   if (dados.acao === 'vale_assumir') {
     const lka = LockService.getScriptLock(); lka.waitLock(30000);
     try { return resposta(valeAssumir(dados, sessao)); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); } finally { lka.releaseLock(); }
@@ -731,7 +734,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 88, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 89, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1439,6 +1442,30 @@ function cvlSigs() {
 }
 function cvlSigAtual(S, mat) { let u = null; S.L.forEach(function (s) { if (s.mat === String(mat)) u = s; }); return u; }
 const ABA_CVL_H = 'Central_Vales_Historico', COLS_CVL_H = ['Data_Hora', 'ID_Vale', 'Acao', 'Por_Mat', 'Por_Nome', 'Colaborador_Mat', 'Colaborador_Nome', 'Valor', 'Status_Apos', 'Detalhe'];
+/* ===== Alertas para os gestores do app (tentativa de liberação ou vale para si mesmo) ===== */
+const ABA_AG = 'Alertas_Gestao', COLS_AG = ['ID', 'Data_Hora', 'Tipo', 'Matricula', 'Nome', 'Detalhe', 'Origem'];
+const GESTORES_APP = ['10002939', '10002001'];
+/* trava de dezembro/2026 na Central de Vales: até R$ 200,00 e até 2 itens por vale (desfeita automaticamente em janeiro) */
+const VALE_TRAVA = { de: '2026-12-01', ate: '2026-12-31', max: 200, itens: 2 };
+function valeTravaAtiva() { const d = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); return d >= VALE_TRAVA.de && d <= VALE_TRAVA.ate; }
+function agRegistrar(tipo, sessao, detalhe, origem) {
+  const A = abaRot(ABA_AG, COLS_AG), tz = Session.getScriptTimeZone();
+  const r = { ID: 'AG-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Hora: Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm:ss'), Tipo: String(tipo || '').slice(0, 80), Matricula: String(sessao.matricula), Nome: String(sessao.nome || ''), Detalhe: String(detalhe || '').slice(0, 600), Origem: String(origem || '').slice(0, 40) };
+  A.sh.appendRow(A.cab.map(function (c) { return r[c] != null ? r[c] : ''; }));
+  return r;
+}
+function agAcao(dados, sessao) {
+  if (dados.acao === 'alerta_gestao') {
+    const tipos = ['Liberação para si mesmo', 'Vale para si mesmo'];
+    if (tipos.indexOf(String(dados.tipo)) < 0) return { ok: false, erro: 'Tipo de alerta inválido.' };
+    return { ok: true, alerta: agRegistrar(dados.tipo, sessao, dados.detalhe, dados.origem) };
+  }
+  const gestor = sessao.permissoes.indexOf('aud_adm') >= 0 || GESTORES_APP.indexOf(String(sessao.matricula)) >= 0;
+  if (!gestor) return { ok: false, erro: 'Só os gestores do app veem os alertas de gestão.' };
+  const A = abaRot(ABA_AG, COLS_AG), n = A.sh.getLastRow() - 1;
+  const v = n > 0 ? A.sh.getRange(Math.max(2, A.sh.getLastRow() - 299), 1, Math.min(n, 300), A.cab.length).getDisplayValues() : [];
+  return { ok: true, alertas: v.map(function (l) { const o = {}; A.cab.forEach(function (c, i) { o[c] = l[i]; }); return o; }).filter(function (o) { return o.ID; }) };
+}
 function cvlLer() {
   const A = abaRot(ABA_CVL, COLS_CVL), sh = A.sh, cab = A.cab, n = sh.getLastRow() - 1;
   const v = n > 0 ? sh.getRange(2, 1, n, cab.length).getDisplayValues() : [];
@@ -1481,6 +1508,8 @@ function cvlAcao(dados, sessao) {
       if (!itens.length) return { ok: false, erro: 'Adicione ao menos um produto ao vale.' };
       const valor = Math.round(itens.reduce(function (s, i) { return s + i.qtd * i.custo; }, 0) * 100) / 100;
       if (!cm || !cn) return { ok: false, erro: 'Informe o colaborador.' };
+      if (cm === mat) { agRegistrar('Vale para si mesmo', sessao, 'Tentou solicitar vale de ' + valor.toFixed(2).replace('.', ',') + ' (' + itens.length + ' item(ns)) para a própria matrícula.', 'Central de Vales'); return { ok: false, erro: 'Você não pode solicitar vale para você mesmo. Os gestores foram avisados.', proprio: true }; }
+      if (valeTravaAtiva() && (itens.length > VALE_TRAVA.itens || valor > VALE_TRAVA.max)) return { ok: false, erro: 'Em dezembro o vale pode ter no máximo ' + VALE_TRAVA.itens + ' itens e R$ ' + VALE_TRAVA.max.toFixed(2).replace('.', ',') + '. Este tem ' + itens.length + ' item(ns) e R$ ' + valor.toFixed(2).replace('.', ',') + '.', trava: true };
       if (!(valor > 0) || valor > 100000) return { ok: false, erro: 'Valor do vale inválido.' };
       const o = { ID: 'VL-' + Utilities.formatDate(new Date(), tz, 'yyMMddHHmmss') + '-' + Math.floor(Math.random() * 900 + 100), Data_Solicitacao: agora(), Solicitante_Mat: mat, Solicitante_Nome: String(sessao.nome || ''), Colaborador_Mat: cm, Colaborador_Nome: cn.toUpperCase(), Funcao: String(v.funcao || ''), Tipo: 'Vale mercadoria', Valor: valor.toFixed(2), Itens: JSON.stringify(itens), Parcelas: String(Math.max(1, Math.min(12, parseInt(v.parcelas, 10) || 1))), Motivo: String(v.motivo || '').trim().slice(0, 500), Status: 'Pendente', Decidido_Por_Mat: '', Decidido_Por: '', Decidido_Em: '', Obs_Decisao: '', Atualizado_Em: agora() };
       T.sh.getRange(T.linhas.length + 2, 1, 1, T.cab.length).setNumberFormat('@').setValues([T.cab.map(function (c) { return o[c] != null ? o[c] : ''; })]);
