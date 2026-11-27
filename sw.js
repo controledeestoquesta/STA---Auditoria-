@@ -1,11 +1,11 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v216';
+const VERSION = 'sta-v217';
 /* arquivos que mudam a cada versão (pequenos) */
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png', './cesta.html', './liberacao.html', './devolucoes.html'];
 /* arquivos estáticos e pesados (bibliotecas e bases fixas): baixados uma única vez e mantidos entre as versões.
    Para trocar um deles, mude o nome do arquivo (ex.: base-v2.js) ou a STATIC abaixo. */
 const STATIC = 'sta-static-1';
-const FIXOS = ['./base-v1.js', './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './lib/chart.umd.min.js', './lib/three.min.js'];
+const FIXOS = ['./base-v2.js', './lib/html2canvas.min.js', './lib/jspdf.umd.min.js', './lib/xlsx.full.min.js', './lib/chart.umd.min.js', './lib/three.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {

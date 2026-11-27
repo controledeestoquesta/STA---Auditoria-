@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 91)
+ * Auditoria STA – Santa Therezinha (versão 92)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -734,7 +734,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 91, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 92, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -1542,7 +1542,7 @@ function cvlAcao(dados, sessao) {
     if (dados.acao === 'vc_solicitar') {
       if (!sol) return { ok: false, erro: 'Sem permissão para solicitar vales (vc_sol).' };
       const v = dados.vale || {}, cm = String(v.colMat || '').replace(/\D/g, ''), cn = String(v.colNome || '').trim();
-      const itens = (Array.isArray(v.itens) ? v.itens : []).slice(0, 80).map(function (i) { return { cod: String(i.cod || '').slice(0, 20), desc: String(i.desc || '').slice(0, 120), qtd: Math.round(Number(i.qtd) * 1000) / 1000, custo: Math.round(Number(i.custo) * 10000) / 10000 }; }).filter(function (i) { return i.cod && i.qtd > 0 && i.custo >= 0; });
+      const itens = (Array.isArray(v.itens) ? v.itens : []).slice(0, 80).map(function (i) { return { cod: String(i.cod || '').slice(0, 20), desc: String(i.desc || '').slice(0, 120), qtd: Math.round(Number(i.qtd) * 1000) / 1000, custo: Math.round(Number(i.custo) * 10000) / 10000, un: String(i.un || '').replace(/[^A-Za-z]/g, '').slice(0, 4).toUpperCase() }; }).filter(function (i) { return i.cod && i.qtd > 0 && i.custo >= 0; });
       if (!itens.length) return { ok: false, erro: 'Adicione ao menos um produto ao vale.' };
       const valor = Math.round(itens.reduce(function (s, i) { return s + i.qtd * i.custo; }, 0) * 100) / 100;
       if (!cm || !cn) return { ok: false, erro: 'Informe o colaborador.' };
