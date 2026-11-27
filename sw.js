@@ -1,5 +1,5 @@
 /* Auditoria de Ruas – Santa Therezinha: funcionamento offline */
-const VERSION = 'sta-v218';
+const VERSION = 'sta-v219';
 /* arquivos que mudam a cada versão (pequenos) */
 const CORE = ['./', './index.html', './style.css', './script.js', './manifest.json', './icon-192.png', './icon-512.png', './cesta.html', './liberacao.html', './devolucoes.html'];
 /* arquivos estáticos e pesados (bibliotecas e bases fixas): baixados uma única vez e mantidos entre as versões.

@@ -204,6 +204,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
   main{padding:20px 14px 50px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+html.embed #btnSair{display:none}#lgPortal .btn-block{display:flex;justify-content:center;text-decoration:none;margin-top:14px}
 </style>
 </head>
 <body>
@@ -215,7 +216,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
     <p>Liberação de mercadorias com registro de quem emitiu, quem recebeu e o que saiu do estoque.</p>
   </div>
   <div class="login-form-wrap">
-    <form class="login-form" id="loginForm" autocomplete="off" novalidate>
+    <div class="login-form" id="lgPortal">
+      <h1>Entre pelo portal</h1>
+      <p class="sub" id="lgPortalMsg">A Liberação de mercadorias usa o mesmo login do portal (matrícula e senha do Permissionamento).</p>
+      <a class="btn btn-primary btn-block" id="lgPortalBtn" href="./" target="_top">Ir para o login do portal</a>
+      <p class="hint">Depois de entrar no portal, abra Controle de Estoque → Liberação de mercadorias, ou volte a esta página.</p>
+    </div>
+    <form class="login-form hidden" id="loginForm" autocomplete="off" novalidate>
       <h1>Entrar</h1>
       <p class="sub">Use sua matrícula do quadro de funcionários.</p>
       <div class="field">
@@ -573,6 +580,7 @@ function enterApp(m){
 }
 function logout(){
   try{ localStorage.removeItem(K_SESS); }catch(e){}
+  if (!document.documentElement.classList.contains("embed")) { location.href="./"; return; }
   me=null;
   $("app").classList.add("hidden");
   $("login").classList.remove("hidden");
@@ -1001,17 +1009,22 @@ function renderCad(){
 /* ---------- início ---------- */
 setTipo("Funcionário");
 renderItens();
-const sess=store.get(K_SESS,null);
-const usersInit=store.get(K_USERS,{});
-if (sess && staffMap.has(sess.m) && usersInit[sess.m]) enterApp(sess.m);
-else { $("login").classList.remove("hidden"); }
+/* login único: usa a sessão do portal (Permissionamento). Sem login no portal, pede para entrar por lá. */
+const LIB_PERMS=["aud_lib","ce_est","aud_adm","ce_gest"];
+function portalLogin(){ try{ const l=JSON.parse(localStorage.getItem("audcd_login")||"null"); return l&&!l.demo&&l.mat?l:null; }catch(e){ return null; } }
+function libPortalTela(msg){ me=null; $("app").classList.add("hidden"); $("login").classList.remove("hidden"); if(msg) $("lgPortalMsg").textContent=msg; }
+function libStaff(m,nome){ m=String(m||"").trim(); if(!m) return false; if(!staffMap.has(m)) staffMap.set(m,{m, n:String(nome||m).toUpperCase(), f:""}); return true; }
+function libEntrarComo(m,nome){ if(!libStaff(m,nome)) return false; const users=store.get(K_USERS,{}); if(!users[m]){ users[m]={salt:"",hash:"",criado:new Date().toISOString(),sig:null,sso:true}; store.set(K_USERS,users); } store.set(K_SESS,{m, em:new Date().toISOString()}); enterApp(m); return true; }
+function portalEntrar(){ const l=portalLogin(); if(!l){ libPortalTela(); return; }
+  if(!LIB_PERMS.some(p=>(l.perms||[]).includes(p))){ libPortalTela("Seu login ("+l.mat+") não tem acesso à Liberação de mercadorias. Peça ao administrador para liberar no Permissionamento."); return; }
+  if(!(me&&me.m===String(l.mat))) libEntrarComo(String(l.mat), l.nome); }
+portalEntrar();
+window.addEventListener("storage", e=>{ if(e.key==="audcd_login"){ const l=portalLogin(); if(!l||!(me&&me.m===String(l.mat))) portalEntrar(); } });
 </script>
 <script>
 /* integração com o app de auditoria (aba Controle de Estoque → Liberação): entra com o mesmo login do app */
 (function(){var emb=false;try{emb=window.self!==window.top;}catch(e){emb=true;}if(emb)document.documentElement.classList.add('embed');
-  window.ssoEntrar=function(m,nome){try{m=String(m||'').trim();if(!m||!staffMap.has(m))return false;if(me&&me.m===m)return true;
-      var users=store.get(K_USERS,{});if(!users[m]){users[m]={salt:'',hash:'',criado:new Date().toISOString(),sig:null,sso:true};store.set(K_USERS,users);}
-      store.set(K_SESS,{m:m,em:new Date().toISOString()});enterApp(m);return true;}catch(e){return false;}};
+  window.ssoEntrar=function(m,nome){try{m=String(m||'').trim();if(!m)return false;if(me&&me.m===m)return true;return libEntrarComo(m,nome);}catch(e){return false;}};
 })();
 </script>
 </body>
