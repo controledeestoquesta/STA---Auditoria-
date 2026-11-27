@@ -276,6 +276,9 @@
   <section class="view" id="v-shl" hidden>
     <div id="shl"></div>
   </section>
+  <section class="view" id="v-inv" hidden>
+    <div id="inv"></div>
+  </section>
   <section class="view" id="v-lib" hidden>
     <div class="block cb-bar">
       <div class="cb-txt"><b>Liberação de mercadorias</b><small id="pinfo-lib">Entra com o mesmo login do app. Liberações, cadastros e assinaturas ficam online para todos que têm acesso.</small></div>
@@ -580,6 +583,13 @@
       <p class="okline" id="bcb-msg"></p>
     </div>
     <div class="block">
+      <h3>Inventário – ajustes de inventário</h3>
+      <div class="bstat"><span id="binv-src">Nenhum arquivo importado</span><span><b id="binv-n">0</b> lançamentos</span></div>
+      <label class="filebtn" style="width:100%">Importar planilha de inventário (.xlsx)<input type="file" id="binv-file" accept=".xlsx,.xls,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+      <p class="hint">Colunas lidas: Código, Descrição, Operação (Entrada/Saída), Data Inventário, Quantidade, Vlr. de Ajuste e Departamento. Ao importar você escolhe <b>Substituir</b> a base ou <b>Somar</b> aos dados atuais (lançamentos repetidos são ignorados). A base é publicada para o setor de inventário.</p>
+      <p class="okline" id="binv-msg"></p>
+    </div>
+    <div class="block">
       <h3>Base de funcionários (Quadro)</h3>
       <div class="bstat"><span id="bq-src">Base original</span><span><b id="bq-n">0</b> colaboradores</span></div>
       <label class="filebtn" style="width:100%">Importar quadro de funcionários (.xls ou .xlsx)<input type="file" id="bq-file" accept=".xlsx,.xls,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
@@ -633,6 +643,7 @@
   <button type="button" data-v="rtz" hidden>Roteirização</button>
   <button type="button" data-v="pcg" hidden>Prévia de Cargas</button>
   <button type="button" data-v="shl" hidden>Entrada Shelf Life</button>
+  <button type="button" data-v="inv" hidden>Inventário</button>
   <button type="button" data-v="dev" hidden>Devoluções</button>
   <button type="button" data-v="noticias" hidden>Notícias</button>
   <button type="button" data-v="vales" hidden>Vales</button>

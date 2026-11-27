@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 89)
+ * Auditoria STA – Santa Therezinha (versão 90)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -586,8 +586,8 @@ function doPost(e) {
     try { const rr = pcgRegSalvar(dados.itens, sessao); if (Array.isArray(dados.mot)) rr.motoristas = pcgMotSalvar(dados.mot); return resposta(rr); } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); } finally { lkr.releaseLock(); }
   }
   if (dados.acao === 'painel_ler' || dados.acao === 'painel_salvar' || dados.acao === 'painel_ver') {
-    const permP = { cesta: 'aud_ces', cesta2: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl', pcg: 'ce_pcg', cv: 'ce_bas' }[dados.painel] || 'aud_com';
-    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).concat(dados.painel === 'pcg' ? ['ce_gest', 'ce_rtz'] : []).concat(dados.painel === 'cv' ? ['ce_gest', 'ce_est'] : []).concat(dados.painel === 'cesta2' ? ['ce_bas', 'ce_gest'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
+    const permP = { cesta: 'aud_ces', cesta2: 'aud_ces', fat: 'aud_fat', lib: 'aud_lib', dev: 'aud_dev', rtz72: 'ce_rtz', rtz68: 'ce_rtz', shl8361: 'ce_shl', shlval: 'ce_shl', inv: 'ce_inv', pcg: 'ce_pcg', cv: 'ce_bas' }[dados.painel] || 'aud_com';
+    const okP = ['aud_adm', 'aud_com', permP].concat(dados.painel === 'lib' ? ['ce_est'] : []).concat(/^rtz/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest'] : []).concat(/^shl/.test(String(dados.painel)) ? ['ce_bas', 'ce_gest', 'ce_est'] : []).concat(dados.painel === 'pcg' ? ['ce_gest', 'ce_rtz'] : []).concat(dados.painel === 'cv' ? ['ce_gest', 'ce_est'] : []).concat(dados.painel === 'cesta2' ? ['ce_bas', 'ce_gest'] : []).concat(dados.painel === 'inv' ? ['ce_bas', 'ce_gest', 'ce_est'] : []).some(function (x) { return sessao.permissoes.indexOf(x) >= 0; });
     const pubP = dados.acao !== 'painel_salvar' && ['cv', 'rtz72', 'rtz68', 'pcg', 'shl8361', 'shlval'].indexOf(String(dados.painel)) >= 0; // acompanhamento aberto a todos os logados
     if (!okP && !pubP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
@@ -734,7 +734,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 89, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 90, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
