@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 90)
+ * Auditoria STA – Santa Therezinha (versão 91)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -591,7 +591,7 @@ function doPost(e) {
     const pubP = dados.acao !== 'painel_salvar' && ['cv', 'rtz72', 'rtz68', 'pcg', 'shl8361', 'shlval'].indexOf(String(dados.painel)) >= 0; // acompanhamento aberto a todos os logados
     if (!okP && !pubP) return resposta({ ok: false, erro: 'Sem permissão para este painel (' + permP + ').' });
     if (dados.acao === 'painel_ler') return resposta(painelLer(dados.painel));
-    if (dados.acao === 'painel_ver') { const pv = painelLer(dados.painel); return resposta({ ok: true, versao: pv.versao, em: pv.em, por: pv.por }); }
+    if (dados.acao === 'painel_ver') return resposta(painelVer(dados.painel));
     const lkp = LockService.getScriptLock(); lkp.waitLock(30000);
     try { return resposta(painelSalvar(dados.painel, dados.dados, sessao)); }
     catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
@@ -648,8 +648,8 @@ function doPost(e) {
     const lk = LockService.getScriptLock(); lk.waitLock(30000);
     try {
       if (dados.acao === 'admin_listar') return resposta(adminListar());
-      if (dados.acao === 'admin_salvar') return resposta(adminSalvar(dados, sessao));
-      if (dados.acao === 'admin_excluir') return resposta(adminExcluir(dados.aba, dados.id));
+      if (dados.acao === 'admin_salvar') { const ra = adminSalvar(dados, sessao); permInvalidar(); return resposta(ra); }
+      if (dados.acao === 'admin_excluir') { const rx = adminExcluir(dados.aba, dados.id); permInvalidar(); return resposta(rx); }
       return resposta({ ok: false, erro: 'Ação desconhecida.' });
     } catch (err) { return resposta({ ok: false, erro: String(err.message || err) }); }
     finally { lk.releaseLock(); }
@@ -734,7 +734,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 90, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 91, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -862,10 +862,16 @@ function validarToken(token) {
   const base = t[0] + '.' + t[1];
   if (assinar(base) !== t[2]) return { ok: false, erro: 'Login inválido. Entre novamente.' };
   if (Date.now() - Number(t[1]) > VALIDADE_LOGIN_DIAS * 864e5) return { ok: false, erro: 'Login expirado. Entre novamente.' };
+  /* sessão em cache por 10 min: evita ler as abas de permissão e do quadro a cada chamada (troca no Admin invalida na hora) */
+  const cache = CacheService.getScriptCache(), pv = cache.get('perm_ver') || '0', ck = 'ses_' + t[2].slice(0, 60) + '_' + pv;
+  try { const c = cache.get(ck); if (c) { const o = JSON.parse(c); if (o && o.matricula === t[0]) return o; } } catch (e) { }
   const u = lerPermissoes()[t[0]];
   if (!u || !u.permissoes.length) return { ok: false, erro: 'Matrícula sem permissão na aba Permissionamento.' };
-  return { ok: true, matricula: t[0], nome: nomeDaMatricula(t[0]), permissoes: u.permissoes };
+  const s = { ok: true, matricula: t[0], nome: nomeDaMatricula(t[0]), permissoes: u.permissoes };
+  try { cache.put(ck, JSON.stringify(s), 600); } catch (e) { }
+  return s;
 }
+function permInvalidar() { try { CacheService.getScriptCache().put('perm_ver', String(Date.now()), 21600); } catch (e) { } }
 
 function nomeDaMatricula(mat) {
   try {
@@ -1396,24 +1402,56 @@ function criarAbasRotinas() { Object.keys(ROTINAS).forEach(function (k) { abaRot
 
 /* ===================== Painéis compartilhados (cesta, faturamento, liberação, devoluções) ===================== */
 const PASTA_PAINEIS = 'Auditoria_Paineis';
-function pastaPaineis() { const it = DriveApp.getFoldersByName(PASTA_PAINEIS); return it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_PAINEIS); }
+function pastaPaineis() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('PASTA_PAINEIS_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { } }
+  const it = DriveApp.getFoldersByName(PASTA_PAINEIS), f = it.hasNext() ? it.next() : DriveApp.createFolder(PASTA_PAINEIS);
+  try { pr.setProperty('PASTA_PAINEIS_ID', f.getId()); } catch (e) { }
+  return f;
+}
 function arqPainel(nome, criar) {
   if (!/^[a-z0-9_-]{2,30}$/.test(String(nome))) throw new Error('Painel inválido.');
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('PF_' + nome);
+  if (id) { try { const ff = DriveApp.getFileById(id); if (!ff.isTrashed()) return ff; } catch (e) { } }
   const pasta = pastaPaineis(), it = pasta.getFilesByName('painel_' + nome + '.json');
-  if (it.hasNext()) return it.next();
-  return criar ? pasta.createFile('painel_' + nome + '.json', '{}', MimeType.PLAIN_TEXT) : null;
+  const f = it.hasNext() ? it.next() : (criar ? pasta.createFile('painel_' + nome + '.json', '{}', MimeType.PLAIN_TEXT) : null);
+  if (f) { try { pr.setProperty('PF_' + nome, f.getId()); } catch (e) { } }
+  return f;
+}
+/* conteúdo do painel no cache (partes de 90 mil caracteres, 6 h): quem abre depois não espera o Drive */
+function painelCachePor(nome, versao, txt) {
+  try { const c = CacheService.getScriptCache(), n = Math.ceil(txt.length / 90000), o = {}; if (n > 60) return;
+    for (let i = 0; i < n; i++) o['pd_' + nome + '_' + versao + '_' + i] = txt.slice(i * 90000, (i + 1) * 90000);
+    o['pd_' + nome + '_' + versao + '_n'] = String(n); c.putAll(o, 21600); } catch (e) { }
+}
+function painelCacheLer(nome, versao) {
+  try { const c = CacheService.getScriptCache(), n = +c.get('pd_' + nome + '_' + versao + '_n'); if (!n) return null;
+    const ks = []; for (let i = 0; i < n; i++) ks.push('pd_' + nome + '_' + versao + '_' + i);
+    const v = c.getAll(ks); let t = ''; for (let i = 0; i < n; i++) { if (v[ks[i]] == null) return null; t += v[ks[i]]; } return t; } catch (e) { return null; }
+}
+function painelVer(nome) {
+  const p = PropertiesService.getScriptProperties().getProperty('PV_' + nome);
+  if (p) { try { const o = JSON.parse(p); return { ok: true, versao: o.versao || 0, em: o.em || '', por: o.por || '' }; } catch (e) { } }
+  const pv = painelLer(nome); return { ok: true, versao: pv.versao, em: pv.em, por: pv.por };
 }
 function painelLer(nome) {
+  const p = PropertiesService.getScriptProperties().getProperty('PV_' + nome);
+  if (p) { try { const m = JSON.parse(p), t = painelCacheLer(nome, m.versao); if (t) { const o = JSON.parse(t); return { ok: true, versao: o.versao || 0, por: o.por || '', em: o.em || '', dados: o.dados || null }; } } catch (e) { } }
   const f = arqPainel(nome, false);
   if (!f) return { ok: true, versao: 0, dados: null };
-  let o = {}; try { o = JSON.parse(f.getBlob().getDataAsString('UTF-8') || '{}'); } catch (e) { o = {}; }
+  const txt = f.getBlob().getDataAsString('UTF-8') || '{}';
+  let o = {}; try { o = JSON.parse(txt); } catch (e) { o = {}; }
+  if (o.versao) { try { PropertiesService.getScriptProperties().setProperty('PV_' + nome, JSON.stringify({ versao: o.versao, em: o.em || '', por: o.por || '' })); } catch (e) { } painelCachePor(nome, o.versao, txt); }
   return { ok: true, versao: o.versao || 0, por: o.por || '', em: o.em || '', dados: o.dados || null };
 }
 function painelSalvar(nome, dados, sessao) {
   if (!dados || typeof dados !== 'object') throw new Error('Sem dados para salvar.');
   const f = arqPainel(nome, true), versao = Date.now();
   const em = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'), por = (sessao.nome || '') + ' (' + sessao.matricula + ')';
-  f.setContent(JSON.stringify({ versao: versao, em: em, por: por, dados: dados }));
+  const txt = JSON.stringify({ versao: versao, em: em, por: por, dados: dados });
+  f.setContent(txt);
+  try { PropertiesService.getScriptProperties().setProperty('PV_' + nome, JSON.stringify({ versao: versao, em: em, por: por })); } catch (e) { }
+  painelCachePor(nome, versao, txt);
   return { ok: true, versao: versao, em: em, por: por };
 }
 
