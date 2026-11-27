@@ -21,8 +21,10 @@ const C={mat:[],nome:[],fun:[],n:[]}, cIdx=new Map();
 function addC(m,n,f){m=String(m||"").trim();if(!m)return -1;if(cIdx.has(m)){const i=cIdx.get(m);if(n){C.nome[i]=n;C.n[i]=norm(n);}if(f&&(!C.fun[i]||!/ROTINA/.test(f)))C.fun[i]=f;return i;}
   const i=C.mat.length;C.mat.push(m);C.nome.push(n||"");C.fun.push(f||"");C.n.push(norm(n||""));cIdx.set(m,i);return i;}
 function loadC(txt){C.mat.length=C.nome.length=C.fun.length=C.n.length=0;cIdx.clear();txt.split("\n").forEach(l=>{if(!l)return;const [m,n,f]=l.split("\t");addC(m,n,f);});}
-function aplicarExtras(){try{(JSON.parse(localStorage.getItem("audcd_colab_extra")||"[]")).forEach(x=>addC(x.m,x.n,x.f));}catch(e){}}
-loadC(RAW.c);
+/* matrículas fora do quadro importado (fixas): 10002001 é o mesmo Mateus Cardoso Pereira da 10002848 */
+const QUADRO_FIXO=[["10002001","MATEUS CARDOSO PEREIRA","SUB ENCARREGADO DE LOGISTICA"]];
+function aplicarExtras(){QUADRO_FIXO.forEach(x=>addC(x[0],x[1],x[2]));try{(JSON.parse(localStorage.getItem("audcd_colab_extra")||"[]")).forEach(x=>addC(x.m,x.n,x.f));}catch(e){}}
+loadC(RAW.c);aplicarExtras();
 const RAW_COD=new Set(P.cod);
 /* unidade de venda do item (286, coluna T "Unidade") */
 const UN_BASE=new Map(String(window.STA_UN||"").split("\n").filter(Boolean).map(l=>l.split("\t")));
@@ -4376,7 +4378,7 @@ const APP_NOME={noticias:"Notícias",entret:"Entretenimento",ruas:"Auditoria de 
 (function(){if(!document.documentElement.classList.contains("mob"))return;const nav=document.querySelector("nav");if(!nav)return;
   const GR=[["Lançamentos de auditoria",["ruas","retorno","cnt","spk","vla","chep","cargas","aero","procura"]],["Solicitações internas",["adega","sac","pp","vales","cvl","sol"]],["Controle de Estoque",["rot","lib","curva","curvaa","shl"]],["Transportes",["rtz","pcg"]],["Inventário",["inv"]],["Cesta básica",["cesta"]],["Setores",["dev"]],["Gestão Controle de Estoque",["metas","desemp","feedback","ncaud","ocio","cha","com","fechamento","registros","painel"]],["Informação",["inicio","noticias"]],["Sistema",["bases","admin"]]];
   const mb=document.createElement("button");mb.type="button";mb.className="mn-btn";mb.setAttribute("aria-label","Todas as abas");mb.innerHTML='<span class="mn-ic">☰</span><span>Menu</span>';nav.prepend(mb);
-  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v219</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
+  const sh=document.createElement("div");sh.className="mn-sheet";sh.hidden=true;sh.innerHTML='<div class="mn-bg"></div><div class="mn-box" role="dialog" aria-label="Todas as abas"><div class="mn-h"><b>Todas as abas <small style="font-weight:500;color:var(--muted)">· app v220</small></b><button type="button" class="mn-x" aria-label="Fechar">×</button></div><div class="mn-list"></div></div>';document.body.appendChild(sh);
   const fecha=()=>{sh.hidden=true;};sh.querySelector(".mn-bg").onclick=fecha;sh.querySelector(".mn-x").onclick=fecha;
   mb.onclick=()=>{const L=sh.querySelector(".mn-list"),vis=v=>{const b=nav.querySelector('button[data-v="'+v+'"]');return b&&!b.hidden?b:null;};
     L.innerHTML=GR.map(([t,vs])=>{const bs=vs.map(v=>[v,vis(v)]).filter(x=>x[1]);if(!bs.length)return "";return '<div class="mn-g"><div class="mn-gt">'+t+'</div>'+bs.map(([v,b])=>'<button type="button" data-mv="'+v+'"'+(b.getAttribute("aria-current")==="page"?' class="on"':'')+'>'+esc((BAND[v]&&BAND[v][0])||b.textContent.trim())+'</button>').join("")+'</div>';}).join("");
@@ -4464,7 +4466,7 @@ setInterval(async()=>{if(document.hidden||!CE.cfg||CE.busy)return;const v=["cha"
     const body=document.createElement("div");body.className="dk-gb";body.id="dk-gb-"+id;vs.forEach(v=>{if(btn[v])body.appendChild(btn[v]);});g.appendChild(body);nav.appendChild(g);
     if(col){const h=g.querySelector(".dk-col");if(!aberto)body.hidden=true;h.onclick=()=>{const ab=body.hidden;body.hidden=!ab;h.setAttribute("aria-expanded",String(ab));try{localStorage.setItem("audcd_dk_lanc",ab?"1":"0");}catch(e){}};}});
   Object.values(btn).forEach(b=>{if(!b.closest(".dk-g"))$("dk-gb-gest").appendChild(b);});
-  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v219</small></div>');
+  nav.insertAdjacentHTML("beforeend",'<div class="dk-foot"><button type="button" class="dk-mob">Usar versão mobile</button><small>Versão desktop · Santa Therezinha · app v220</small></div>');
   nav.querySelector(".dk-mob").onclick=()=>setModo("mobile");
   /* usuário logado + sair: fixo no rodapé da barra lateral */
   nav.insertAdjacentHTML("beforeend",'<div class="dk-user"><div class="dk-u-id" id="dk-u-id" role="button" tabindex="0" title="Minha conta"><i class="dk-av" id="dk-av"></i><div class="dk-u-tx"><b id="dk-u-n">Identificar auditor</b><span id="dk-u-m"></span></div></div><button type="button" class="dk-out" id="dk-out" title="Sair da conta" aria-label="Sair da conta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></button></div>');

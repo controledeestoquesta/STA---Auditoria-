@@ -1,5 +1,5 @@
 /**
- * Auditoria STA – Santa Therezinha (versão 92)
+ * Auditoria STA – Santa Therezinha (versão 93)
  * Recebe os lançamentos do aplicativo e grava na planilha:
  *   - Auditoria_Ruas     (permissão aud_rua)
  *   - Auditoria_Retorno  (permissão aud_ret)
@@ -734,7 +734,7 @@ function doGet(e) {
       if (!s.ok) return resposta({ ok: false, erro: s.erro, login: true });
       return listarRegistros(ss);
     }
-    return resposta({ ok: true, servico: 'Auditoria STA', versao: 92, planilha: ss.getName() });
+    return resposta({ ok: true, servico: 'Auditoria STA', versao: 93, planilha: ss.getName() });
   } catch (err) {
     return resposta({ ok: false, erro: 'Sem acesso à planilha: ' + err });
   }
@@ -873,7 +873,10 @@ function validarToken(token) {
 }
 function permInvalidar() { try { CacheService.getScriptCache().put('perm_ver', String(Date.now()), 21600); } catch (e) { } }
 
+/* matrículas fora do quadro (fixas) */
+const QUADRO_FIXO = { '10002001': 'MATEUS CARDOSO PEREIRA' };
 function nomeDaMatricula(mat) {
+  if (QUADRO_FIXO[String(mat)]) return QUADRO_FIXO[String(mat)];
   try {
     const sh = abrirPlanilha().getSheetByName(ABA_QUADRO);
     if (!sh || sh.getLastRow() < 2) return '';
